@@ -1,0 +1,41 @@
+{
+  "name": "QuickText",
+  "id": "1365014672422582628",
+  "api": "1.0.0",
+  "main": "code.js",
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  },
+  "editorType": [
+    "figma"
+  ],
+  "ui": "ui.html",
+  "menu": [
+    {
+      "name": "TitleCase",
+      "command": "titlecase"
+    },
+    {
+      "name": "Sentencecase",
+      "command": "sentencecase"
+    },
+    {
+      "name": "UPPERCASE",
+      "command": "uppercase"
+    },
+    {
+      "name": "lowercase",
+      "command": "lowercase"
+    },
+    {
+      "name": "Add Breaklines",
+      "command": "addbreakline"
+    },
+    {
+      "name": "Remove Breaklines & Space",
+      "command": "rmvspace"
+    }
+  ]
+}

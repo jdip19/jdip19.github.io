@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.90.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "firebase": "^10.7.2",
+    "puppeteer": "^23.2.0"
+  }
+}

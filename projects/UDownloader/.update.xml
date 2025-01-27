@@ -1,0 +1,5 @@
+<gupdate xmlns="http://www.google.com/update2/crx">
+    <app appid="your-extension-id">
+        <updatecheck codebase="https://your-github-repo/path-to-updated.crx" version="1.1.0" />
+    </app>
+</gupdate>

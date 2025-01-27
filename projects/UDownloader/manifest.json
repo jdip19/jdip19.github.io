@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "UDownloader",
+  "version": "1.0",
+  "description": "A browser extension to copy or download png icons with shoutcut and contetxt menu. 2.0",
+  "permissions": [
+    "downloads",
+    "activeTab",
+    "contextMenus",
+    "cookies",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ],
+  "commands": {
+    "copy_svg": {
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Copy SVG code to clipboard"
+    },
+    "download_svg": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Download SVG file"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

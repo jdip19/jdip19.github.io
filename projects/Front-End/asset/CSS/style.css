@@ -1,0 +1,64 @@
+@font-face {
+    font-family: 'Courier';
+    src: url('Font/cour.ttf') format('truetype');
+}
+
+/* body {
+    font-family: Courier, monospace;
+    font-size: 16px;
+    text-transform: uppercase;
+    margin: 64px 64px;
+} */
+
+.heading {
+    font-size: 20px;
+}
+
+div {
+    display: flex;
+}
+
+.tbl-head {
+    border-top: 1px solid;
+    border-bottom: 1px solid;
+}
+
+.tbl-head div {
+    width: 6%;
+    text-align: center;
+    justify-content: center;
+}
+
+.tbl-head :nth-child(1),
+.tbl-head :nth-child(2) {
+    width: 2%;
+}
+
+.tbl-head :nth-child(3) {
+    width: 15%;
+}
+
+.main.row {
+    margin-top: 8px;
+}
+
+.tbl-row div {
+    width: 6%;
+    text-align: center;
+    justify-content: center;
+}
+
+.tbl-row div {
+    width: 6%;
+    text-align: center;
+    justify-content: center;
+}
+
+.tbl-row :nth-child(3) {
+    width: 15%;
+}
+
+.tbl-row :nth-child(1),
+.tbl-row :nth-child(2) {
+    width: 2%;
+}

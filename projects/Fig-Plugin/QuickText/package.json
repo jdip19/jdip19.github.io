@@ -1,0 +1,16 @@
+{
+  "name": "QuickText",
+  "version": "1.0.0",
+  "description": "To Change Text Quickly",
+  "main": "code.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "npm run build -- --watch"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.105.0",
+    "typescript": "*"
+  }
+}

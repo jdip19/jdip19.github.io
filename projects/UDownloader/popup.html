@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Image Downloader</title>
+    <style>
+        input,
+        textarea {
+            width: 100%;
+        }
+
+        button {
+            padding: 16px;
+            width: 48%;
+            border: none;
+            background-color: #4CAF50;
+            /* Default background color */
+            color: white;
+            /* Text color */
+            transition: transform 0.1s ease, background-color 0.1s ease;
+            /* Smooth transition for scale and color */
+            cursor: pointer;
+            /* Change cursor to pointer */
+            border-radius: 4px;
+            /* Optional: Rounded corners */
+        }
+
+        button:active {
+            transform: scale(0.95);
+            /* Scale down the button when clicked */
+            background-color: #45a049;
+            /* Darker shade for button when active */
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        #container {
+            width: 500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .row {
+            display: flex;
+            flex: 1 1 auto;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #downloadBtn {
+            background-color: #ef4255;
+            width: 100%;
+        }
+
+        #svgDownloadBtn {
+            background-color: #ee7526;
+        }
+
+        #svgCopyBtn {
+            background-color: #efc519;
+        }
+
+        #tabs {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .tab {
+            cursor: pointer;
+            padding: 10px;
+            background-color: lightgray;
+            border: 1px solid #dddddd;
+            margin-right: 5px;
+            width: 45%;
+            text-align: center;
+        }
+
+        .tab.active {
+            background-color: white;
+            border-bottom: none;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #iconContent,
+        #imageContent {
+            margin-top: 24px;
+        }
+
+        #imageList {
+            list-style-type: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        #imageList li {
+            position: relative;
+            text-align: center;
+        }
+
+        #imageList img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #imageList button {
+            display: inline-block;
+            margin-top: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            /* Green */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        #imageList button:hover {
+            background-color: #45a049;
+            /* Darker green */
+        }
+
+        .filter {
+            padding: 12px;
+            border: 1px solid #ddd;
+            margin-top: 24px;
+        }
+
+        .filter div {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        div#message {
+            display: flex;
+            color: red;
+            width: 100%;
+            justify-content: center;
+            padding: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="tabs">
+            <div id="iconTab" class="tab active">Icon</div>
+            <div id="imageTab" class="tab">Images</div>
+        </div>
+
+        <!-- Icon Tab Content -->
+        <div id="iconContent" class="tab-content active">
+            <div class="row">
+                <button id="svgDownloadBtn">Download Icon</button>
+                <button id="svgCopyBtn">Copy Icon</button>
+            </div>
+        </div>
+
+        <!-- Image Tab Content -->
+        <div id="imageContent" class="tab-content">
+            <textarea id="imageUrls" rows="5" placeholder="Paste image URLs here, one per line"></textarea><br><br>
+            <input type="text" id="folderImageName" placeholder="Optional: Enter folder name"><br><br>
+            <div class="row">
+                <button id="downloadBtn">Download Images</button>
+            </div>
+            <div>
+                <div class="row filter">
+                    <!-- Radio buttons for filtering image types -->
+                    <div><input type="radio" id="filterJpeg" name="imageFilter" value="jpeg" checked>
+                        <label for="filterJpeg">JPEG/JPG</label>
+                    </div>
+
+                    <div><input type="radio" id="filterPng" name="imageFilter" value="png">
+                        <label for="filterPng">PNG</label>
+                    </div>
+                    <div><input type="radio" id="filterPng" name="imageFilter" value="webp">
+                        <label for="filterPng">WebP</label>
+                    </div>
+                </div>
+                <div>
+                    <div id="message">No images found for the selected filter.</div>
+                    <ul id="imageList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>
