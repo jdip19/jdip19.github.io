@@ -445,7 +445,7 @@ horizontalSections.forEach(function (sec, i) {
 
 });
 
-const baseGitHubUrl = '../../projects/'; // Update with your repo details
+const baseGitHubUrl = 'projects/'; // Update with your repo details
 
 // List of files for UDownloader
 const udFiles = [
