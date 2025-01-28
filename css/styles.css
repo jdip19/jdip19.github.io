@@ -459,7 +459,6 @@ table {
  */
 .column {
 	flex: 1;
-	/* padding: 0 var(--gutter); */
 }
 
 .collapse>.column,
@@ -4660,7 +4659,7 @@ section#resources {
 	z-index: 2;
 	position: absolute;
 	bottom: -0.8rem;
-	right: var(--gutter);
+	right: -68px;
 }
 
 .ss-go-top a {
@@ -4710,9 +4709,6 @@ section#resources {
 @media screen and (max-width: 1000px) {}
 
 @media screen and (max-width: 600px) {
-	.ss-copyright span {
-		display: block;
-	}
 
 	.ss-copyright span::after {
 		display: none;
@@ -4738,7 +4734,11 @@ section#resources {
 	}
 
 }
-
+@media screen and (max-width: 425px) {
+	.s-footer h3 {
+		font-size: clamp(11rem, 8vw, 32rem);
+	}
+}
 
 
 /* ===================================================================

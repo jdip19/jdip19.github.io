@@ -500,4 +500,5 @@ document.getElementById('downloadUDownloader').addEventListener('click', functio
         });
 });
 
-// SVGget button
+// year
+document.querySelector('.ss-copyright span span').textContent = new Date().getFullYear();
