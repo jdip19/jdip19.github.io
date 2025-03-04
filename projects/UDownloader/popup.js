@@ -139,72 +139,20 @@ function downloadImages() {
         alert("Please enter at least one valid image URL.");
     }
 }
-chrome.commands.onCommand.addListener((command) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs.length > 0) {
-        const tabId = tabs[0].id;
-  
-        if (command === "copy_svg") {
-          chrome.scripting.executeScript({
-            target: { tabId: tabId },
-            function: copySvgWithAutoDetection
-          });
-        } else if (command === "download_svg") {
-          chrome.scripting.executeScript({
-            target: { tabId: tabId },
-            function: downloadSvgWithAutoDetection
-          });
-        }
-      } else {
-        console.error("No active tab found.");
-      }
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const sizeInput = document.getElementById("svgSize");
+    // ✅ Load stored size when popup opens
+    chrome.storage.sync.get("svgSize", function (data) {
+        sizeInput.value = data.svgSize || 128;  // Default size = 128
     });
-  });
-  
-function downloadSvgWithAutoDetection() {
-    const editButton = document.querySelector('#detail_edit_icon');
-    if (editButton) {
-        editButton.click();
-    }
 
-    setTimeout(() => {
-        const svgElement = document.querySelector('.detail__editor__icon-holder svg');
-        if (svgElement) {
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgElement);
-            const blob = new Blob([svgString], { type: 'image/svg+xml' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'downloaded-icon.svg';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else {
-            alert('SVG element not found. Please ensure it is present on the page.');
-        }
-    }, 2000);
-}
+    // ✅ Save size automatically when the user types
+    sizeInput.addEventListener("input", function () {
+        const svgSize = sizeInput.value || 128;
+        chrome.storage.sync.set({ svgSize });
+    });
+    console.log("svgSize: " + svgSize);
+});
 
-function copySvgWithAutoDetection() {
-    const editButton = document.querySelector('#detail_edit_icon');
-    if (editButton) {
-        editButton.click();
-    }
-
-    setTimeout(() => {
-        const svgElement = document.querySelector('.detail__editor__icon-holder svg');
-        if (svgElement) {
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgElement);
-
-            const textarea = document.createElement('textarea');
-            textarea.value = svgString;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-        } else {
-            alert('SVG element not found. Please ensure it is present on the page.');
-        }
-    }, 2000);
-}

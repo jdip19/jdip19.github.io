@@ -10,14 +10,16 @@
     "cookies",
     "scripting",
     "storage",
-    "tabs"
+    "tabs",
+    "notifications"
   ],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["contentScript.js"]
-    }
+      "js": ["contentScript.js"],
+      "run_at": "document_end"
+  }
   ],
   "commands": {
     "copy_svg": {

@@ -45,7 +45,7 @@ function extractAndHandleSvg(action) {
         setTimeout(() => {
             const svgElement = document.querySelector('.detail__editor__icon-holder svg');
             let icnm = document.querySelector('aside.detail__sidebar.col--stretch div h1').textContent.trim();
-            icnm+=' - '+document.querySelector('a.link--normal.mg-right-lv1').textContent.trim();
+            icnm += ' - ' + document.querySelector('a.link--normal.mg-right-lv1').textContent.trim();
             icnm ? console.log("Icon name:", icnm) : alert('Icon name not found.');
             if (svgElement) {
 
@@ -57,7 +57,6 @@ function extractAndHandleSvg(action) {
                     textarea.select();
                     document.execCommand('copy');
                     document.body.removeChild(textarea);
-                    alert('SVG copied to clipboard!');
                 } else if (action === 'download') {
                     // Download SVG as a file
                     const svgContent = svgElement.outerHTML;
@@ -100,46 +99,86 @@ chrome.commands.onCommand.addListener((command) => {
     });
 });
 
-function copySvgWithAutoDetection() {
-    const editButton = document.querySelector('#detail_edit_icon');
-    if (editButton) editButton.click();
-    setTimeout(() => {
-        const svgElement = document.querySelector('.detail__editor__icon-holder svg');
-        console.log(svgElement);
-        if (svgElement) {
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgElement);
 
-            const textarea = document.createElement('textarea');
-            textarea.value = svgString;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-        } else {
-            alert('SVG element not found.');
-        }
-    }, 2000);
+function copySvgWithAutoDetection() {
+    function getResizedSvg(callback) {
+        chrome.storage.sync.get("svgSize", function (data) {
+            const size = data.svgSize || 128;  // Default size if not set
+
+            const editButton = document.querySelector('#detail_edit_icon');
+            if (editButton) editButton.click();
+
+            setTimeout(() => {
+                const svgElement = document.querySelector('.detail__editor__icon-holder svg');
+                if (svgElement) {
+                    svgElement.setAttribute('width', size);
+                    svgElement.setAttribute('height', size);
+
+                    const serializer = new XMLSerializer();
+                    const svgString = serializer.serializeToString(svgElement);
+
+                    callback(svgString, size);
+                } else {
+                    alert('SVG element not found.');
+                }
+            }, 2000);
+        });
+    }
+
+
+    getResizedSvg((svgString, size) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = svgString;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        chrome.notifications.create('', {
+            type: 'basic',
+            iconUrl: 'icon.png',  // Replace with your extension's icon
+            title: "SVG Copied!",
+            message: `SVG copied with size ${size}x${size}.`,
+            priority: 2
+        });
+    });
 }
 
 function downloadSvgWithAutoDetection() {
-    const editButton = document.querySelector('#detail_edit_icon');
-    if (editButton) editButton.click();
-    setTimeout(() => {
-        const svgElement = document.querySelector('.detail__editor__icon-holder svg');
-        if (svgElement) {
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgElement);
+    function getResizedSvg(callback) {
+        chrome.storage.sync.get("svgSize", function (data) {
+            const size = data.svgSize || 128;  // Default size if not set
 
-            const blob = new Blob([svgString], { type: 'image/svg+xml' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'downloaded-icon.svg';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else {
-            alert('SVG element not found.');
-        }
-    }, 2000);
+            const editButton = document.querySelector('#detail_edit_icon');
+            if (editButton) editButton.click();
+
+            setTimeout(() => {
+                const svgElement = document.querySelector('.detail__editor__icon-holder svg');
+                if (svgElement) {
+                    svgElement.setAttribute('width', size);
+                    svgElement.setAttribute('height', size);
+
+                    const serializer = new XMLSerializer();
+                    const svgString = serializer.serializeToString(svgElement);
+
+                    callback(svgString, size);
+                } else {
+                    alert('SVG element not found.');
+                }
+            }, 2000);
+        });
+    }
+
+
+    getResizedSvg((svgString, size) => {
+        const blob = new Blob([svgString], { type: 'image/svg+xml' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `icon-${size}x${size}.svg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
 }
+
+
