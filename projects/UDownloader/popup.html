@@ -4,6 +4,22 @@
 <head>
     <title>Image Downloader</title>
     <style>
+        @font-face {
+            font-family: headingfont;
+            src: url(placard-next-cufonfonts/PlacardNextBold.TTF);
+        }
+
+        @font-face {
+            font-family: bodyfont;
+            src: url(placard-next-cufonfonts/PlacardNextRegular.TTF);
+        }
+        :root {
+            --vh: 100vh;
+            --font-1: "Encode Sans", sans-serif;
+            --font-2: headingfont;
+            --font-3: bodyfont;
+        }
+
         input,
         textarea {
             width: 100%;
@@ -166,10 +182,6 @@
         <div id="iconContent" class="tab-content active">
             <div class="row">
                 <input type="number" id="svgSize" min="1" />
-            </div>
-            <div class="row">
-                <button id="svgDownloadBtn">Download Icon</button>
-                <button id="svgCopyBtn">Copy Icon</button>
             </div>
         </div>
 

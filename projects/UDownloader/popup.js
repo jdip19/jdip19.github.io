@@ -88,57 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-document.getElementById('downloadBtn').addEventListener('click', downloadImages);
-document.getElementById('svgDownloadBtn').addEventListener('click', () => {
-    executeScriptOnActiveTab(downloadSvgWithAutoDetection);
-});
-document.getElementById('svgCopyBtn').addEventListener('click', () => {
-    executeScriptOnActiveTab(copySvgWithAutoDetection);
-});
-
-// Keyboard shortcuts for copy and download
-document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.altKey && e.key === 'c') {
-        executeScriptOnActiveTab(copySvgWithAutoDetection);
-    } else if (e.ctrlKey && e.altKey && e.key === 'd') {
-        executeScriptOnActiveTab(downloadSvgWithAutoDetection);
-    }
-});
-
-function executeScriptOnActiveTab(callbackFunction) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            function: callbackFunction
-        });
-    });
-}
-
-function downloadImages() {
-    const imageUrls = document.getElementById('imageUrls').value.split('\n').map(url => url.trim()).filter(url => url);
-    const folderNameInput = document.getElementById('folderName').value.trim();
-
-    if (imageUrls.length > 0) {
-        const folderName = folderNameInput !== '' ? folderNameInput : '';
-
-        imageUrls.forEach(url => {
-            const fileName = url.split('/').pop();
-            chrome.downloads.download({
-                url: url,
-                filename: folderName ? `${folderName}/${fileName}` : fileName,
-                saveAs: false
-            });
-        });
-
-        if (folderName) {
-            alert(`Downloading ${imageUrls.length} images into folder: ${folderName}`);
-        } else {
-            alert(`Downloading ${imageUrls.length} images to default location without folder`);
-        }
-    } else {
-        alert("Please enter at least one valid image URL.");
-    }
-}
 
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -152,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
     sizeInput.addEventListener("input", function () {
         const svgSize = sizeInput.value || 128;
         chrome.storage.sync.set({ svgSize });
+        console.log("svgSize: " + svgSize);
     });
-    console.log("svgSize: " + svgSize);
 });
 
