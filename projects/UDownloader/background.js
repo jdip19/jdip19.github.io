@@ -71,13 +71,14 @@ function extractSvg(action) {
 
 
                 let iconName = titleElement && categoryElement
-                    ? `${titleElement.textContent.trim()} - ${categoryElement.textContent.trim()}`
+                    ? `${titleElement.textContent.trim()}_${categoryElement.textContent.trim()}`
                     : "icon";
 
                 if (svgElement) {
+                    svgElement.setAttribute('width', size);
+                    svgElement.setAttribute('height', size);
+                    svgElement.setAttribute('id', iconName);
                     if (action === "copy") {
-                        svgElement.setAttribute('width', size);
-                        svgElement.setAttribute('height', size);
 
                         const serializer = new XMLSerializer();
                         const svgString = serializer.serializeToString(svgElement);
@@ -104,77 +105,11 @@ function extractSvg(action) {
                 } else {
                     console.error("SVG element not found.");
                 }
-            }, 3000);
+            }, 2500);
         });
     } else {
         console.error("Edit button not found.");
     }
 }
-
-
-// //Command for copying and downloading
-
-
-// function downloadSvgWithAutoDetection() {
-
-//     chrome.storage.sync.get("svgSize", function (data) {
-//         const size = data.svgSize || 128;  // Default size if not set
-
-//         const editButton = document.querySelector('#detail_edit_icon');
-//         if (editButton) editButton.click();
-
-//         setTimeout(() => {
-//             const svgElement = document.querySelector('.detail__editor__icon-holder svg');
-//             if (svgElement) {
-
-//                 svgElement.setAttribute('width', size);
-//                 svgElement.setAttribute('height', size);
-
-//                 const serializer = new XMLSerializer();
-//                 const svgString = serializer.serializeToString(svgElement);
-
-//                 const blob = new Blob([svgString], { type: 'image/svg+xml' });
-//                 const link = document.createElement('a');
-//                 link.href = URL.createObjectURL(blob);
-//                 link.download = 'downloaded-icon.svg';
-//                 document.body.appendChild(link);
-//                 link.click();
-//                 document.body.removeChild(link);
-//             } else {
-//                 alert('SVG element not found.');
-//             }
-//         }, 2000);
-//     });
-// }
-
-
-// function copySvgWithAutoDetection() {
-//     chrome.storage.sync.get("svgSize", function (data) {
-//         const size = data.svgSize || 128;  // Default size if not set
-
-//         const editButton = document.querySelector('#detail_edit_icon');
-//         if (editButton) editButton.click();
-
-//         setTimeout(() => {
-//             const svgElement = document.querySelector('.detail__editor__icon-holder svg');
-//             if (svgElement) {
-//                 svgElement.setAttribute('width', size);
-//                 svgElement.setAttribute('height', size);
-
-//                 const serializer = new XMLSerializer();
-//                 const svgString = serializer.serializeToString(svgElement);
-
-//                 const textarea = document.createElement('textarea');
-//                 textarea.value = svgString;
-//                 document.body.appendChild(textarea);
-//                 textarea.select();
-//                 document.execCommand('copy');
-//                 document.body.removeChild(textarea);
-//             } else {
-//                 alert('SVG element not found.');
-//             }
-//         }, 2000);
-//     });
-// }
 
 
