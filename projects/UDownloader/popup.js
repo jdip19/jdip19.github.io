@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const iconContent = document.getElementById('iconContent');
     const imageContent = document.getElementById('imageContent');
     const imageList = document.getElementById('imageList');
+    const svgSizeInput = document.getElementById("svgSize");
 
     // Add click event listeners for tabs
     iconTab.addEventListener('click', function () {
@@ -20,12 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
         iconContent.classList.remove('active');
     });
 
-    // Load images from storage when the popup opens
-    chrome.storage.local.get('imageUrls', (data) => {
-        if (data.imageUrls) {
-            displayImages(data.imageUrls);
-        }
-    });
+    
 
     // Function to display images based on the selected filter
     function displayImages(images) {
@@ -86,22 +82,37 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         );
     });
-});
+    function resizeInput(input) {
+        input.style.width = input.value.length ? input.value.length + "ch" : "2ch";
+    }
+
+    // Add event listener to update width dynamically as the user types
+    svgSizeInput.addEventListener("input", function () {
+        resizeInput(svgSizeInput);
+    });
+
+    // Initial resize in case there's a default value
+    resizeInput(svgSizeInput);
+
+    // Load images from storage when the popup opens
+    chrome.storage.local.get('imageUrls', (data) => {
+        if (data.imageUrls) {
+            displayImages(data.imageUrls);
+        }
+    });
+    
 
 
-
-document.addEventListener("DOMContentLoaded", function () {
-    const sizeInput = document.getElementById("svgSize");
     // ✅ Load stored size when popup opens
     chrome.storage.sync.get("svgSize", function (data) {
-        sizeInput.value = data.svgSize || 128;  // Default size = 128
+        svgSizeInput.value = data.svgSize || 128; 
+        resizeInput(svgSizeInput); // Default size = 128
     });
 
     // ✅ Save size automatically when the user types
-    sizeInput.addEventListener("input", function () {
-        const svgSize = sizeInput.value || 128;
+    svgSizeInput.addEventListener("input", function () {
+        const svgSize = svgSizeInput.value || 128;
         chrome.storage.sync.set({ svgSize });
-        console.log("svgSize: " + svgSize);
     });
-});
 
+});
