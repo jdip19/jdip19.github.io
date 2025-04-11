@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Inter, sans-serif;
+      margin: 0;
+      padding: 20px;
+      font-size: 14px;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 16px;
+    }
+    input, button, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #18A0FB;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover {
+      background-color: #0D8EE9;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .mapping-row {
+      display: flex;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .mapping-row select {
+      flex: 1;
+      margin-right: 8px;
+      margin-bottom: 0;
+    }
+    #status {
+      margin-top: 16px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #D32F2F;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2E7D32;
+    }
+    .info {
+      background-color: #e3f2fd;
+      color: #1976D2;
+    }
+    .hidden {
+      display: none;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    #mappingsContainer {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      padding: 8px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+  </style>
+  <script src="https://apis.google.com/js/api.js"></script>
+</head>
+<body>
+  <h2>Google Sheets Advanced Sync</h2>
+  
+  <div class="section">
+    <div class="help-text">
+      Tag your Figma layers with column names using the format: "Layer Name #columnName"
+    </div>
+    
+    <button id="getFrameLayers">Scan Selected Frame/Group</button>
+  </div>
+  
+  <div class="section">
+    <label for="sheetUrl">Google Sheet URL</label>
+    <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    
+    <button id="authorize">Authorize Google Sheets</button>
+    <button id="getSheetColumns" class="hidden">Get Sheet Columns</button>
+  </div>
+  
+  <div id="mappingsSection" class="section hidden">
+    <h3>Column to Layer Mappings</h3>
+    <div class="help-text">
+      Link Google Sheet columns to your tagged Figma layers
+    </div>
+    
+    <div id="mappingsContainer"></div>
+    
+    <label for="rowIndex">Row to use (1 is first data row after headers)</label>
+    <input type="number" id="rowIndex" value="1" min="1" />
+    
+    <button id="syncButton">Sync Data to Layers</button>
+  </div>
+  
+  <div id="status" class="hidden"></div>
+  
+  <script>
+    // TypeScript interfaces (these are just for documentation, not used at runtime)
+    // interface TaggedLayer {
+    //   id: string;
+    //   name: string;
+    //   type: string;
+    //   tags: string[];
+    // }
+    
+    // Google API Client ID - you'll need your own from Google Cloud Console
+    const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
+    const API_KEY = 'YOUR_GOOGLE_API_KEY';
+    const DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
+    const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+    
+    // State management
+    let isAuthorized = false;
+    let sheetColumns = [];
+    let figmaLayers = [];
+    
+    // DOM elements
+    const getFrameLayersBtn = document.getElementById('getFrameLayers');
+    const authorizeBtn = document.getElementById('authorize');
+    const getSheetColumnsBtn = document.getElementById('getSheetColumns');
+    const sheetUrlInput = document.getElementById('sheetUrl');
+    const mappingsSection = document.getElementById('mappingsSection');
+    const mappingsContainer = document.getElementById('mappingsContainer');
+    const syncButton = document.getElementById('syncButton');
+    const rowIndexInput = document.getElementById('rowIndex');
+    const statusDiv = document.getElementById('status');
+    
+    // Event listeners
+    getFrameLayersBtn.onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'get-frame-layers' } }, '*');
+    };
+    
+    authorizeBtn.onclick = () => {
+      gapi.load('client:auth2', initClient);
+    };
+    
+    getSheetColumnsBtn.onclick = () => {
+      fetchSheetColumns();
+    };
+    
+    syncButton.onclick = () => {
+      syncData();
+    };
+    
+    // Initialize Google API client
+    function initClient() {
+      showStatus('Initializing Google API client...', 'info');
+      
+      gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: DISCOVERY_DOCS,
+        scope: SCOPES
+      }).then(() => {
+        // Listen for sign-in state changes
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+        
+        // Handle the initial sign-in state
+        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+        
+        authorizeBtn.onclick = handleAuthClick;
+      }).catch(error => {
+        showStatus('Error initializing Google API client: ' + error.message, 'error');
+      });
+    }
+    
+    function updateSigninStatus(isSignedIn) {
+      isAuthorized = isSignedIn;
+      
+      if (isSignedIn) {
+        authorizeBtn.textContent = 'Authorized ✓';
+        getSheetColumnsBtn.classList.remove('hidden');
+        showStatus('Google Sheets authorized!', 'success');
+      } else {
+        authorizeBtn.textContent = 'Authorize Google Sheets';
+        getSheetColumnsBtn.classList.add('hidden');
+        mappingsSection.classList.add('hidden');
+      }
+    }
+    
+    function handleAuthClick() {
+      if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
+        gapi.auth2.getAuthInstance().signOut();
+      } else {
+        gapi.auth2.getAuthInstance().signIn();
+      }
+    }
+    
+    // Fetch sheet columns from the first row
+    async function fetchSheetColumns() {
+      const sheetUrl = sheetUrlInput.value;
+      const sheetId = extractSheetId(sheetUrl);
+      
+      if (!sheetId) {
+        showStatus('Invalid Google Sheet URL', 'error');
+        return;
+      }
+      
+      showStatus('Fetching sheet columns...', 'info');
+      
+      try {
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: sheetId,
+          range: 'A1:Z1' // Get only the header row
+        });
+        
+        const headerRow = response.result.values[0];
+        
+        if (!headerRow || headerRow.length === 0) {
+          showStatus('No headers found in the sheet', 'error');
+          return;
+        }
+        
+        sheetColumns = headerRow.map(header => header.trim());
+        showStatus(`Found ${sheetColumns.length} columns in the sheet`, 'success');
+        
+        // If we have both sheet columns and Figma layers, show mapping UI
+        if (figmaLayers.length > 0) {
+          createMappingUI();
+        }
+        
+      } catch (error) {
+        showStatus('Error fetching sheet columns: ' + error.message, 'error');
+      }
+    }
+    
+    // Create the UI for mapping columns to layers
+    function createMappingUI() {
+      mappingsContainer.innerHTML = '';
+      
+      // Group layers by tags
+      const layersByTag = {};
+      
+      figmaLayers.forEach(layer => {
+        layer.tags.forEach(tag => {
+          if (!layersByTag[tag]) {
+            layersByTag[tag] = [];
+          }
+          layersByTag[tag].push(layer);
+        });
+      });
+      
+      // Create mapping rows
+      sheetColumns.forEach(column => {
+        const row = document.createElement('div');
+        row.className = 'mapping-row';
+        
+        const columnLabel = document.createElement('div');
+        columnLabel.style.width = '120px';
+        columnLabel.textContent = column;
+        
+        const layerSelect = document.createElement('select');
+        layerSelect.dataset.column = column;
+        
+        // Add empty option
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '-- Select Layer --';
+        layerSelect.appendChild(emptyOption);
+        
+        // Add matching layers first (if tag matches column name)
+        const matchingLayers = layersByTag[column] || [];
+        if (matchingLayers.length > 0) {
+          const matchingGroup = document.createElement('optgroup');
+          matchingGroup.label = 'Matching Tags';
+          
+          matchingLayers.forEach(layer => {
+            const option = document.createElement('option');
+            option.value = layer.id;
+            option.textContent = layer.name;
+            option.selected = true; // Auto-select matching layers
+            matchingGroup.appendChild(option);
+          });
+          
+          layerSelect.appendChild(matchingGroup);
+        }
+        
+        // Add all other layers
+        const otherGroup = document.createElement('optgroup');
+        otherGroup.label = 'Other Layers';
+        
+        figmaLayers.forEach(layer => {
+          if (!matchingLayers.includes(layer)) {
+            const option = document.createElement('option');
+            option.value = layer.id;
+            option.textContent = layer.name;
+            otherGroup.appendChild(option);
+          }
+        });
+        
+        if (otherGroup.children.length > 0) {
+          layerSelect.appendChild(otherGroup);
+        }
+        
+        row.appendChild(columnLabel);
+        row.appendChild(layerSelect);
+        mappingsContainer.appendChild(row);
+      });
+      
+      mappingsSection.classList.remove('hidden');
+    }
+    
+    // Sync data from sheet to Figma layers
+    async function syncData() {
+      const sheetUrl = sheetUrlInput.value;
+      const sheetId = extractSheetId(sheetUrl);
+      const rowIndex = parseInt(rowIndexInput.value, 10);
+      
+      if (!sheetId) {
+        showStatus('Invalid Google Sheet URL', 'error');
+        return;
+      }
+      
+      if (isNaN(rowIndex) || rowIndex < 1) {
+        showStatus('Please enter a valid row number (1 or greater)', 'error');
+        return;
+      }
+      
+      // Collect mappings from UI
+      const mappings = {};
+      const selectElements = mappingsContainer.querySelectorAll('select');
+      
+      selectElements.forEach(select => {
+        const column = select.dataset.column;
+        const layerId = select.value;
+        
+        if (layerId) {
+          mappings[column] = layerId;
+        }
+      });
+      
+      if (Object.keys(mappings).length === 0) {
+        showStatus('Please map at least one column to a layer', 'error');
+        return;
+      }
+      
+      showStatus('Fetching sheet data...', 'info');
+      
+      try {
+        // Get entire sheet data to have both headers and the selected row
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: sheetId,
+          range: 'A1:Z50' // Limit to a reasonable range
+        });
+        
+        const data = response.result.values;
+        
+        if (!data || data.length < rowIndex + 1) {
+          showStatus(`Row ${rowIndex} not found in sheet data`, 'error');
+          return;
+        }
+        
+        // Send data to plugin for updating layers
+        parent.postMessage({
+          pluginMessage: {
+            type: 'update-layers',
+            data: [data[0], data[rowIndex]], // Send headers and selected row
+            mappings: mappings
+          }
+        }, '*');
+        
+      } catch (error) {
+        showStatus('Error fetching sheet data: ' + error.message, 'error');
+      }
+    }
+    
+    // Helper function to extract Sheet ID from URL
+    function extractSheetId(url) {
+      const matches = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      return matches ? matches[1] : null;
+    }
+    
+    // Helper function to show status messages
+    function showStatus(message, type) {
+      statusDiv.textContent = message;
+      statusDiv.className = type || '';
+      
+      if (type) {
+        statusDiv.classList.remove('hidden');
+      } else {
+        statusDiv.classList.add('hidden');
+      }
+    }
+    
+    // Handle messages from the plugin code
+    window.onmessage = (event) => {
+      const message = event.data.pluginMessage;
+      if (!message) return;
+      
+      switch (message.type) {
+        case 'frame-layers':
+          figmaLayers = message.layers;
+          showStatus(`Found ${figmaLayers.length} tagged layers in selection`, 'success');
+          
+          if (sheetColumns.length > 0) {
+            createMappingUI();
+          }
+          break;
+        
+        case 'error':
+          showStatus(message.message, 'error');
+          break;
+          
+        case 'success':
+          showStatus(message.message, 'success');
+          break;
+          
+        case 'info':
+          showStatus(message.message, 'info');
+          break;
+      }
+    };
+  </script>
+</body>
+</html>
