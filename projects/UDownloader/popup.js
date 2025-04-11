@@ -1,3 +1,7 @@
+
+
+
+
 document.addEventListener('DOMContentLoaded', function () {
     const iconTab = document.getElementById('iconTab');
     const imageTab = document.getElementById('imageTab');

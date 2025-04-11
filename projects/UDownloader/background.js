@@ -1,3 +1,43 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
+import {
+    getDatabase,
+    ref,
+    set,
+    get,
+} from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB00lLnYNjAI_TqdvlDniEK9wgaFQ0143I",
+    authDomain: "imager-678f0.firebaseapp.com",
+    databaseURL: "https://imager-678f0-default-rtdb.firebaseio.com",
+    projectId: "imager-678f0",
+    storageBucket: "imager-678f0.firebasestorage.app",
+    messagingSenderId: "453061054446",
+    appId: "1:453061054446:web:7069245e2df8434bba48ff",
+    measurementId: "G-BY5SXCLK6L"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+// Define the path
+const svgStatsRef = ref(database, "svgStats/counter");
+
+let resizedCount = 0;
+
+// Function to update the display count
+function updateDisplayCount() {
+    document.getElementById("counter").innerText = `${resizedCount}`;
+}
+
+get(svgStatsRef).then((snapshot) => {
+    if (snapshot.exists()) {
+        resizedCount = snapshot.val();
+    }
+    updateDisplayCount(); // Update display with the retrieved count
+});
+
+
+
 // Create context menus when the extension is installed
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
