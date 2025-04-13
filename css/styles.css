@@ -3507,7 +3507,7 @@ a.s-header__menu-toggle.is-clicked svg path {
 }
 
 .s-expertise,
-.s-resources,.s-footer {
+.s-resources,.s-footer,.s-pagecontent {
 	padding-left: var(--l-f-pad);
 	padding-right: var(--l-f-pad);
 }
