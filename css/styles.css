@@ -1360,6 +1360,7 @@ figure img,
 p img {
 	margin: 0;
 	vertical-align: bottom;
+	width: 100%;
 }
 
 figure {
@@ -1469,11 +1470,10 @@ hr.fancy::before {
 /* --------------------------------------------------------------------
  * ## additional typography & helper classes
  * -------------------------------------------------------------------- */
-.lead,
-.attention-getter {
-	font-family: var(--font-1);
-	font-size: var(--text-md);
-	line-height: var(--vspace-1_25);
+ .lead, .attention-getter {
+    font-family: var(--font-1);
+    font-size: var(--text-sm);
+    line-height: var(--vspace-0_875);
 }
 
 @media screen and (max-width: 800px) {
@@ -3507,7 +3507,7 @@ a.s-header__menu-toggle.is-clicked svg path {
 }
 
 .s-expertise,
-.s-resources,.s-footer {
+.s-resources,.s-footer,.s-pagecontent,.s-quote {
 	padding-left: var(--l-f-pad);
 	padding-right: var(--l-f-pad);
 }
@@ -5082,3 +5082,59 @@ section#resources {
 
 
 }
+
+.inner-page h3.text-display-title {
+    margin-bottom: 24px;
+}
+
+
+.quote-slider {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+
+  .quote-slide {
+    display: none;
+    text-align: center;
+    transition: opacity 0.5s ease-in-out;
+  }
+
+  .quote-slide.active {
+    display: block;
+  }
+
+  .quote-text {
+    font-size: 1.2rem;
+    font-style: italic;
+    margin-bottom: 10px;
+  }
+
+  .quote-author {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #555;
+  }
+
+  .quote-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+    gap: 10px;
+  }
+
+  .quote-dot {
+    width: 10px;
+    height: 10px;
+    background: #aaa;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .quote-dot.active {
+    background: #333;
+  }
