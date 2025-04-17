@@ -120,3 +120,14 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 });
+
+chrome.runtime.sendMessage({ action: "getSVGCount" });
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "svgCountUpdated" || message.action === "updateSVGCount") {
+    const { copied = 0, downloaded = 0 } = message.payload || {};
+    // document.getElementById("copiedCount").innerText = copied;
+    // document.getElementById("downloadedCount").innerText = downloaded;
+    document.getElementById("svgCount").innerText = copied + downloaded;
+  }
+});

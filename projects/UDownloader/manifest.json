@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "UDownloader",
-  "version": "1.0",
+  "version": "2.0",
   "description": "A browser extension to copy or download png icons with shoutcut and contetxt menu. 2.0",
   "permissions": [
     "downloads",
@@ -42,7 +42,8 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html"
