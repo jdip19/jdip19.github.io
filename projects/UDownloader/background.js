@@ -20,6 +20,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
+const versionRef = ref(database, "ueVersion");
+const localVersion= chrome.runtime.getManifest().version;
+
+get(versionRef).then(snapshot => {
+  if (snapshot.exists()) {
+    const remoteVersion = snapshot.val();
+
+    // Store remote version and comparison result
+    chrome.storage.local.set({
+      remoteVersion,
+      updateAvailable: remoteVersion > localVersion
+    });
+  }
+});
+
+
+
 // Create context menus when the extension is installed
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -43,6 +60,7 @@ chrome.contextMenus.onClicked.addListener((info) => {
     processSvg(info.linkUrl, "download");
   }
 });
+
 
 // Handle keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
@@ -98,6 +116,8 @@ function extractSvg(action) {
         let iconName =
           titleElement && categoryElement
             ? `${titleElement.textContent.trim()}_${categoryElement.textContent.trim()}`
+            : titleElement
+            ? `${titleElement.textContent.trim()}`
             : "icon";
 
         if (svgElement) {
@@ -154,70 +174,70 @@ function extractSvg(action) {
   }
 }
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "incrementSvgCounter") {
-      const action = message.action; // "copied" or "downloaded"
-      const dbRef = ref(database, `svgStats/${action}`);
-  
-      // Step 1: Optimistically update local storage
-      chrome.storage.local.get(["svgStats"], (result) => {
-        let localData = result.svgStats || { copied: 0, downloaded: 0 };
-        localData[action] = (localData[action] || 0) + 1;
-  
-        // Save updated local count
-        chrome.storage.local.set({ svgStats: localData });
-  
-        // Send quick update to popup
-        chrome.runtime.sendMessage({
-          type: "svgCountUpdated",
-          payload: { ...localData },
-        });
-  
-        // Step 2: Update in Firebase
-        get(dbRef)
-          .then((snapshot) => {
-            const currentValue = snapshot.exists() ? snapshot.val() : 0;
-            return set(dbRef, currentValue + 1);
-          })
-          .then(() => {
-            // Fetch final confirmed counts from Firebase
-            const copiedRef = ref(database, 'svgStats/copied');
-            const downloadedRef = ref(database, 'svgStats/downloaded');
-  
-            return Promise.all([get(copiedRef), get(downloadedRef)]);
-          })
-          .then(([copiedSnap, downloadedSnap]) => {
-            const copied = copiedSnap.exists() ? copiedSnap.val() : 0;
-            const downloaded = downloadedSnap.exists() ? downloadedSnap.val() : 0;
-  
-            const finalCounts = { copied, downloaded };
-  
-            // Update local storage again with true Firebase values
-            chrome.storage.local.set({ svgStats: finalCounts });
-  
-            // Optional: re-send to popup
-            chrome.runtime.sendMessage({
-              type: "svgCountUpdated",
-              payload: finalCounts,
-            });
-          })
-          .catch((error) => {
-            console.error("Firebase update error:", error);
+  if (message.type === "incrementSvgCounter") {
+    const action = message.action; // "copied" or "downloaded"
+    const dbRef = ref(database, `svgStats/${action}`);
+
+    // Step 1: Optimistically update local storage
+    chrome.storage.local.get(["svgStats"], (result) => {
+      let localData = result.svgStats || { copied: 0, downloaded: 0 };
+      localData[action] = (localData[action] || 0) + 1;
+
+      // Save updated local count
+      chrome.storage.local.set({ svgStats: localData });
+
+      // Send quick update to popup
+      chrome.runtime.sendMessage({
+        type: "svgCountUpdated",
+        payload: { ...localData },
+      });
+
+      // Step 2: Update in Firebase
+      get(dbRef)
+        .then((snapshot) => {
+          const currentValue = snapshot.exists() ? snapshot.val() : 0;
+          return set(dbRef, currentValue + 1);
+        })
+        .then(() => {
+          // Fetch final confirmed counts from Firebase
+          const copiedRef = ref(database, "svgStats/copied");
+          const downloadedRef = ref(database, "svgStats/downloaded");
+
+          return Promise.all([get(copiedRef), get(downloadedRef)]);
+        })
+        .then(([copiedSnap, downloadedSnap]) => {
+          const copied = copiedSnap.exists() ? copiedSnap.val() : 0;
+          const downloaded = downloadedSnap.exists() ? downloadedSnap.val() : 0;
+
+          const finalCounts = { copied, downloaded };
+
+          // Update local storage again with true Firebase values
+          chrome.storage.local.set({ svgStats: finalCounts });
+
+          // Optional: re-send to popup
+          chrome.runtime.sendMessage({
+            type: "svgCountUpdated",
+            payload: finalCounts,
           });
-      });
-    }
-  
-    // Handle direct request from popup to fetch counts
-    if (message.action === "getSVGCount") {
-      chrome.storage.local.get(["svgStats"], (result) => {
-        const localData = result.svgStats || { copied: 0, downloaded: 0 };
-        const total = (localData.copied || 0) + (localData.downloaded || 0);
-  
-        chrome.runtime.sendMessage({
-          action: "updateSVGCount",
-          count: total,
-          payload: localData,
+        })
+        .catch((error) => {
+          console.error("Firebase update error:", error);
         });
+    });
+  }
+
+  // Handle direct request from popup to fetch counts
+  if (message.action === "getSVGCount") {
+    chrome.storage.local.get(["svgStats"], (result) => {
+      const localData = result.svgStats || { copied: 0, downloaded: 0 };
+      const total = (localData.copied || 0) + (localData.downloaded || 0);
+
+      chrome.runtime.sendMessage({
+        action: "updateSVGCount",
+        count: total,
+        payload: localData,
       });
-    }
-  });
-  
+    });
+  }
+});
+
