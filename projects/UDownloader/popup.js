@@ -119,6 +119,9 @@ document.addEventListener('DOMContentLoaded', function () {
         chrome.storage.sync.set({ svgSize });
     });
 
+    chrome.storage.local.get("svgCount", (data) => {
+        document.getElementById("svgCount").innerText = data.svgCount || 0;
+      });
 });
 
 chrome.runtime.sendMessage({ action: "getSVGCount" });
@@ -128,6 +131,8 @@ chrome.runtime.onMessage.addListener((message) => {
     const { copied = 0, downloaded = 0 } = message.payload || {};
     // document.getElementById("copiedCount").innerText = copied;
     // document.getElementById("downloadedCount").innerText = downloaded;
-    document.getElementById("svgCount").innerText = copied + downloaded;
+    chrome.storage.local.set({ svgCount: copied + downloaded });
   }
 });
+
+  
