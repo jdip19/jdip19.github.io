@@ -1,0 +1,11 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\image\shell\QuickTool]
+"MUIVerb"="QuickTool"
+"Icon"="D:\\Jaydip Upadhyay\\jdip19.github.io\\projects\\Helpers\\QuickTool\\quicktool.ico"
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\image\shell\QuickTool\shell\ConvertToWebP]
+"MUIVerb"="Convert to WebP"
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\image\shell\QuickTool\shell\ConvertToWebP\command]
+@="powershell.exe -ExecutionPolicy Bypass -File \"D:\\Jaydip Upadhyay\\jdip19.github.io\\projects\\Helpers\\QuickTool\\convert_to_webp.ps1\" \"%1\""
