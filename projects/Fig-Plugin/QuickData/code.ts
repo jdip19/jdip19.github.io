@@ -10,65 +10,103 @@ interface SheetToLayerMapping {
 }
 
 // Show UI with dimensions
-figma.showUI(__html__, { width: 450, height: 550 });
+figma.showUI(__html__, { width: 400, height: 350 });
 
 // Handle messages from the UI
 figma.ui.onmessage = async (msg: any) => {
-  if (msg.type === 'get-frame-layers') {
+  if (msg.type === 'update-layers') {
+    const { data, mode } = msg;
+    
+    if (!data || data.length < 2) {
+      figma.ui.postMessage({ 
+        type: 'error', 
+        message: 'No data found in the sheet' 
+      });
+      return;
+    }
+
     const selection = figma.currentPage.selection;
     if (selection.length === 0) {
       figma.ui.postMessage({ 
         type: 'error', 
-        message: 'Please select a frame or group first' 
+        message: 'Please select at least one layer' 
       });
       return;
     }
-    
-    const container = selection[0];
-    if (container.type !== 'FRAME' && container.type !== 'GROUP') {
-      figma.ui.postMessage({ 
-        type: 'error', 
-        message: 'Please select a frame or group' 
-      });
-      return;
-    }
-    
-    // Get all text layers with "#" prefix in their name
-    const taggedLayers = findTaggedLayers(container);
-    figma.ui.postMessage({ 
-      type: 'frame-layers', 
-      layers: taggedLayers 
-    });
-  }
-  
-  else if (msg.type === 'sync-sheet-data') {
-    const { sheetUrl, mappings, rowIndex } = msg;
-    
-    if (!mappings || Object.keys(mappings).length === 0) {
-      figma.ui.postMessage({ 
-        type: 'error', 
-        message: 'No column to layer mappings provided' 
-      });
-      return;
-    }
-    
-    // Let the UI handle the Google Sheets API call
-    figma.ui.postMessage({ 
-      type: 'fetch-sheet-data', 
-      sheetUrl: sheetUrl,
-      rowIndex: rowIndex
-    });
-  }
-  
-  else if (msg.type === 'update-layers') {
-    const { data, mappings } = msg;
-    
+
     try {
-      await updateLayers(data, mappings);
-      figma.ui.postMessage({ 
-        type: 'success', 
-        message: 'Layers updated successfully!' 
+      // Get headers from first row
+      const headers = data[0];
+      const columnMap: { [key: string]: number } = {};
+      headers.forEach((header: string, index: number) => {
+        // Remove any whitespace and special characters
+        const cleanHeader = header.trim().replace(/[^a-zA-Z0-9]/g, '');
+        columnMap['#' + cleanHeader] = index;
       });
+
+      // Group selected layers by their prefix
+      const layerGroups: { [prefix: string]: SceneNode[] } = {};
+      for (const layer of selection) {
+        const layerName = layer.name;
+        for (const prefix in columnMap) {
+          if (layerName.startsWith(prefix)) {
+            if (!layerGroups[prefix]) {
+              layerGroups[prefix] = [];
+            }
+            layerGroups[prefix].push(layer);
+            break;
+          }
+        }
+      }
+
+      // Process each group of layers
+      let updatedCount = 0;
+      for (const prefix in layerGroups) {
+        const layers = layerGroups[prefix];
+        const columnIndex = columnMap[prefix];
+        
+        // Get all values for this column (skip header row)
+        const values = data.slice(1).map((row: string[]) => row[columnIndex]);
+        
+        // Update each layer with corresponding value
+        for (let i = 0; i < layers.length; i++) {
+          const layer = layers[i];
+          if (i < values.length && values[i] !== undefined) {
+            const value = values[i];
+            
+            if (mode === 'text' && layer.type === 'TEXT') {
+              // For text layers in text mode, update the content
+              try {
+                await figma.loadFontAsync((layer as TextNode).fontName as FontName);
+                (layer as TextNode).characters = String(value);
+                updatedCount++;
+              } catch (error) {
+                console.error('Error loading font:', error);
+                figma.ui.postMessage({
+                  type: 'error',
+                  message: `Error loading font for layer "${layer.name}". Skipping this layer.`
+                });
+              }
+            } else if (mode === 'rename') {
+              // For rename mode, just use the value from the sheet
+              layer.name = String(value);
+              updatedCount++;
+            }
+          }
+        }
+      }
+
+      if (updatedCount === 0) {
+        figma.ui.postMessage({ 
+          type: 'error', 
+          message: 'No layers were updated. Make sure layer names start with # matching column names (e.g., #name for "name" column)' 
+        });
+      } else {
+        figma.ui.postMessage({ 
+          type: 'success', 
+          message: `Updated ${updatedCount} layer${updatedCount > 1 ? 's' : ''}!` 
+        });
+      }
     } catch (error) {
       figma.ui.postMessage({ 
         type: 'error', 

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Inter, sans-serif;
+      margin: 0;
+      padding: 20px;
+      font-size: 14px;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 16px;
+    }
+    input, button, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #18A0FB;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover {
+      background-color: #0D8EE9;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .mapping-row {
+      display: flex;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .mapping-row select {
+      flex: 1;
+      margin-right: 8px;
+      margin-bottom: 0;
+    }
+    #status {
+      margin-top: 16px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #D32F2F;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2E7D32;
+    }
+    .info {
+      background-color: #e3f2fd;
+      color: #1976D2;
+    }
+    .hidden {
+      display: none;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    #mappingsContainer {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      padding: 8px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    .radio-group {
+      margin-bottom: 16px;
+    }
+    .radio-option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .radio-option input[type="radio"] {
+      width: auto;
+      margin-right: 8px;
+      margin-bottom: 0;
+    }
+  </style>
+  <script src="https://apis.google.com/js/api.js"></script>
+</head>
+<body>
+  <h2>Google Sheets Advanced Sync</h2>
+  
+  <div class="section">
+    <h3>Mode Selection</h3>
+    <div class="radio-group">
+      <div class="radio-option">
+        <input type="radio" id="renameLayer" name="mode" value="rename" checked>
+        <label for="renameLayer">Rename Layer</label>
+      </div>
+      <div class="radio-option">
+        <input type="radio" id="insertText" name="mode" value="text">
+        <label for="insertText">Insert Data in Text Layer Only</label>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="help-text">
+      1. Make your Google Sheet public (File > Share > Anyone with the link > Viewer)<br>
+      2. Copy the URL from your browser<br>
+      3. Make sure your layer names start with # matching column names (e.g., #name for "name" column)
+    </div>
+    <label for="sheetUrl">Google Sheet URL</label>
+    <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    <button id="fetchData">Fetch Data</button>
+  </div>
+  
+  <div id="status" class="hidden"></div>
+  
+  <script>
+    let currentCallback = null;
+
+    // Extract sheet ID from URL
+    function extractSheetInfo(url) {
+      const idMatch = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      return {
+        id: idMatch ? idMatch[1] : null
+      };
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = type;
+      statusDiv.classList.remove('hidden');
+    }
+
+    // Handle the Google Sheets response
+    window.google = {
+      visualization: {
+        Query: {
+          setResponse: function(response) {
+            if (currentCallback) {
+              currentCallback(response);
+            }
+          }
+        }
+      }
+    };
+
+    // Fetch data using JSONP
+    function fetchSheetData(sheetId) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        const callbackName = 'google.visualization.Query.setResponse';
+        
+        currentCallback = (response) => {
+          document.body.removeChild(script);
+          if (response.status === 'error') {
+            reject(new Error(response.errors[0].message));
+            return;
+          }
+          
+          const table = response.table;
+          const headers = table.cols.map(col => col.label);
+          const rows = table.rows.map(row => 
+            row.c.map(cell => (cell && cell.v !== null && cell.v !== undefined) ? cell.v : '')
+          );
+          
+          resolve([headers, ...rows]);
+        };
+
+        script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+        script.onerror = () => reject(new Error('Failed to load sheet data'));
+        document.body.appendChild(script);
+      });
+    }
+
+    // Handle button click
+    document.getElementById('fetchData').onclick = async () => {
+      const sheetUrl = document.getElementById('sheetUrl').value;
+      const { id: sheetId } = extractSheetInfo(sheetUrl);
+      
+      if (!sheetId) {
+        showStatus('Invalid Google Sheet URL', 'error');
+        return;
+      }
+
+      showStatus('Fetching data...', 'info');
+      
+      try {
+        const data = await fetchSheetData(sheetId);
+        
+        if (!data || data.length < 2) {
+          throw new Error('Sheet must have at least 2 rows (header row and data row)');
+        }
+
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        
+        parent.postMessage({ 
+          pluginMessage: { 
+            type: 'update-layers',
+            data: data,
+            mode: mode
+          }
+        }, '*');
+
+        showStatus('Data fetched successfully!', 'success');
+      } catch (error) {
+        console.error('Error:', error);
+        showStatus(`Error: ${error.message}`, 'error');
+      }
+    };
+
+    // Handle messages from the plugin
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+      
+      if (msg.type === 'error') {
+        showStatus(msg.message, 'error');
+      } else if (msg.type === 'success') {
+        showStatus(msg.message, 'success');
+      }
+    };
+  </script>
+</body>
+</html>
