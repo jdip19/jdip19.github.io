@@ -262,6 +262,7 @@
 
       try {
         const data = await fetchSheetData(sheetId, gid);
+        console.log(data)
 
         if (!data || data.length < 2) {
           throw new Error('Sheet must have at least 2 rows (header row and data row)');

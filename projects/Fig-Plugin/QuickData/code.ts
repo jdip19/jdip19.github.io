@@ -16,6 +16,7 @@ figma.showUI(__html__, { width: 400, height: 350 });
 figma.ui.onmessage = async (msg: any) => {
   if (msg.type === 'update-layers') {
     const { data, mode } = msg;
+    console.log(data);
     
     if (!data || data.length < 2) {
       figma.ui.postMessage({ 
@@ -63,6 +64,7 @@ figma.ui.onmessage = async (msg: any) => {
         
         // Get all values for this column (skip header row)
         const values = data.slice(1).map((row: string[]) => row[columnIndex]);
+        console.log(values);
         
         // Update each layer with corresponding value
         for (let i = 0; i < layers.length; i++) {
