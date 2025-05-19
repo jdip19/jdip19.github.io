@@ -1470,10 +1470,11 @@ hr.fancy::before {
 /* --------------------------------------------------------------------
  * ## additional typography & helper classes
  * -------------------------------------------------------------------- */
- .lead, .attention-getter {
-    font-family: var(--font-1);
-    font-size: var(--text-sm);
-    line-height: var(--vspace-0_875);
+.lead,
+.attention-getter {
+	font-family: var(--font-1);
+	font-size: var(--text-sm);
+	line-height: var(--vspace-0_875);
 }
 
 @media screen and (max-width: 800px) {
@@ -2203,17 +2204,17 @@ button.btn--large {
 .btn--stroke,
 button.btn--stroke {
 	background: transparent;
-	border: 2px solid var(--color-btn-stroke);
+	border: 1px solid var(--color-btn-stroke-text);
 	color: var(--color-btn-stroke-text);
+	border-radius: 0;
 }
 
 .btn--stroke:focus,
 button.btn--stroke:focus,
 .btn--stroke:hover,
 button.btn--stroke:hover {
-	background: var(--color-btn-stroke-hover);
-	border: 2px solid var(--color-btn-stroke-hover);
-	color: var(--color-btn-stroke-hover-text);
+	background: var(--color-1);
+	border: 1px solid var(--color-1)
 }
 
 .btn--pill,
@@ -2767,15 +2768,17 @@ section.horizontal .item {
 .section-header.grid-section-split__header {
 	position: absolute;
 }
+
 .s-expertise a {
-    display: flex;
-    flex-grow: 1;
-    flex-direction: column;
-    overflow: hidden;
+	display: flex;
+	flex-grow: 1;
+	flex-direction: column;
+	overflow: hidden;
 	color: var(--color-text-dark);
 }
-.s-expertise a:hover h2.list-items__item-title{
-	color:var(--color-1)
+
+.s-expertise a:hover h2.list-items__item-title {
+	color: var(--color-1)
 }
 
 .pimg {
@@ -2834,11 +2837,11 @@ section.horizontal .item {
 }
 
 .tag span {
-    border: 1px solid var(--color-2);
-    padding: 0.4rem 1rem;
-    display: flex;
-    height: fit-content;
-    width: max-content;
+	border: 1px solid var(--color-2);
+	padding: 0.4rem 1rem;
+	display: flex;
+	height: fit-content;
+	width: max-content;
 }
 
 h2.list-items__item-title {
@@ -2942,35 +2945,42 @@ h2.list-items__item-title {
  * ## blog card
  * ------------------------------------------------------------------- */
 
-.reas-card  div{
+.reas-card div {
 	display: flex;
 }
+
 #downloadUDownloader i {
-    font-size: 24px;
-    vertical-align: middle;
+	font-size: 24px;
+	vertical-align: middle;
 }
+
 .reas-card .reas-card__text {
-    align-items: flex-end;
-    justify-content: space-between;
+	align-items: flex-end;
+	justify-content: space-between;
 }
-.reas-card .btn {
-    padding: 8px 16px;
-    width: fit-content;
-    margin: 0;
-    border-width: 1px;
+
+.reas-card,
+.s-support .btn {
+	padding: 8px 16px;
+	width: fit-content;
+	margin: 0;
+	border-width: 1px;
 	border-radius: 0;
 }
-.reas-card .title-img
-{
-    gap: var(--vspace-0_75);
+
+.reas-card .title-img {
+	gap: var(--vspace-0_75);
 }
-.reas-card .main-info,.reas-card .reas-card__text{
+
+.reas-card .main-info,
+.reas-card .reas-card__text {
 	flex-direction: column;
-    gap: var(--vspace-0_75);
+	gap: var(--vspace-0_75);
 }
+
 .reas-card .card {
-    border-bottom: 1px solid;
-    padding-bottom: 16px;
+	border-bottom: 1px solid;
+	padding-bottom: 16px;
 }
 
 .reas-card {
@@ -2979,13 +2989,14 @@ h2.list-items__item-title {
 	padding-top: var(--h2cspace);
 	gap: var(--vspace-0_875);
 }
-.reas-card .card:last-child
-{
+
+.reas-card .card:last-child {
 	padding-bottom: 0;
 	border: 0;
 }
+
 .reas-card img {
-    height: 7rem
+	height: 7rem
 }
 
 .reas-card__cat-links {
@@ -3004,7 +3015,9 @@ h2.list-items__item-title {
 .reas-card__title a {
 	color: var(--color-text-dark);
 }
-.reas-card .btn:hover{
+
+.reas-card,
+.s-support .btn:hover {
 	background-color: var(--color-1);
 	border-color: var(--color-1);
 	color: var(--color-2);
@@ -3289,17 +3302,21 @@ h2.list-items__item-title {
 		padding: 0.2rem 1rem;
 		font-size: var(--text-sm);
 	}
+
 	.reas-card .card {
 		flex-direction: column;
 		gap: var(--vspace-0_75);
 	}
-	.reas-card .card > div {
+
+	.reas-card .card>div {
 		flex-direction: column;
 		align-items: flex-start;
 	}
-	.reas-card .main-info{
-		gap:0;
+
+	.reas-card .main-info {
+		gap: 0;
 	}
+
 	.reas-card .btn {
 		height: auto;
 		width: 100%;
@@ -3507,16 +3524,22 @@ a.s-header__menu-toggle.is-clicked svg path {
 }
 
 .s-expertise,
-.s-resources,.s-footer,.s-pagecontent,.s-quote {
+.s-resources,
+.s-footer,
+.s-pagecontent,
+.s-quote,
+.s-support {
 	padding-left: var(--l-f-pad);
 	padding-right: var(--l-f-pad);
 }
 
 .s-expertise,
-.s-resources {
+.s-resources,
+.s-support {
 	padding-top: var(--vspace-5);
 	padding-bottom: var(--vspace-5);
 }
+
 section#resources {
 	padding-top: 0;
 }
@@ -3598,7 +3621,7 @@ section#resources {
 		padding-top: max(10rem, 10vh) !important;
 	}
 
-	
+
 
 
 
@@ -4734,6 +4757,7 @@ section#resources {
 	}
 
 }
+
 @media screen and (max-width: 425px) {
 	.s-footer h3 {
 		font-size: clamp(11rem, 8vw, 32rem);
@@ -5084,57 +5108,57 @@ section#resources {
 }
 
 .inner-page h3.text-display-title {
-    margin-bottom: 24px;
+	margin-bottom: 24px;
 }
 
 
 .quote-slider {
-    max-width: 600px;
-    margin: 40px auto;
-    padding: 20px;
-    background: #f5f5f5;
-    border-radius: 10px;
-    position: relative;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-  }
+	max-width: 600px;
+	margin: 40px auto;
+	padding: 20px;
+	background: #f5f5f5;
+	border-radius: 10px;
+	position: relative;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
 
-  .quote-slide {
-    display: none;
-    text-align: center;
-    transition: opacity 0.5s ease-in-out;
-  }
+.quote-slide {
+	display: none;
+	text-align: center;
+	transition: opacity 0.5s ease-in-out;
+}
 
-  .quote-slide.active {
-    display: block;
-  }
+.quote-slide.active {
+	display: block;
+}
 
-  .quote-text {
-    font-size: 1.2rem;
-    font-style: italic;
-    margin-bottom: 10px;
-  }
+.quote-text {
+	font-size: 1.2rem;
+	font-style: italic;
+	margin-bottom: 10px;
+}
 
-  .quote-author {
-    font-weight: bold;
-    font-size: 1rem;
-    color: #555;
-  }
+.quote-author {
+	font-weight: bold;
+	font-size: 1rem;
+	color: #555;
+}
 
-  .quote-nav {
-    display: flex;
-    justify-content: center;
-    margin-top: 15px;
-    gap: 10px;
-  }
+.quote-nav {
+	display: flex;
+	justify-content: center;
+	margin-top: 15px;
+	gap: 10px;
+}
 
-  .quote-dot {
-    width: 10px;
-    height: 10px;
-    background: #aaa;
-    border-radius: 50%;
-    cursor: pointer;
-  }
+.quote-dot {
+	width: 10px;
+	height: 10px;
+	background: #aaa;
+	border-radius: 50%;
+	cursor: pointer;
+}
 
-  .quote-dot.active {
-    background: #333;
-  }
+.quote-dot.active {
+	background: #333;
+}
