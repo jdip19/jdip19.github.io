@@ -27,11 +27,7 @@ figma.ui.onmessage = async (msg: any) => {
 
     const selection = figma.currentPage.selection;
     if (selection.length === 0) {
-      figma.ui.postMessage({ 
-        type: 'error', 
-        message: 'Please select at least one layer' 
-      });
-      return;
+      figma.notify('Please select at least one layer. 😊');
     }
 
     try {
@@ -82,10 +78,7 @@ figma.ui.onmessage = async (msg: any) => {
                 updatedCount++;
               } catch (error) {
                 console.error('Error loading font:', error);
-                figma.ui.postMessage({
-                  type: 'error',
-                  message: `Error loading font for layer "${layer.name}". Skipping this layer.`
-                });
+                figma.notify(`Error loading font for layer "${layer.name}". Skipping this layer.`);
               }
             } else if (mode === 'rename') {
               // For rename mode, just use the value from the sheet
@@ -97,21 +90,12 @@ figma.ui.onmessage = async (msg: any) => {
       }
 
       if (updatedCount === 0) {
-        figma.ui.postMessage({ 
-          type: 'error', 
-          message: 'No layers were updated. Make sure layer names start with # matching column names (e.g., #name for "name" column)' 
-        });
+        figma.notify('Oops! No layers were updated.Layer names start with # matching column names 😕', { error: true,timeout:3000 });
       } else {
-        figma.ui.postMessage({ 
-          type: 'success', 
-          message: `Updated ${updatedCount} layer${updatedCount > 1 ? 's' : ''}!` 
-        });
+        figma.notify(`Updated ${updatedCount} layer${updatedCount > 1 ? 's' : ''}! 😊`);
       }
     } catch (error) {
-      figma.ui.postMessage({ 
-        type: 'error', 
-        message: `Error updating layers: ${error instanceof Error ? error.message : String(error)}` 
-      });
+      figma.notify(`Error updating layers: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   
@@ -204,10 +188,7 @@ async function updateLayers(data: string[][], mappings: SheetToLayerMapping): Pr
           /\.(jpg|jpeg|png|gif|svg)$/i.test(value)) {
         // We can't directly set images from URLs in Figma plugin API
         // Just notify the user about this limitation
-        figma.ui.postMessage({
-          type: 'info',
-          message: `Image URL detected for layer ${layer.name}. Image URLs can't be automatically applied.`
-        });
+        figma.notify(`Image URL detected for layer ${layer.name}. Image URLs can't be automatically applied.`)
       } 
       // For other values, update the layer name or a property
       else if (typeof value === 'string' && /^#([0-9A-F]{6}|[0-9A-F]{3})$/i.test(value)) {
@@ -226,6 +207,18 @@ async function updateLayers(data: string[][], mappings: SheetToLayerMapping): Pr
     }
   }
 }
+figma.on('selectionchange', () => {
+  const selection = figma.currentPage.selection;
+  const names = selection.map(node => node.name);
+  const types = selection.map(node => node.type);
+
+  figma.ui.postMessage({
+    type: 'selection-info',
+    names,
+    types
+  });
+});
+
 
 // Helper: Convert hex color to RGB components (0-1 range for Figma)
 function hexToRgb(hex: string): [number, number, number] {
