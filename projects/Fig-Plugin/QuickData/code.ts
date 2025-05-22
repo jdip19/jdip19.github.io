@@ -10,33 +10,54 @@ interface SheetToLayerMapping {
 }
 
 // Show UI with dimensions
-figma.showUI(__html__, { width: 400, height: 350 });
+figma.showUI(__html__, { width: 300, height: 300 });
 
 // Handle messages from the UI
 figma.ui.onmessage = async (msg: any) => {
   if (msg.type === 'update-layers') {
     const { data, mode } = msg;
-    console.log("msg data"+msg.data);
+    console.log("Received data structure:", JSON.stringify(data, null, 2));
     
     if (!data || data.length < 2) {
       figma.notify('No data found in the sheet');
+      return;
     }
 
     const selection = figma.currentPage.selection;
     if (selection.length === 0) {
       figma.notify('Please select at least one layer. 😊');
+      return;
     }
 
     try {
-      // Get headers from first row
-      const headers = data[0];
-      console.log("headers"+headers);
+      // Clean and process the data
+      const cleanData = data.map((row: any[]) => row.map((cell: any) => 
+        cell !== null && cell !== undefined ? String(cell).trim() : ''
+      ));
+
+      // Find the header row - first non-empty row
+      let headerRowIndex = 0;
+      for (let i = 0; i < cleanData.length; i++) {
+        if (cleanData[i].some((cell: string) => cell !== '')) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+
+      // Get headers and create column mapping
+      const headers = cleanData[headerRowIndex];
+      console.log("Processing headers:", headers);
       const columnMap: { [key: string]: number } = {};
       headers.forEach((header: string, index: number) => {
-        // Remove any whitespace and special characters
-        const cleanHeader = header.trim().replace(/[^a-zA-Z0-9]/g, '');
-        columnMap['#' + cleanHeader] = index;
+        if (header && header.trim()) {
+          // Remove any whitespace and special characters
+          const cleanHeader = header.trim().replace(/[^a-zA-Z0-9]/g, '');
+          if (cleanHeader) {
+            columnMap['#' + cleanHeader] = index;
+          }
+        }
       });
+      console.log("Column mapping:", columnMap);
 
       // Group selected layers by their prefix
       const layerGroups: { [prefix: string]: SceneNode[] } = {};
@@ -52,6 +73,7 @@ figma.ui.onmessage = async (msg: any) => {
           }
         }
       }
+      console.log("Layer groups:", Object.keys(layerGroups));
 
       // Process each group of layers
       let updatedCount = 0;
@@ -60,30 +82,28 @@ figma.ui.onmessage = async (msg: any) => {
         const columnIndex = columnMap[prefix];
         
         // Get all values for this column (skip header row)
-        const values = data.slice(1).map((row: string[]) => row[columnIndex]);
-        console.log("values"+values);
+        const values = cleanData.slice(headerRowIndex + 1)
+          .map((row: string[]) => row[columnIndex])
+          .filter((value: string) => value !== undefined && value !== null && value !== '' && value !== '#N/A');
+        
+        console.log(`Values for prefix ${prefix}:`, values);
         
         // Update each layer with corresponding value
         for (let i = 0; i < layers.length; i++) {
           const layer = layers[i];
           if (i < values.length && values[i] !== undefined) {
             const value = values[i];
-            console.log("value"+value);
             if (mode === 'text' && layer.type === 'TEXT') {
-              // For text layers in text mode, update the content
               try {
                 await figma.loadFontAsync((layer as TextNode).fontName as FontName);
                 (layer as TextNode).characters = String(value);
-                layer.characters = "New content";
                 updatedCount++;
               } catch (error) {
                 console.error('Error loading font:', error);
                 figma.notify(`Error loading font for layer "${layer.name}". Skipping this layer.`);
               }
             } else if (mode === 'rename') {
-              // For rename mode, just use the value from the sheet
               layer.name = String(value);
-              console.log("layer name"+layer.name);
               updatedCount++;
             }
           }
@@ -91,16 +111,18 @@ figma.ui.onmessage = async (msg: any) => {
       }
 
       if (updatedCount === 0) {
-        figma.notify('Oops! No layers were updated.Layer names start with # matching column names 😕', { error: true,timeout:3000 });
+        figma.notify('No layers were updated. Make sure layer names start with # matching column names 😕', { timeout: 3000 });
       } else {
-        figma.notify(`Updated ${updatedCount} layer${updatedCount > 1 ? 's' : ''}! 😊`);
+        const modeMessage = mode === 'rename' ? 
+          `Tadaan 🥁 ${updatedCount} Layer${updatedCount > 1 ? 's' : ''} Renamed!` :
+          `Tadaan 🥁 ${updatedCount} Text Layer${updatedCount > 1 ? 's' : ''} Filled!`;
+        figma.notify(modeMessage);
       }
     } catch (error) {
+      console.error('Error:', error);
       figma.notify(`Error updating layers: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }
-  
-  else if (msg.type === 'close') {
+  } else if (msg.type === 'close') {
     figma.closePlugin();
   }
 };
