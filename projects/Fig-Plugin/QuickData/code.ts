@@ -16,14 +16,10 @@ figma.showUI(__html__, { width: 400, height: 350 });
 figma.ui.onmessage = async (msg: any) => {
   if (msg.type === 'update-layers') {
     const { data, mode } = msg;
-    console.log(data);
+    console.log("msg data"+msg.data);
     
     if (!data || data.length < 2) {
-      figma.ui.postMessage({ 
-        type: 'error', 
-        message: 'No data found in the sheet' 
-      });
-      return;
+      figma.notify('No data found in the sheet');
     }
 
     const selection = figma.currentPage.selection;
@@ -34,6 +30,7 @@ figma.ui.onmessage = async (msg: any) => {
     try {
       // Get headers from first row
       const headers = data[0];
+      console.log("headers"+headers);
       const columnMap: { [key: string]: number } = {};
       headers.forEach((header: string, index: number) => {
         // Remove any whitespace and special characters
@@ -64,19 +61,20 @@ figma.ui.onmessage = async (msg: any) => {
         
         // Get all values for this column (skip header row)
         const values = data.slice(1).map((row: string[]) => row[columnIndex]);
-        console.log(values);
+        console.log("values"+values);
         
         // Update each layer with corresponding value
         for (let i = 0; i < layers.length; i++) {
           const layer = layers[i];
           if (i < values.length && values[i] !== undefined) {
             const value = values[i];
-            
+            console.log("value"+value);
             if (mode === 'text' && layer.type === 'TEXT') {
               // For text layers in text mode, update the content
               try {
                 await figma.loadFontAsync((layer as TextNode).fontName as FontName);
                 (layer as TextNode).characters = String(value);
+                layer.characters = "New content";
                 updatedCount++;
               } catch (error) {
                 console.error('Error loading font:', error);
@@ -85,6 +83,7 @@ figma.ui.onmessage = async (msg: any) => {
             } else if (mode === 'rename') {
               // For rename mode, just use the value from the sheet
               layer.name = String(value);
+              console.log("layer name"+layer.name);
               updatedCount++;
             }
           }

@@ -2959,7 +2959,7 @@ h2.list-items__item-title {
 	justify-content: space-between;
 }
 
-.reas-card,
+.reas-card .btn ,
 .s-support .btn {
 	padding: 8px 16px;
 	width: fit-content;
@@ -3016,7 +3016,7 @@ h2.list-items__item-title {
 	color: var(--color-text-dark);
 }
 
-.reas-card,
+.reas-card .btn:hover,
 .s-support .btn:hover {
 	background-color: var(--color-1);
 	border-color: var(--color-1);
