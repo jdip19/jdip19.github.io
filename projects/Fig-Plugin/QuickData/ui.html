@@ -16,14 +16,8 @@
       padding: 20px;
     }
 
-    h2 {
-      margin-top: 0;
-      font-size: 16px;
-    }
-
     input,
-    button,
-    select {
+    button {
       width: 100%;
       padding: 8px;
       border-radius: 4px;
@@ -33,12 +27,10 @@
 
     button {
       background-color: #32CD32;
-      color: #707070;
+      color: #ffffff;
       border: none;
       cursor: pointer;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
       transition: all 0.2s ease;
       box-shadow: 0 4px 0 #196719;
       position: relative;
@@ -59,6 +51,7 @@
     button:disabled {
       background-color: #ffffff;
       box-shadow: 0 4px 0 #2c2c2c;
+      color: #0000007a;
       cursor: not-allowed;
       opacity: 0.7;
     }
@@ -67,141 +60,13 @@
       padding: 12px;
       border-radius: 8px;
       font-size: 15px;
-      margin-top: 8px;
-    }
-
-    .mapping-row {
-      display: flex;
-      margin-bottom: 8px;
-      align-items: center;
-    }
-
-    .mapping-row select {
-      flex: 1;
-      margin-right: 8px;
-      margin-bottom: 0;
-    }
-
-    #status {
-      margin-top: 16px;
-      padding: 8px;
-      border-radius: 4px;
-    }
-
-    .error {
-      background-color: #ffebee;
-      color: #D32F2F;
-    }
-
-    .success {
-      background-color: #e8f5e9;
-      color: #2E7D32;
-    }
-
-    .info {
-      background-color: #e3f2fd;
-      color: #1976D2;
-    }
-
-    .hidden {
-      display: none;
     }
 
     .section {
-      margin-bottom: 20px;
       padding-bottom: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
-    }
-
-    .help-text {
-      font-size: 12px;
-      color: #196719;
-      margin-bottom: 12px;
-    }
-
-    #mappingsContainer {
-      max-height: 200px;
-      overflow-y: auto;
-      margin-bottom: 12px;
-      padding: 8px;
-      border: 1px solid #eee;
-      border-radius: 4px;
-    }
-
-    .radio-group {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-    }
-
-    .radio-option {
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-      cursor: pointer;
-    }
-
-    .radio-option input[type="radio"] {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
-      border: 2px solid #232323;
-      border-radius: 50%;
-      margin-right: 8px;
-      position: relative;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .radio-option input[type="radio"]:checked {
-      background-color: #32CD32;
-      border-color: #196719;
-    }
-
-    .radio-option input[type="radio"]:checked::after {
-      content: '';
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background-color: white;
-      border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    .radio-option input[type="radio"]:hover {
-      border-color: #196719;
-      box-shadow: 0 0 0 3px rgba(50, 205, 50, 0.2);
-    }
-
-    .radio-option label {
-      font-weight: 500;
-      color: #232323;
-      cursor: pointer;
-    }
-
-    /* Info Button */
-    .info-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      margin: 0;
-      box-shadow: none;
-    }
-
-    .info-btn:hover {
-      box-shadow: none;
-      top: 0;
-    }
-
-    .info-btn:active {
-      top: 0;
-      box-shadow: none;
     }
 
     /* Modal Styles */
@@ -227,16 +92,6 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
       font-size: 14px;
       position: relative;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 8px;
-      right: 12px;
-      background: none;
-      border: none;
-      font-size: 18px;
-      cursor: pointer;
     }
 
     .modal-title {
@@ -305,43 +160,48 @@
       color: #32CD32;
       text-decoration: none;
     }
+
+    .info-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      box-shadow: none;
+      width: auto;
+    }
+
+    .info-btn:hover,
+    .info-btn:active {
+      box-shadow: none;
+      top: 0;
+    }
   </style>
   <script src="https://apis.google.com/js/api.js"></script>
 </head>
 
 <body>
   <div class="wrapper">
-
-    <div class="section">
-
-      <div class="radio-group">
-        <div class="radio-option">
-          <input type="radio" id="renameLayer" name="mode" value="rename" checked>
-          <label for="renameLayer">Rename Layer</label>
-        </div>
-        <div class="radio-option">
-          <input type="radio" id="insertText" name="mode" value="text">
-          <label for="insertText">Fill Text Layer</label>
-        </div>
-      </div>
-    </div>
-    <div id="infoModal" class="modal">
-      <div class="modal-content">
-        <h3 class="modal-title">How to use this plugin</h3>
-        <ol class="modal-list">
-          <li>Paste a public Google Sheet link.</li>
-          <li>Select the Figma text layers you want to update.</li>
-          <li>Choose "Rename" or "Insert" mode.</li>
-          <li>Click "Sync" to apply values from the sheet.</li>
-        </ol>
-      </div>
-    </div>
-
-
     <div class="section">
       <input type="text" id="sheetUrl"
         placeholder="https://docs.google.com/spreadsheets/d/1HtdmdqqtWptIYCbACRHxgEST3KVCf8S-Z2au-Fs/edit?gid=20517661#gid=20587661" />
       <button id="fetchData">Fetch Data</button>
+    </div>
+  </div>
+
+  <div id="infoModal" class="modal">
+    <div class="modal-content">
+      <h3 class="modal-title">How to use this plugin</h3>
+      <ol class="modal-list">
+        <li>Paste a public Google Sheet link.</li>
+        <li>Select any Figma layers you want to update.</li>
+        <li>Click "Sync" and the plugin will:
+          <ul style="margin-top: 8px;">
+            <li>For text layers: Update both layer name and text content</li>
+            <li>For other layers: Update layer name only</li>
+          </ul>
+        </li>
+      </ol>
     </div>
   </div>
 
@@ -356,6 +216,21 @@
   <script>
     let currentCallback = null;
 
+    // Remove localStorage related code and handle URL loading through messages
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'selection-info') {
+        selectedLayers = msg.names || [];
+        selectionTypes = msg.types || [];
+        validateUI();
+      } else if (msg.type === 'load-url') {
+        document.getElementById('sheetUrl').value = msg.url;
+        validateUI();
+      }
+    };
+
     // Extract sheet ID from URL
     function extractSheetInfo(url) {
       const idMatch = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
@@ -365,8 +240,6 @@
         gid: gidMatch ? gidMatch[1] : '0' // default to first sheet if gid not found
       };
     }
-
-
 
     // Handle the Google Sheets response
     window.google = {
@@ -409,7 +282,6 @@
       });
     }
 
-
     // Handle button click
     document.getElementById('fetchData').onclick = async () => {
       const sheetUrl = document.getElementById('sheetUrl').value;
@@ -423,13 +295,11 @@
           throw new Error('Sheet must have at least 2 rows (header row and data row)');
         }
 
-        const mode = document.querySelector('input[name="mode"]:checked').value;
-
         parent.postMessage({
           pluginMessage: {
             type: 'update-layers',
             data: JSON.parse(JSON.stringify(data)),
-            mode: mode
+            sheetUrl: sheetUrl // Send URL to be saved
           }
         }, '*');
 
@@ -438,32 +308,19 @@
       }
     };
 
-
-    // Handle messages from the plugin
-
-
-    let selectedLayers = [];
-    let selectionTypes = [];
-
     // Validate button state based on input + selection
     function validateUI() {
       const sheetUrl = document.getElementById('sheetUrl').value.trim();
       const fetchButton = document.getElementById('fetchData');
-      const mode = document.querySelector('input[name="mode"]:checked').value;
-
       const sheetIdValid = /spreadsheets\/d\/([a-zA-Z0-9-_]+)/.test(sheetUrl);
       const layerCount = selectedLayers.length;
-      const isTextMode = mode === 'text';
-      const allTextLayers = selectionTypes.every(type => type === 'TEXT');
 
-      if (!sheetIdValid || layerCount === 0 || (isTextMode && !allTextLayers)) {
+      if (!sheetIdValid || layerCount === 0) {
         fetchButton.disabled = true;
         if (!sheetIdValid) {
           fetchButton.textContent = 'Enter valid Sheet URL';
         } else if (layerCount === 0) {
           fetchButton.textContent = 'Select layers to sync';
-        } else if (isTextMode && !allTextLayers) {
-          fetchButton.textContent = 'Select text layers to sync';
         }
       } else {
         fetchButton.disabled = false;
@@ -471,24 +328,12 @@
       }
     }
 
-    // Listen to URL input
+    // Listen to URL input - remove localStorage calls
     document.getElementById('sheetUrl').addEventListener('input', validateUI);
 
-    // Listen to radio button change
-    document.querySelectorAll('input[name="mode"]').forEach(el => {
-      el.addEventListener('change', validateUI);
-    });
+    let selectedLayers = [];
+    let selectionTypes = [];
 
-    window.onmessage = (event) => {
-      const msg = event.data.pluginMessage;
-      if (!msg) return;
-
-      if (msg && msg.type === 'selection-info') {
-        selectedLayers = msg.names || [];
-        selectionTypes = msg.types || [];
-        validateUI();
-      }
-    };
     document.getElementById('infoBtn').addEventListener('click', () => {
       document.getElementById('infoModal').style.display = 'flex';
     });
@@ -499,8 +344,6 @@
         document.getElementById('infoModal').style.display = 'none';
       }
     });
-
-
 
     // Initial call
     validateUI();

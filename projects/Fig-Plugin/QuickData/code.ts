@@ -1,3 +1,5 @@
+/// <reference types="@figma/plugin-typings" />
+
 interface TaggedLayer {
   id: string;
   name: string;
@@ -12,12 +14,27 @@ interface SheetToLayerMapping {
 // Show UI with dimensions
 figma.showUI(__html__, { width: 300, height: 300 });
 
+// Load saved URL when plugin starts
+figma.clientStorage.getAsync('lastSheetUrl').then(savedUrl => {
+  if (savedUrl) {
+    figma.ui.postMessage({
+      type: 'load-url',
+      url: savedUrl
+    });
+  }
+});
+
 // Handle messages from the UI
 figma.ui.onmessage = async (msg: any) => {
   if (msg.type === 'update-layers') {
-    const { data, mode } = msg;
+    const { data } = msg;
     console.log("Received data structure:", JSON.stringify(data, null, 2));
     
+    // Save the URL
+    if (msg.sheetUrl) {
+      await figma.clientStorage.setAsync('lastSheetUrl', msg.sheetUrl);
+    }
+
     if (!data || data.length < 2) {
       figma.notify('No data found in the sheet');
       return;
@@ -76,7 +93,11 @@ figma.ui.onmessage = async (msg: any) => {
       console.log("Layer groups:", Object.keys(layerGroups));
 
       // Process each group of layers
-      let updatedCount = 0;
+      let updatedNameCount = 0;
+      let updatedContentCount = 0;
+      let textLayersCount = 0;
+      let otherLayersCount = 0;
+
       for (const prefix in layerGroups) {
         const layers = layerGroups[prefix];
         const columnIndex = columnMap[prefix];
@@ -93,30 +114,51 @@ figma.ui.onmessage = async (msg: any) => {
           const layer = layers[i];
           if (i < values.length && values[i] !== undefined) {
             const value = values[i];
-            if (mode === 'text' && layer.type === 'TEXT') {
+            
+            // Always update the layer name
+            layer.name = String(value);
+            updatedNameCount++;
+
+            // Track layer types
+            if (layer.type === 'TEXT') {
+              textLayersCount++;
+              // If it's a text layer, also update its content
               try {
                 await figma.loadFontAsync((layer as TextNode).fontName as FontName);
                 (layer as TextNode).characters = String(value);
-                updatedCount++;
+                updatedContentCount++;
               } catch (error) {
                 console.error('Error loading font:', error);
-                figma.notify(`Error loading font for layer "${layer.name}". Skipping this layer.`);
+                figma.notify(`Error loading font for layer "${layer.name}". Only name was updated.`);
               }
-            } else if (mode === 'rename') {
-              layer.name = String(value);
-              updatedCount++;
+            } else {
+              otherLayersCount++;
             }
           }
         }
       }
 
-      if (updatedCount === 0) {
+      if (updatedNameCount === 0) {
         figma.notify('No layers were updated. Make sure layer names start with # matching column names 😕', { timeout: 3000 });
       } else {
-        const modeMessage = mode === 'rename' ? 
-          `Tadaan 🥁 ${updatedCount} Layer${updatedCount > 1 ? 's' : ''} Renamed!` :
-          `Tadaan 🥁 ${updatedCount} Text Layer${updatedCount > 1 ? 's' : ''} Filled!`;
-        figma.notify(modeMessage);
+        let message = '';
+        
+        // Case 1: Only text layers
+        if (textLayersCount > 0 && otherLayersCount === 0) {
+          message = `Tadaan 🥁 ${textLayersCount} Text layer${textLayersCount > 1 ? 's' : ''} updated (name & content)!`;
+        }
+        // Case 2: Only other layers
+        else if (otherLayersCount > 0 && textLayersCount === 0) {
+          message = `Tadaan 🥁 ${otherLayersCount} Layer${otherLayersCount > 1 ? 's' : ''} renamed!`;
+        }
+        // Case 3: Both text and other layers
+        else {
+          message = `Tadaan 🥁 ${updatedNameCount} layers updated:\n`;
+          message += `• ${textLayersCount} text layer${textLayersCount > 1 ? 's' : ''} (name & content)\n`;
+          message += `• ${otherLayersCount} other layer${otherLayersCount > 1 ? 's' : ''} (name only)`;
+        }
+        
+        figma.notify(message, { timeout: 4000 });
       }
     } catch (error) {
       console.error('Error:', error);
