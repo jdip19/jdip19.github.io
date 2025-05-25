@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "UDownloader",
-  "version": "2.1",
+  "name": "i2Snatcher",
+  "version": "2.2",
   "description": "A browser extension to copy or download icons with shoutcut and contetxt menu. 2.0",
   "permissions": [
     "downloads",
@@ -49,8 +49,8 @@
     "default_popup": "popup.html"
   },
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "16": "i2snatcher16.png",
+    "48": "i2snatcher48.png",
+    "128": "i2snatcher128.png"
   }
 }

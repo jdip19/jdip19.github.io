@@ -447,27 +447,27 @@ horizontalSections.forEach(function (sec, i) {
 
 const baseGitHubUrl = 'projects/'; // Update with your repo details
 
-// List of files for UDownloader
+// List of files for i2Snatcher
 const udFiles = [
-    'UDownloader/background.js',
-    'UDownloader/contentScript.js',
-    'UDownloader/icon128.png',
-    'UDownloader/icon16.png',
-    'UDownloader/icon48.png',
-    'UDownloader/manifest.json',
-    'UDownloader/popup.html',
-    'UDownloader/readme.md',
-    'UDownloader/popup.js'
+    'i2Snatcher/background.js',
+    'i2Snatcher/contentScript.js',
+    'i2Snatcher/i2snatcher128.png',
+    'i2Snatcher/i2snatcher16.png',
+    'i2Snatcher/i2snatcher48.png',
+    'i2Snatcher/manifest.json',
+    'i2Snatcher/popup.html',
+    'i2Snatcher/readme.md',
+    'i2Snatcher/popup.js'
 ];
 
 // List of files for SVGget
 const TabOrganizer = [
     'Tab Organizer/background.js',
     'Tab Organizer/content.js',
-    'Tab Organizer/icon128.png',
+    'Tab Organizer/i2snatcher128.png',
     'Tab Organizer/icon256.png',
-    'Tab Organizer/icon16.png',
-    'Tab Organizer/icon48.png',
+    'Tab Organizer/i2snatcher16.png',
+    'Tab Organizer/i2snatcher48.png',
     'Tab Organizer/manifest.json',
     'Tab Organizer/popup.html',
     'Tab Organizer/popup.js'
@@ -490,13 +490,13 @@ function fetchFilesToZip(fileArray, folderName, zip) {
     return Promise.all(fetchPromises);
 }
 
-// UDownloader button
-document.getElementById('downloadUDownloader').addEventListener('click', function () {
+// i2Snatcher button
+document.getElementById('downloadi2Snatcher').addEventListener('click', function () {
     var zip = new JSZip();
-    fetchFilesToZip(udFiles, 'UDownloader', zip)
+    fetchFilesToZip(udFiles, 'i2Snatcher', zip)
         .then(() => zip.generateAsync({ type: "blob" }))
         .then(content => {
-            saveAs(content, "UDownloader.zip");
+            saveAs(content, "i2Snatcher.zip");
         });
 });
 
