@@ -68,6 +68,7 @@ chrome.commands.onCommand.addListener((command) => {
     if (tabs[0]?.id) {
       const tabId = tabs[0].id;
       const action = command === "copy_svg" ? "copy" : "download";
+      console.log("taken"+action);
 
       chrome.scripting.executeScript({
         target: { tabId },
@@ -81,6 +82,7 @@ chrome.commands.onCommand.addListener((command) => {
 // Open the link in a background tab and extract the SVG
 function processSvg(detailLink, action) {
   chrome.tabs.create({ url: detailLink, active: false }, (tab) => {
+    console.log("taken"+action);
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       function: extractSvg,
