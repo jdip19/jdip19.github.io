@@ -63,7 +63,7 @@ figma.ui.onmessage = async (msg: any) => {
 
       // Get headers and create column mapping
       const headers = cleanData[headerRowIndex];
-      console.log("Processing headers:", headers);
+      console.log("Raw headers from sheet:", headers);
       const columnMap: { [key: string]: number } = {};
       headers.forEach((header: string, index: number) => {
         if (header && header.trim()) {
@@ -74,20 +74,30 @@ figma.ui.onmessage = async (msg: any) => {
           }
         }
       });
-      console.log("Column mapping:", columnMap);
+      console.log("Created column mapping:", columnMap);
 
       // Group selected layers by their prefix
       const layerGroups: { [prefix: string]: SceneNode[] } = {};
+      console.log("Selected layers:", selection.map(layer => ({ name: layer.name, type: layer.type })));
+      
       for (const layer of selection) {
         const layerName = layer.name;
+        console.log("Checking layer:", layerName);
+        let matched = false;
         for (const prefix in columnMap) {
+          console.log(`- Comparing with prefix "${prefix}"`);
           if (layerName.startsWith(prefix)) {
             if (!layerGroups[prefix]) {
               layerGroups[prefix] = [];
             }
             layerGroups[prefix].push(layer);
+            matched = true;
+            console.log(`  ✓ Matched with prefix "${prefix}"`);
             break;
           }
+        }
+        if (!matched) {
+          console.log("  ✗ No matching prefix found");
         }
       }
       console.log("Layer groups:", Object.keys(layerGroups));
