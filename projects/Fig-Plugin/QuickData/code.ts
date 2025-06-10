@@ -12,7 +12,7 @@ interface SheetToLayerMapping {
 }
 
 // Show UI with dimensions
-figma.showUI(__html__, { width: 300, height: 300 });
+figma.showUI(__html__, { width: 300, height: 450 });
 
 // Load saved URL when plugin starts
 figma.clientStorage.getAsync('lastSheetUrl').then(savedUrl => {
