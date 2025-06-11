@@ -324,7 +324,7 @@
         fill: currentColor;
       }
 
-      .refresh-button.spinning svg, .loading td{
+      .refresh-button.spinning svg{
         animation: spin 1s linear infinite;
         border: 0;
       }
@@ -363,17 +363,30 @@
       tr.message.error td {
         color: #d32f2f;
         background: #fde7e7;
+        padding: 12px;
+        border-radius: 4px;
+        margin: 8px;
+        font-weight: 500;
       }
 
       tr.message.loading td {
-        animation: spin 1s linear infinite;
-        border: 0;
+        color: #196719;
       }
 
-      .refresh-button.spinning svg {
+      tr.message.loading td::after {
+        content: '';
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #32cd32;
+        border-radius: 50%;
+        border-top-color: transparent;
         animation: spin 1s linear infinite;
-        border: 0;
       }
+      .table-preview.visible{
+        align-content:flex-start;
+      }
+
     </style>
     <script src="https://apis.google.com/js/api.js"></script>
   </head>
@@ -540,6 +553,11 @@
       };
 
       function extractSheetInfo(url) {
+        // Check if URL is a valid Google Sheets URL
+        if (!url.includes('docs.google.com/spreadsheets')) {
+          return { id: null, gid: null };
+        }
+        
         const idMatch = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
         const gidMatch = url.match(/gid=([0-9]+)/);
         return {
@@ -630,6 +648,8 @@
         }
         previewTable.appendChild(tbody);
 
+        // Hide the message row when showing data
+        messageRow.style.display = "none";
         tablePreview.classList.add("visible");
         buttonContainer.classList.add("visible");
       }
@@ -665,36 +685,96 @@
 
       // Handle URL input with debounce
       const handleUrlInput = debounce(async (event) => {
-        await fetchAndDisplayData();
-      }, 1500);
+        const url = event.target.value.trim();
+        if (url) {
+          await fetchAndDisplayData();
+        }
+      }, 1000);
 
-      async function fetchAndDisplayData() {
-        const sheetUrl = document.getElementById("sheetUrl").value.trim();
-        const { id: sheetId, gid } = extractSheetInfo(sheetUrl);
+      // Handle immediate URL validation
+      function validateUrl(url) {
         const messageRow = document.getElementById("messageRow");
-        const refreshBtn = document.getElementById("refreshBtn");
+        const previewTable = document.getElementById("previewTable");
         const buttonContainer = document.getElementById("buttonContainer");
 
-        // Reset UI
-        messageRow.className = "message";
-        buttonContainer.classList.remove("visible");
+        if (!messageRow || !previewTable || !buttonContainer) return;
 
-        if (!sheetId) {
-          messageRow.className = "message error";
-          messageRow.querySelector("td").textContent = "Please enter a valid Google Sheet URL";
+        // Reset UI to initial state if URL is empty
+        if (!url) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message";
+          messageRow.querySelector("td").textContent = "Data will be previewed here";
+          buttonContainer.classList.remove("visible");
+          // Clear the table
+          previewTable.innerHTML = '<tbody><tr class="message" id="messageRow"><td>Data will be previewed here</td></tr></tbody>';
           return;
         }
 
+        // Show error if not a Google Sheets URL
+        if (!url.includes('docs.google.com/spreadsheets')) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message error";
+          messageRow.querySelector("td").textContent = "Please enter a valid Google Sheet URL";
+          buttonContainer.classList.remove("visible");
+          return;
+        }
+      }
+
+      async function fetchAndDisplayData() {
+        const sheetUrl = document.getElementById("sheetUrl").value.trim();
+        const messageRow = document.getElementById("messageRow");
+        const refreshBtn = document.getElementById("refreshBtn");
+        const buttonContainer = document.getElementById("buttonContainer");
+        const previewTable = document.getElementById("previewTable");
+
+        // Check if elements exist
+        if (!messageRow || !refreshBtn || !buttonContainer || !previewTable) {
+          console.error("Required elements not found");
+          return;
+        }
+
+        // Reset UI to initial state if URL is empty
+        if (!sheetUrl) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message";
+          messageRow.querySelector("td").textContent = "Data will be previewed here";
+          buttonContainer.classList.remove("visible");
+          return;
+        }
+
+        const { id: sheetId, gid } = extractSheetInfo(sheetUrl);
+
+        // Validate if URL contains a sheet ID
+        if (!sheetId) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message error";
+          messageRow.querySelector("td").textContent = "Invalid Google Sheet URL. Make sure you copied the entire URL";
+          buttonContainer.classList.remove("visible");
+          return;
+        }
+
+        // Show loading state only if URL is valid
+        messageRow.style.display = "table-row";
+        messageRow.className = "message loading";
+        messageRow.querySelector("td").textContent = "";
+        refreshBtn.classList.add("spinning");
+        buttonContainer.classList.remove("visible");
+
         try {
-          messageRow.className = "message loading";
-          messageRow.querySelector("td").textContent = "⏳";
-          refreshBtn.classList.add("spinning");
-          
           const data = await fetchSheetData(sheetId, gid);
           currentSheetData = filterEmptyColumns(data);
+          
+          if (!currentSheetData || currentSheetData.length < 2) {
+            messageRow.style.display = "table-row";
+            messageRow.className = "message error";
+            messageRow.querySelector("td").textContent = "No data found in the sheet";
+            return;
+          }
+          
           displayTablePreview(currentSheetData);
           validateUI();
         } catch (error) {
+          messageRow.style.display = "table-row";
           messageRow.className = "message error";
           messageRow.querySelector("td").textContent = "Error loading sheet data: " + error.message;
           buttonContainer.classList.remove("visible");
@@ -705,7 +785,11 @@
 
       document
         .getElementById("sheetUrl")
-        .addEventListener("input", handleUrlInput);
+        .addEventListener("input", function(event) {
+          const url = event.target.value.trim();
+          validateUrl(url);
+          handleUrlInput(event);
+        });
 
       document
         .getElementById("refreshBtn")
