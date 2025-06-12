@@ -265,11 +265,75 @@
         font-size: 12px;
         color: #fff;
         border-top: 1px solid transparent;
+        overflow: hidden;
       }
 
       .footer a {
-        color: #32cd32;
+        color: #ffffff;
         text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .footer a:hover {
+      color:#E9AA70;
+      }
+      .footer a:hover svg{
+        transform: rotate(-5deg);
+        transition: transform 0.3s ease;
+      }
+      .footer a:hover .steam{
+        top:1px;
+        left: 179px;
+        transform: rotate(-5deg);
+      }
+      .tea-container {
+        display: flex;
+      }
+
+      .steam {
+        position: absolute;
+        top: 1px;
+        width: 8px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        animation: steam 2s infinite;
+      }
+
+      .steam:nth-child(1) {
+        left: 180px;
+        animation-delay: 0.2s;
+      }
+
+      .steam:nth-child(2) {
+        left: 188px;
+        animation-delay: 0.4s;
+      }
+
+      .steam:nth-child(3) {
+        left: 184px;
+        animation-delay: 0.6s;
+      }
+
+      @keyframes steam {
+        0% {
+          transform: translateY(0) scaleX(1);
+          opacity: 0;
+        }
+        15% {
+          opacity: 1;
+        }
+        50% {
+          transform: translateY(-10px) scaleX(3);
+        }
+        95% {
+          opacity: 0.2;
+        }
+        100% {
+          transform: translateY(-20px) scaleX(4);
+          opacity: 0;
+        }
       }
 
       .info-btn {
@@ -324,7 +388,7 @@
         fill: currentColor;
       }
 
-      .refresh-button.spinning svg{
+      .refresh-button.spinning svg {
         animation: spin 1s linear infinite;
         border: 0;
       }
@@ -374,7 +438,7 @@
       }
 
       tr.message.loading td::after {
-        content: '';
+        content: "";
         display: inline-block;
         width: 16px;
         height: 16px;
@@ -383,10 +447,9 @@
         border-top-color: transparent;
         animation: spin 1s linear infinite;
       }
-      .table-preview.visible{
-        align-content:flex-start;
+      .table-preview.visible {
+        align-content: flex-start;
       }
-
     </style>
     <script src="https://apis.google.com/js/api.js"></script>
   </head>
@@ -450,9 +513,9 @@
       </div>
       <div class="section">
         <div class="input-group">
-        <input
-          type="text"
-          id="sheetUrl"
+          <input
+            type="text"
+            id="sheetUrl"
             placeholder="Paste your Google Sheet URL here to fetch data automatically"
           />
           <button class="refresh-button" id="refreshBtn" title="Refresh data">
@@ -483,38 +546,131 @@
         <h3 class="modal-title">How to use QuickData</h3>
         <ol class="modal-list">
           <li>
-            Make your Google Sheet public (File → Share → Anyone with the link)
-          </li>
-          <li>Copy and paste your Google Sheet URL</li>
-          <li>
-            Name your Figma layers with # followed by the column name:
+            Prepare your Google Sheet:
             <ul style="margin-top: 8px">
-              <li>Example: If column is "Name", layer should be "#Name"</li>
-              <li>Column "Product" → Layer "#Product"</li>
+              <li>
+                Make your sheet public (File → Share → Anyone with the link)
+              </li>
+              <li>Ensure your first row contains column headers</li>
+              <li>For best results, freeze the header row in your sheet</li>
+            </ul>
+          </li>
+          <li>
+            In the plugin:
+            <ul style="margin-top: 8px">
+              <li>Paste your Google Sheet URL in the input field</li>
+              <li>Preview your data in the table below</li>
+              <li>Use the refresh button to update data if needed</li>
+            </ul>
+          </li>
+          <li>
+            Prepare your Figma layers:
+            <ul style="margin-top: 8px">
+              <li>Name your layers with # followed by the column name</li>
+              <li>Example: For "Name" column → Layer "#Name"</li>
+              <li>For "Product Price" column → Layer "#ProductPrice"</li>
               <li>Spaces and special characters are removed automatically</li>
             </ul>
           </li>
-          <li>Select the layers you want to update</li>
           <li>
-            Click "Sync" and watch the magic happen:
+            Sync your data:
             <ul style="margin-top: 8px">
+              <li>Select the layers you want to update</li>
+              <li>Click the "Sync" button</li>
               <li>Text layers: Both name and content update</li>
               <li>Other layers: Names update only</li>
               <li>Multiple layers can use the same column</li>
             </ul>
           </li>
         </ol>
+        <div style="margin-top: 16px; font-size: 13px; color: #666">
+          💡 Tip: The preview table shows the first few rows of your data to
+          help you verify the content before syncing.
+        </div>
       </div>
     </div>
 
     <footer class="footer">
-      <div>
+      <div class="tea-container">
         Liked the plugin?&nbsp;<a
           href="https://jdip19.github.io/support-jdip.html"
           target="_blank"
         >
-          Buy me tea 🍵</a
-        >
+          <i>Buy me tea</i>
+          <div class="tea">
+            <div class="steam"></div>
+            <div class="steam"></div>
+            <div class="steam"></div>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 30 44"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M15 5.62793C23.2843 5.62793 30 4.36873 30 2.81543C30 1.26213 23.2843 0.00292969 15 0.00292969C6.71573 0.00292969 0 1.26213 0 2.81543C0 4.36873 6.71573 5.62793 15 5.62793Z"
+                fill="#B8D0FF"
+              />
+              <path
+                d="M29.1309 3.75C29.6841 3.45656 30 3.14156 30 2.8125C30 1.25625 23.2875 0 15 0C6.7125 0 0 1.25906 0 2.8125C0 3.14156 0.315938 3.45656 0.869063 3.75C2.93156 2.65687 8.46281 1.875 15 1.875C21.5372 1.875 27.0722 2.65969 29.1309 3.75Z"
+                fill="#CAD9FF"
+              />
+              <path
+                d="M15 5.625C23.2875 5.625 30 4.36875 30 2.8125L29.3625 11.2678L29.0625 11.25C29.0625 9.69375 22.7625 8.4375 15 8.4375C7.2375 8.4375 0.9375 9.69563 0.9375 11.25L0.6375 11.2688L0 2.8125C0 4.37156 6.7125 5.625 15 5.625Z"
+                fill="#CDE2FF"
+              />
+              <path
+                d="M25.3125 13.1644C23.7593 13.4847 22.1874 13.707 20.6062 13.83C18.8906 13.98 16.9875 14.0644 15 14.0644C13.0125 14.0644 11.1094 13.98 9.39375 13.83C7.8126 13.707 6.24074 13.4847 4.6875 13.1644C2.3625 12.6562 0.9375 11.9925 0.9375 11.25C0.9375 9.69375 7.2375 8.4375 15 8.4375C22.7625 8.4375 29.0625 9.69375 29.0625 11.25C29.0625 11.9925 27.6375 12.6562 25.3125 13.1644Z"
+                fill="#FFC7A1"
+              />
+              <path
+                d="M23.4375 38.5884C25.7531 38.0822 27.1875 37.3603 27.1875 36.5634L27.4687 36.5822L27.1875 40.3125C27.1875 41.8687 21.7313 43.125 15 43.125C8.26875 43.125 2.8125 41.8697 2.8125 40.3125L2.53125 36.5813L2.8125 36.5625C2.8125 37.3594 4.24688 38.0812 6.5625 38.5875C7.79688 38.8524 9.04598 39.0434 10.3031 39.1594C11.7469 39.3 13.3313 39.375 15 39.375C16.6688 39.375 18.2531 39.3 19.6969 39.1594C20.954 39.0437 22.2031 38.853 23.4375 38.5884Z"
+                fill="#B8D0FF"
+              />
+              <path
+                d="M29.3625 11.2707L27.4687 36.5832L27.1875 36.5625C27.1875 37.3594 25.7531 38.0813 23.4375 38.5875L25.3125 13.1635C27.6375 12.6572 29.0625 11.9916 29.0625 11.251L29.3625 11.2707Z"
+                fill="#E9AA70"
+              />
+              <path
+                d="M25.3125 13.1646L23.4375 38.5886C22.2031 38.8535 20.954 39.0445 19.6969 39.1605L20.625 14.0627L20.6063 13.8283C22.1874 13.7059 23.7592 13.4842 25.3125 13.1646Z"
+                fill="#D99C64"
+              />
+              <path
+                d="M20.6062 13.8301L20.625 14.0626L19.6969 39.1585C18.2531 39.2991 16.6687 39.3741 15 39.3741V14.0626C16.9875 14.0626 18.8906 13.9801 20.6062 13.8301Z"
+                fill="#E9AA70"
+              />
+              <path
+                d="M15 14.0625V39.375C13.3313 39.375 11.7469 39.3 10.3031 39.1594L9.375 14.0625L9.39375 13.8281C11.1094 13.98 13.0125 14.0625 15 14.0625Z"
+                fill="#D99C64"
+              />
+              <path
+                d="M9.375 14.0627L10.3031 39.1586C9.04602 39.0432 7.79692 38.8529 6.5625 38.5886L4.6875 13.1646C6.24074 13.4849 7.8126 13.7072 9.39375 13.8302L9.375 14.0627Z"
+                fill="#E9AA70"
+              />
+              <path
+                d="M4.68745 13.1644L6.56245 38.5884C4.24683 38.0822 2.81245 37.3603 2.81245 36.5634L2.5312 36.5822L0.637451 11.2697L0.937451 11.25C0.937451 11.9925 2.36245 12.6562 4.68745 13.1644Z"
+                fill="#D99C64"
+              />
+              <path
+                d="M15 43.125C21.7312 43.125 27.1875 41.8687 27.1875 40.3125L27.3281 38.4469L27.1875 38.4375C27.1875 39.2344 25.7531 39.9562 23.4375 40.4625C22.2031 40.7274 20.954 40.9184 19.6969 41.0344C18.2531 41.175 16.6687 41.25 15 41.25C13.3313 41.25 11.7469 41.175 10.3031 41.0344C9.04598 40.9184 7.79688 40.7274 6.5625 40.4625C4.24688 39.9562 2.8125 39.2344 2.8125 38.4375L2.67188 38.4469L2.8125 40.3125C2.8125 41.8687 8.26875 43.125 15 43.125Z"
+                fill="#7FA5EF"
+              />
+              <path
+                d="M29.9437 3.06002C29.9437 3.06846 29.9344 3.07596 29.9306 3.08346C29.475 4.02096 26.5556 4.82908 22.4006 5.26783L22.1953 5.28939C19.8042 5.52573 17.4027 5.64119 15 5.63533C14.5584 5.63533 14.1206 5.63533 13.6875 5.62502C13.3331 5.61939 12.9853 5.60908 12.6375 5.59877C12.5353 5.59877 12.4322 5.59408 12.3309 5.59033C11.9946 5.57863 11.6584 5.56488 11.3222 5.54908L11.0428 5.53127C10.6989 5.51393 10.3552 5.49393 10.0116 5.47127L9.86062 5.46096C5.27625 5.14783 1.74938 4.42971 0.5025 3.53346C0.411055 3.4703 0.325967 3.3984 0.248437 3.31877C0.226763 3.29622 0.206417 3.27243 0.1875 3.24752C0.142213 3.197 0.102601 3.14167 0.069375 3.08252C0.0281917 3.00753 0.00447676 2.92421 0 2.83877C0 2.83877 0 2.82939 0 2.82471L0.171562 5.10096C0.366107 5.32499 0.604432 5.50684 0.871875 5.63533C2.87531 6.69658 8.16844 7.46439 14.4591 7.51033H15C16.9751 7.51329 18.9495 7.43698 20.9184 7.28158C24.735 6.97315 27.7312 6.37502 29.1281 5.63533C29.3956 5.50684 29.6339 5.32499 29.8284 5.10096L30 2.82471C29.9977 2.90619 29.9786 2.98632 29.9437 3.06002Z"
+                fill="#E6F1FF"
+              />
+              <path
+                d="M26.0727 12.0225C26.3748 11.7205 26.2789 11.1349 25.8586 10.7146C25.4383 10.2943 24.8527 10.1984 24.5507 10.5005C24.2486 10.8025 24.3445 11.3881 24.7648 11.8084C25.1851 12.2287 25.7707 12.3246 26.0727 12.0225Z"
+                fill="#F6FAFD"
+              />
+              <path
+                d="M23.0798 12.7622C23.681 12.161 23.4898 10.9952 22.6529 10.1582C21.8159 9.32129 20.6501 9.13016 20.049 9.73132C19.4478 10.3325 19.6389 11.4983 20.4759 12.3352C21.3128 13.1722 22.4786 13.3633 23.0798 12.7622Z"
+                fill="#F6FAFD"
+              />
+            </svg>
+          </div>
+        </a>
       </div>
       <div>
         <button id="infoBtn" class="info-btn" title="How to use">ℹ️</button>
@@ -554,10 +710,10 @@
 
       function extractSheetInfo(url) {
         // Check if URL is a valid Google Sheets URL
-        if (!url.includes('docs.google.com/spreadsheets')) {
+        if (!url.includes("docs.google.com/spreadsheets")) {
           return { id: null, gid: null };
         }
-        
+
         const idMatch = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
         const gidMatch = url.match(/gid=([0-9]+)/);
         return {
@@ -614,42 +770,49 @@
         const buttonContainer = document.getElementById("buttonContainer");
         const messageRow = document.getElementById("messageRow");
 
+        console.log("Display data - headers:", data[0]);
+        console.log("Display data - first row:", data[1]);
+
         if (!data || data.length < 2) {
-          messageRow.className = "message";
-          messageRow.querySelector("td").textContent = "Data will be previewed here";
+          if (messageRow) {
+            messageRow.className = "message";
+            messageRow.querySelector("td").textContent =
+              "Data will be previewed here";
+          } else {
+            previewTable.innerHTML =
+              '<tbody><tr class="message" id="messageRow"><td>Data will be previewed here</td></tr></tbody>';
+          }
           buttonContainer.classList.remove("visible");
           return;
         }
 
-        // Clear existing table content
-        previewTable.innerHTML = "";
+        // Create new table content
+        let tableHTML = "<thead><tr>";
 
-        // Create header row
-        const thead = document.createElement("thead");
-        const headerRow = document.createElement("tr");
-        data[1].forEach((header) => {
-          const th = document.createElement("th");
-          th.textContent = header;
-          headerRow.appendChild(th);
+        // Add headers (always use first row as headers after normalization)
+        data[0].forEach((header) => {
+          tableHTML += `<th>${header || ""}</th>`;
         });
-        thead.appendChild(headerRow);
-        previewTable.appendChild(thead);
+        tableHTML += "</tr></thead><tbody>";
 
-        // Create body rows
-        const tbody = document.createElement("tbody");
-        for (let i = 2; i < Math.min(data.length, 5); i++) {
-          const row = document.createElement("tr");
+        // Add data rows
+        for (let i = 1; i < Math.min(data.length, 4); i++) {
+          tableHTML += "<tr>";
           data[i].forEach((cell) => {
-            const td = document.createElement("td");
-            td.textContent = cell;
-            row.appendChild(td);
+            tableHTML += `<td>${cell || ""}</td>`;
           });
-          tbody.appendChild(row);
+          tableHTML += "</tr>";
         }
-        previewTable.appendChild(tbody);
 
-        // Hide the message row when showing data
-        messageRow.style.display = "none";
+        // Add hidden message row at the end of tbody
+        tableHTML +=
+          '<tr class="message" id="messageRow" style="display: none"><td colspan="' +
+          data[0].length +
+          '"></td></tr></tbody>';
+
+        // Update table content
+        previewTable.innerHTML = tableHTML;
+
         tablePreview.classList.add("visible");
         buttonContainer.classList.add("visible");
       }
@@ -674,13 +837,35 @@
               )
             );
 
-            resolve([headers, ...rows]);
+            // Normalize the data structure
+            const normalizedData = normalizeSheetData([headers, ...rows]);
+            resolve(normalizedData);
           };
 
           script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
           script.onerror = () => reject(new Error("Failed to load sheet data"));
           document.body.appendChild(script);
         });
+      }
+
+      // Function to normalize sheet data
+      function normalizeSheetData(data) {
+        if (!data || data.length < 2) return data;
+
+        // Check if first row is empty or has empty values
+        const firstRowEmpty = data[0].every(
+          (cell) => !cell || cell.trim() === ""
+        );
+        const secondRowHasHeaders =
+          data[1] && data[1].some((cell) => cell && cell.trim() !== "");
+
+        // If first row is empty and second row has content, remove the first row
+        if (firstRowEmpty && secondRowHasHeaders) {
+          console.log("Normalizing data: Removing empty first row");
+          return data.slice(1);
+        }
+
+        return data;
       }
 
       // Handle URL input with debounce
@@ -703,18 +888,21 @@
         if (!url) {
           messageRow.style.display = "table-row";
           messageRow.className = "message";
-          messageRow.querySelector("td").textContent = "Data will be previewed here";
+          messageRow.querySelector("td").textContent =
+            "Data will be previewed here";
           buttonContainer.classList.remove("visible");
           // Clear the table
-          previewTable.innerHTML = '<tbody><tr class="message" id="messageRow"><td>Data will be previewed here</td></tr></tbody>';
+          previewTable.innerHTML =
+            '<tbody><tr class="message" id="messageRow"><td>Data will be previewed here</td></tr></tbody>';
           return;
         }
 
         // Show error if not a Google Sheets URL
-        if (!url.includes('docs.google.com/spreadsheets')) {
+        if (!url.includes("docs.google.com/spreadsheets")) {
           messageRow.style.display = "table-row";
           messageRow.className = "message error";
-          messageRow.querySelector("td").textContent = "Please enter a valid Google Sheet URL";
+          messageRow.querySelector("td").textContent =
+            "Please enter a valid Google Sheet URL";
           buttonContainer.classList.remove("visible");
           return;
         }
@@ -722,13 +910,14 @@
 
       async function fetchAndDisplayData() {
         const sheetUrl = document.getElementById("sheetUrl").value.trim();
-        const messageRow = document.getElementById("messageRow");
+        const messageRow =
+          document.getElementById("messageRow") || createMessageRow();
         const refreshBtn = document.getElementById("refreshBtn");
         const buttonContainer = document.getElementById("buttonContainer");
         const previewTable = document.getElementById("previewTable");
 
         // Check if elements exist
-        if (!messageRow || !refreshBtn || !buttonContainer || !previewTable) {
+        if (!refreshBtn || !buttonContainer || !previewTable) {
           console.error("Required elements not found");
           return;
         }
@@ -737,7 +926,8 @@
         if (!sheetUrl) {
           messageRow.style.display = "table-row";
           messageRow.className = "message";
-          messageRow.querySelector("td").textContent = "Data will be previewed here";
+          messageRow.querySelector("td").textContent =
+            "Data will be previewed here";
           buttonContainer.classList.remove("visible");
           return;
         }
@@ -748,7 +938,8 @@
         if (!sheetId) {
           messageRow.style.display = "table-row";
           messageRow.className = "message error";
-          messageRow.querySelector("td").textContent = "Invalid Google Sheet URL. Make sure you copied the entire URL";
+          messageRow.querySelector("td").textContent =
+            "Invalid Google Sheet URL. Make sure you copied the entire URL";
           buttonContainer.classList.remove("visible");
           return;
         }
@@ -763,29 +954,46 @@
         try {
           const data = await fetchSheetData(sheetId, gid);
           currentSheetData = filterEmptyColumns(data);
-          
+
           if (!currentSheetData || currentSheetData.length < 2) {
             messageRow.style.display = "table-row";
             messageRow.className = "message error";
-            messageRow.querySelector("td").textContent = "No data found in the sheet";
+            messageRow.querySelector("td").textContent =
+              "No data found in the sheet";
             return;
           }
-          
+
           displayTablePreview(currentSheetData);
           validateUI();
         } catch (error) {
           messageRow.style.display = "table-row";
           messageRow.className = "message error";
-          messageRow.querySelector("td").textContent = "Error loading sheet data: " + error.message;
+          messageRow.querySelector("td").textContent =
+            "Error loading sheet data: " + error.message;
           buttonContainer.classList.remove("visible");
         } finally {
           refreshBtn.classList.remove("spinning");
         }
       }
 
+      // Helper function to create message row if it doesn't exist
+      function createMessageRow() {
+        const previewTable = document.getElementById("previewTable");
+        const tbody =
+          previewTable.querySelector("tbody") ||
+          previewTable.appendChild(document.createElement("tbody"));
+        const messageRow = document.createElement("tr");
+        messageRow.id = "messageRow";
+        messageRow.className = "message";
+        const td = document.createElement("td");
+        messageRow.appendChild(td);
+        tbody.appendChild(messageRow);
+        return messageRow;
+      }
+
       document
         .getElementById("sheetUrl")
-        .addEventListener("input", function(event) {
+        .addEventListener("input", function (event) {
           const url = event.target.value.trim();
           validateUrl(url);
           handleUrlInput(event);
@@ -820,18 +1028,18 @@
             document.getElementById("loading").classList.remove("visible");
             return;
           }
-          }
+        }
 
-          parent.postMessage(
-            {
-              pluginMessage: {
-                type: "update-layers",
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "update-layers",
               data: currentSheetData,
               sheetUrl: document.getElementById("sheetUrl").value.trim(),
-              },
             },
-            "*"
-          );
+          },
+          "*"
+        );
       };
 
       function validateUI() {
@@ -845,8 +1053,8 @@
 
         if (!hasValidUrl) {
           fetchButton.textContent = "Enter valid sheet URL";
-          } else if (layerCount === 0) {
-            fetchButton.textContent = "Select layers to sync";
+        } else if (layerCount === 0) {
+          fetchButton.textContent = "Select layers to sync";
         } else {
           fetchButton.textContent = `Sync (${layerCount} layer${
             layerCount > 1 ? "s" : ""
