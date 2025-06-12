@@ -513,9 +513,9 @@
       </div>
       <div class="section">
         <div class="input-group">
-          <input
-            type="text"
-            id="sheetUrl"
+        <input
+          type="text"
+          id="sheetUrl"
             placeholder="Paste your Google Sheet URL here to fetch data automatically"
           />
           <button class="refresh-button" id="refreshBtn" title="Refresh data">
@@ -550,7 +550,7 @@
             <ul style="margin-top: 8px">
               <li>
                 Make your sheet public (File → Share → Anyone with the link)
-              </li>
+          </li>
               <li>Ensure your first row contains column headers</li>
               <li>For best results, freeze the header row in your sheet</li>
             </ul>
@@ -775,7 +775,7 @@
 
         if (!data || data.length < 2) {
           if (messageRow) {
-            messageRow.className = "message";
+          messageRow.className = "message";
             messageRow.querySelector("td").textContent =
               "Data will be previewed here";
           } else {
@@ -872,7 +872,7 @@
       const handleUrlInput = debounce(async (event) => {
         const url = event.target.value.trim();
         if (url) {
-          await fetchAndDisplayData();
+        await fetchAndDisplayData();
         }
       }, 1000);
 
@@ -925,10 +925,10 @@
         // Reset UI to initial state if URL is empty
         if (!sheetUrl) {
           messageRow.style.display = "table-row";
-          messageRow.className = "message";
+        messageRow.className = "message";
           messageRow.querySelector("td").textContent =
             "Data will be previewed here";
-          buttonContainer.classList.remove("visible");
+        buttonContainer.classList.remove("visible");
           return;
         }
 
@@ -946,11 +946,11 @@
 
         // Show loading state only if URL is valid
         messageRow.style.display = "table-row";
-        messageRow.className = "message loading";
+          messageRow.className = "message loading";
         messageRow.querySelector("td").textContent = "";
-        refreshBtn.classList.add("spinning");
+          refreshBtn.classList.add("spinning");
         buttonContainer.classList.remove("visible");
-
+          
         try {
           const data = await fetchSheetData(sheetId, gid);
           currentSheetData = filterEmptyColumns(data);
@@ -1028,18 +1028,18 @@
             document.getElementById("loading").classList.remove("visible");
             return;
           }
-        }
+          }
 
-        parent.postMessage(
-          {
-            pluginMessage: {
-              type: "update-layers",
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "update-layers",
               data: currentSheetData,
               sheetUrl: document.getElementById("sheetUrl").value.trim(),
+              },
             },
-          },
-          "*"
-        );
+            "*"
+          );
       };
 
       function validateUI() {
@@ -1053,8 +1053,8 @@
 
         if (!hasValidUrl) {
           fetchButton.textContent = "Enter valid sheet URL";
-        } else if (layerCount === 0) {
-          fetchButton.textContent = "Select layers to sync";
+          } else if (layerCount === 0) {
+            fetchButton.textContent = "Select layers to sync";
         } else {
           fetchButton.textContent = `Sync (${layerCount} layer${
             layerCount > 1 ? "s" : ""
