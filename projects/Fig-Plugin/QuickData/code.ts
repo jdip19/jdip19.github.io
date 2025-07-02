@@ -96,6 +96,7 @@ figma.ui.onmessage = async (msg: any) => {
       let updatedContentCount = 0;
       let textLayersCount = 0;
       let otherLayersCount = 0;
+      let imageLayersCount = 0;
 
       for (const prefix in layerGroups) {
         const layers = layerGroups[prefix];
@@ -118,7 +119,7 @@ figma.ui.onmessage = async (msg: any) => {
             layer.name = String(value);
             updatedNameCount++;
 
-            // Track layer types
+            // Track layer types and update content
             if (layer.type === 'TEXT') {
               textLayersCount++;
               // If it's a text layer, also update its content
@@ -129,6 +130,36 @@ figma.ui.onmessage = async (msg: any) => {
               } catch (error) {
                 console.error('Error loading font:', error);
                 figma.notify(`Error loading font for layer "${layer.name}". Only name was updated.`);
+              }
+            } else if (layer.type === 'FRAME' || layer.type === 'RECTANGLE' || layer.type === 'ELLIPSE' || layer.type === 'POLYGON' || layer.type === 'STAR' || layer.type === 'VECTOR') {
+              // Check if the value is a valid image URL (now allow any http/https URL)
+              if (value.startsWith('http')) {
+                try {
+                  // Fetch the image data
+                  const response = await fetch(value);
+                  if (!response.ok) {
+                    throw new Error(`Failed to fetch image: ${response.statusText}`);
+                  }
+                  // Convert the response to array buffer
+                  const imageData = await response.arrayBuffer();
+                  // Create a new image fill
+                  const imageHash = await figma.createImage(new Uint8Array(imageData));
+                  const fills = JSON.parse(JSON.stringify(layer.fills));
+                  fills[0] = {
+                    type: 'IMAGE',
+                    scaleMode: 'FILL',
+                    imageHash: imageHash.hash,
+                    visible: true,
+                    opacity: 1
+                  };
+                  layer.fills = fills;
+                  imageLayersCount++;
+                } catch (error) {
+                  console.error('Error loading image:', error);
+                  figma.notify(`Error loading image for layer "${layer.name}". Only name was updated.`);
+                }
+              } else {
+                otherLayersCount++;
               }
             } else {
               otherLayersCount++;
@@ -143,18 +174,29 @@ figma.ui.onmessage = async (msg: any) => {
         let message = '';
         
         // Case 1: Only text layers
-        if (textLayersCount > 0 && otherLayersCount === 0) {
+        if (textLayersCount > 0 && otherLayersCount === 0 && imageLayersCount === 0) {
           message = `Tadaan 🥁 ${textLayersCount} Text layer${textLayersCount > 1 ? 's' : ''} updated (name & content)!`;
         }
         // Case 2: Only other layers
-        else if (otherLayersCount > 0 && textLayersCount === 0) {
+        else if (otherLayersCount > 0 && textLayersCount === 0 && imageLayersCount === 0) {
           message = `Tadaan 🥁 ${otherLayersCount} Layer${otherLayersCount > 1 ? 's' : ''} renamed!`;
         }
-        // Case 3: Both text and other layers
+        // Case 3: Only image layers
+        else if (imageLayersCount > 0 && textLayersCount === 0 && otherLayersCount === 0) {
+          message = `Tadaan 🥁 ${imageLayersCount} Image layer${imageLayersCount > 1 ? 's' : ''} updated!`;
+        }
+        // Case 4: Mixed layers
         else {
           message = `Tadaan 🥁 ${updatedNameCount} layers updated:\n`;
-          message += `• ${textLayersCount} text layer${textLayersCount > 1 ? 's' : ''} (name & content)\n`;
-          message += `• ${otherLayersCount} other layer${otherLayersCount > 1 ? 's' : ''} (name only)`;
+          if (textLayersCount > 0) {
+            message += `• ${textLayersCount} text layer${textLayersCount > 1 ? 's' : ''} (name & content)\n`;
+          }
+          if (imageLayersCount > 0) {
+            message += `• ${imageLayersCount} image layer${imageLayersCount > 1 ? 's' : ''} (name & image)\n`;
+          }
+          if (otherLayersCount > 0) {
+            message += `• ${otherLayersCount} other layer${otherLayersCount > 1 ? 's' : ''} (name only)`;
+          }
         }
         
         figma.notify(message, { timeout: 4000 });

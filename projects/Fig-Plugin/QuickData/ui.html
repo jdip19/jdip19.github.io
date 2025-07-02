@@ -141,6 +141,19 @@
         border-bottom: none;
       }
 
+      .preview-table td img {
+        max-width: 40px;
+        max-height: 40px;
+        object-fit: cover;
+        border-radius: 4px;
+        vertical-align: middle;
+      }
+
+      .preview-table td.image-cell {
+        padding: 4px;
+        text-align: center;
+      }
+
       /* Loading Indicator */
       .loading {
         display: none;
@@ -775,7 +788,7 @@
 
         if (!data || data.length < 2) {
           if (messageRow) {
-          messageRow.className = "message";
+            messageRow.className = "message";
             messageRow.querySelector("td").textContent =
               "Data will be previewed here";
           } else {
