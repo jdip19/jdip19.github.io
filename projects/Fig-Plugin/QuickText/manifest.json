@@ -36,6 +36,10 @@
     {
       "name": "Remove Breaklines & Space",
       "command": "rmvspace"
+    },
+    {
+      "name": "Remove Bullets & Leading Space",
+      "command": "rmvbullets"
     }
   ]
 }

@@ -10,7 +10,7 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "@figma/plugin-typings": "^1.105.0",
-    "typescript": "*"
+    "@figma/plugin-typings": "^1.116.0",
+    "typescript": "^5.8.3"
   }
 }

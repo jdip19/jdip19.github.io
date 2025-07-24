@@ -2,7 +2,7 @@ const selection = figma.currentPage.selection;
 const textNodes = selection.filter(node => node.type === 'TEXT') as TextNode[];
 
 if (textNodes.length === 0) {
-  figma.notify('Please select at least one text layer. 😊');
+  figma.notify('Please select at least one text layer. 😕');
   figma.closePlugin();
 }
 
@@ -122,6 +122,16 @@ function handleTextCase(node: TextNode): void {
     case 'rmvspace':
       newText = newText.replace(/\s+/g, ' ');
       figma.notify('Tadaannn... 🥁 Your Text is now unwanted space free. 🤧');
+      break;
+
+    case 'rmvbullets':
+      // Normalize all line breaks to \n
+      newText = newText.replace(/\r\n|\r|\u2028|\u2029/g, '\n');
+      // Remove common bullet points and leading whitespace at the start of each line
+      newText = newText.replace(/^[\s\u00A0\u2022\u2023\u25E6\u2043\u2219\*-]+/gm, '');
+      // Optionally, trim trailing whitespace on each line
+      newText = newText.replace(/\s+$/gm, '');
+      figma.notify('Tadaannn... 🥁 Bullet points and leading spaces removed!');
       break;
 
     default:
