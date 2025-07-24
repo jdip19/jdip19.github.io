@@ -145,6 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
       versionElement.classList.remove("blink");
     }
   });
+  svgSizeInput.focus();
 });
 
 chrome.runtime.sendMessage({ action: "getSVGCount" });
