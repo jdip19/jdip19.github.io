@@ -1,3 +1,83 @@
+// Utility to get all font ranges in a text node
+async function loadAllFontsForNode(node: TextNode): Promise<boolean> {
+  const fontPromises: Promise<void>[] = [];
+  let failed = false;
+  for (let i = 0; i < node.characters.length; ) {
+    const font = node.getRangeFontName(i, i + 1);
+    let j = i + 1;
+    // Find the next range where the font changes
+    while (j < node.characters.length && JSON.stringify(node.getRangeFontName(j, j + 1)) === JSON.stringify(font)) {
+      j++;
+    }
+    if (font !== figma.mixed) {
+      fontPromises.push(
+        figma.loadFontAsync(font).catch(err => {
+          console.error('Error loading font:', font, err);
+          failed = true;
+        })
+      );
+    }
+    i = j;
+  }
+  await Promise.all(fontPromises);
+  return !failed;
+}
+
+// Utility to get all unique fonts from all text nodes
+function getAllUniqueFonts(textNodes: TextNode[]): FontName[] {
+  const fontSet = new Set<string>();
+  const fonts: FontName[] = [];
+  for (const node of textNodes) {
+    for (let i = 0; i < node.characters.length; ) {
+      const font = node.getRangeFontName(i, i + 1);
+      let j = i + 1;
+      while (j < node.characters.length && JSON.stringify(node.getRangeFontName(j, j + 1)) === JSON.stringify(font)) {
+        j++;
+      }
+      const fontKey = JSON.stringify(font);
+      if (font !== figma.mixed && !fontSet.has(fontKey)) {
+        fontSet.add(fontKey);
+        fonts.push(font as FontName);
+      }
+      i = j;
+    }
+  }
+  return fonts;
+}
+
+async function loadAllFonts(fonts: FontName[]): Promise<boolean> {
+  let failed = false;
+  for (const font of fonts) {
+    try {
+      console.log('Loading font:', font);
+      await figma.loadFontAsync(font);
+    } catch (err) {
+      console.error('Error loading font:', font, err);
+      failed = true;
+    }
+  }
+  return !failed;
+}
+
+async function processAllTextNodes(textNodes: TextNode[]) {
+  let skippedCount = 0;
+  for (const node of textNodes) {
+    // Warn if the node has mixed fills
+    if (node.fills === figma.mixed) {
+      figma.notify('Warning: Some text nodes have mixed color styles. These may be lost after processing.');
+    }
+    try {
+      handleTextCase(node);
+    } catch (err) {
+      skippedCount++;
+      console.error('Error processing node:', node, err);
+    }
+  }
+  if (skippedCount > 0) {
+    figma.notify(`Skipped ${skippedCount} text node(s) due to processing errors.`);
+  }
+}
+
 const selection = figma.currentPage.selection;
 const textNodes = selection.filter(node => node.type === 'TEXT') as TextNode[];
 
@@ -6,28 +86,25 @@ if (textNodes.length === 0) {
   figma.closePlugin();
 }
 
-const uniqueFonts = new Set(
-  textNodes.map(node => JSON.stringify(node.fontName))
-);
-
-Promise.all(
-  Array.from(uniqueFonts).map(font =>
-    figma.loadFontAsync(JSON.parse(font))
-  )
-)
-  .then(() => {
-    textNodes.forEach(node => {
-      handleTextCase(node);
-    });
+const allFonts = getAllUniqueFonts(textNodes);
+loadAllFonts(allFonts)
+  .then(success => {
+    if (!success) {
+      figma.notify('Some fonts could not be loaded. Some nodes may be skipped.');
+    }
+    processAllTextNodes(textNodes);
   })
-  .catch(error => {
-    figma.notify('Error loading fonts. Please try again.');
-    console.error('Error loading fonts:', error);
+  .then(() => {
+    figma.closePlugin();
   });
 
 function handleTextCase(node: TextNode): void {
   const originalCharacters = node.characters;
   const originalFills = [];
+  const hadUniformFill = node.fills !== figma.mixed;
+  const uniformFill = hadUniformFill ? node.fills : null;
+  const hadUniformFillStyle = node.fillStyleId !== figma.mixed;
+  const uniformFillStyleId = hadUniformFillStyle ? node.fillStyleId : null;
 
   // Store the original fills for each character
   for (let i = 0; i < originalCharacters.length; i++) {
@@ -128,7 +205,7 @@ function handleTextCase(node: TextNode): void {
       // Normalize all line breaks to \n
       newText = newText.replace(/\r\n|\r|\u2028|\u2029/g, '\n');
       // Remove common bullet points and leading whitespace at the start of each line
-      newText = newText.replace(/^[\s\u00A0\u2022\u2023\u25E6\u2043\u2219\*-]+/gm, '');
+      newText = newText.replace(/^[\s\u00A0\u00B7\u2022\u2023\u25E6\u2043\u2219\*-]+/gm, '');
       // Optionally, trim trailing whitespace on each line
       newText = newText.replace(/\s+$/gm, '');
       figma.notify('Tadaannn... 🥁 Bullet points and leading spaces removed!');
@@ -142,10 +219,17 @@ function handleTextCase(node: TextNode): void {
   // Update the node with the modified text
   node.characters = newText;
 
-  // Reapply the original fills to the corresponding character ranges
-  for (let i = 0; i < originalCharacters.length; i++) {
-    if (originalFills[i] !== null) {
-      node.setRangeFills(i, i + 1, originalFills[i] as Paint[]);
+  // Reapply fill style if it was uniform
+  if (hadUniformFillStyle && uniformFillStyleId) {
+    node.fillStyleId = uniformFillStyleId;
+  } else if (hadUniformFill && uniformFill) {
+    node.fills = uniformFill;
+  } else {
+    // Reapply the original fills to the corresponding character ranges
+    for (let i = 0; i < newText.length; i++) {
+      if (originalFills[i] !== null && originalFills[i] !== undefined) {
+        node.setRangeFills(i, i + 1, originalFills[i] as Paint[]);
+      }
     }
   }
 
@@ -154,9 +238,3 @@ function handleTextCase(node: TextNode): void {
     console.error('Error applying text style:', error);
   });
 }
-
-
-
-setTimeout(() => {
-  figma.closePlugin();
-}, 1000);
