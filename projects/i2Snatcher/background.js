@@ -21,21 +21,19 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 const versionRef = ref(database, "ueVersion");
-const localVersion= chrome.runtime.getManifest().version;
+const localVersion = chrome.runtime.getManifest().version;
 
-get(versionRef).then(snapshot => {
+get(versionRef).then((snapshot) => {
   if (snapshot.exists()) {
     const remoteVersion = snapshot.val();
 
     // Store remote version and comparison result
     chrome.storage.local.set({
       remoteVersion,
-      updateAvailable: remoteVersion > localVersion
+      updateAvailable: remoteVersion > localVersion,
     });
   }
 });
-
-
 
 // Create context menus when the extension is installed
 chrome.runtime.onInstalled.addListener(() => {
@@ -61,14 +59,13 @@ chrome.contextMenus.onClicked.addListener((info) => {
   }
 });
 
-
 // Handle keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]?.id) {
       const tabId = tabs[0].id;
       const action = command === "copy_svg" ? "copy" : "download";
-      console.log("taken"+action);
+      console.log("taken" + action);
 
       chrome.scripting.executeScript({
         target: { tabId },
@@ -81,8 +78,7 @@ chrome.commands.onCommand.addListener((command) => {
 
 // Open the link in a background tab and extract the SVG
 function processSvg(detailLink, action) {
-  chrome.tabs.create({ url: detailLink, active: false }, (tab) => {
-    console.log("taken"+action);
+  chrome.tabs.create({ url: detailLink, active: true }, (tab) => {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       function: extractSvg,
@@ -122,7 +118,35 @@ function extractSvg(action) {
             ? `${titleElement.textContent.trim()}`
             : "icon";
 
+        function extractUniqueColorsFromSVG(svgElement) {
+          const html = svgElement.outerHTML;
+
+          // Match both 3-digit and 6-digit hex codes
+          const hexMatches = html.match(/#[0-9a-fA-F]{3,6}/g) || [];
+
+          // Convert 3-digit hex codes to 6-digit format
+          const normalizeHex = (hex) => {
+            if (hex.length === 4) {
+              return "#" + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+            }
+            return hex.toLowerCase();
+          };
+
+          // Normalize and deduplicate
+          const uniqueHexColors = [...new Set(hexMatches.map(normalizeHex))];
+
+          return uniqueHexColors;
+        }
+
         if (svgElement) {
+          const uniqueColors = extractUniqueColorsFromSVG(svgElement);
+          console.log("Unique colors:", uniqueColors);
+
+          chrome.runtime.sendMessage({
+            action: "detected_colors",
+            colors: uniqueColors,
+          });
+
           svgElement.setAttribute("width", size);
           svgElement.setAttribute("height", size);
           svgElement.setAttribute("id", iconName);
@@ -136,20 +160,6 @@ function extractSvg(action) {
             textarea.select();
             document.execCommand("copy");
             document.body.removeChild(textarea);
-            navigator.clipboard
-              .writeText(svgElement.outerHTML)
-              .then(() => {
-                console.log("SVG copied to clipboard.");
-                chrome.runtime.sendMessage({
-                  type: "incrementSvgCounter",
-                  action: "copied",
-                });
-              })
-              .catch((err) => console.error("Failed to copy:", err));
-            chrome.runtime.sendMessage({
-              type: "incrementSvgCounter",
-              action: "copied",
-            });
           } else if (action === "download") {
             const blob = new Blob([svgElement.outerHTML], {
               type: "image/svg+xml",
@@ -169,7 +179,7 @@ function extractSvg(action) {
         } else {
           console.error("SVG element not found.");
         }
-      }, 2500);
+      }, 2000);
     });
   } else {
     console.error("Edit button not found.");
@@ -242,4 +252,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
   }
 });
-

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "i2Snatcher",
-  "version": "2.2",
-  "description": "A browser extension to copy or download icons with shoutcut and contetxt menu. 2.0",
+  "version": "2.3",
+  "description": "A browser extension to copy or download icons with shoutcut and contetxt menu. 2.3",
   "permissions": [
     "downloads",
     "activeTab",
