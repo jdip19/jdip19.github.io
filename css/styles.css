@@ -158,7 +158,7 @@
 	/* vertical spacing 
    */
 	--l-f-pad: calc(100vw* 0.072);
-	--h2cspace: 32px;
+	--h2cspace: 36px;
 	--vspace-0_125: calc(0.125 * var(--space));
 	--vspace-0_25: calc(0.25 * var(--space));
 	--vspace-0_375: calc(0.375 * var(--space));
