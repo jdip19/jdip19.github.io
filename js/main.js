@@ -425,7 +425,7 @@ horizontalSections.forEach(function (sec, i) {
 
     const thisPinWrap = sec.querySelector('.pin-wrap');
     const thisAnimWrap = thisPinWrap.querySelector('.animation-wrap');
-    const getToValue = () => -(thisAnimWrap.scrollWidth - (thisAnimWrap.scrollWidth / 7));
+    const getToValue = () => -(thisAnimWrap.scrollWidth - (thisAnimWrap.scrollWidth / 9));
     const lastItemWidth = thisAnimWrap.lastElementChild.offsetWidth;
 
     gsap.fromTo(thisAnimWrap, {
