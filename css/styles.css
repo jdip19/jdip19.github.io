@@ -237,6 +237,7 @@
 	:root {
 		--multiplier: .9375;
 		--l-f-pad: calc(100vw* 0.060);
+		--h2cspace: 32px;
 
 	}
 }
@@ -3289,7 +3290,7 @@ h2.list-items__item-title {
 
 	section.horizontal .pin-wrap,
 	section.horizontal .animation-wrap {
-		height: 94vh;
+		height: 92vh;
 	}
 
 	.Wtitle p {
@@ -4562,7 +4563,7 @@ section#resources {
 }
 
 .s-footer .cbtn {
-	height: calc(100vw* 0.1);
+	height: calc(100vw* 0.099);
 	rotate: 180deg;
 	margin-bottom: var(--space);
 }
