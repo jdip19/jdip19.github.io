@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>false</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyName>quiktool</AssemblyName>
+    <RootNamespace>Quiktool</RootNamespace>
+
+    <!-- Single-file, self-contained build settings -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Embed cwebp.exe from existing QuickTool folder into the EXE -->
+    <EmbeddedResource Include="..\QuickTool\cwebp.exe" Link="cwebp.exe" Condition="Exists('..\QuickTool\cwebp.exe')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Optional app icon for the built executable if desired -->
+    <ApplicationIcon>..\QuickTool\quicktool.ico</ApplicationIcon>
+  </ItemGroup>
+
+</Project>
+
+
