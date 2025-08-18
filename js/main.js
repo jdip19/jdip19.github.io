@@ -445,7 +445,11 @@ horizontalSections.forEach(function (sec, i) {
 
 });
 
-const baseGitHubUrl = 'projects/'; // Update with your repo details
+const baseGitHubUrl = 'projects/'; 
+
+const quiktool = [
+    'QuickTool/dist/convert_to_webp.exe'
+];// Update with your repo details
 
 // List of files for i2Snatcher
 const udFiles = [
@@ -460,18 +464,6 @@ const udFiles = [
     'i2Snatcher/popup.js'
 ];
 
-// List of files for SVGget
-const TabOrganizer = [
-    'Tab Organizer/background.js',
-    'Tab Organizer/content.js',
-    'Tab Organizer/i2snatcher128.png',
-    'Tab Organizer/icon256.png',
-    'Tab Organizer/i2snatcher16.png',
-    'Tab Organizer/i2snatcher48.png',
-    'Tab Organizer/manifest.json',
-    'Tab Organizer/popup.html',
-    'Tab Organizer/popup.js'
-];
 
 // Function to fetch and add files to zip
 function fetchFilesToZip(fileArray, folderName, zip) {
