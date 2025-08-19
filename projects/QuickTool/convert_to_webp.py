@@ -6,10 +6,14 @@ import winreg
 import time
 import ctypes
 import webbrowser
+import socket
+import tempfile
 
 # Registry target(s)
 # Preferred: SystemFileAssociations\image applies to all images
 SFA_IMAGE_SHELL_KEY = r"SystemFileAssociations\\image\\shell"
+# On Windows 11, writing under HKCU is more reliable for per-user verbs
+HKCU_SFA_IMAGE_SHELL_KEY = r"Software\\Classes\\SystemFileAssociations\\image\\shell"
 CONTEXT_MENU_NAME = "Convert to WebP"
 CONTEXT_MENU_KEY_NAME = CONTEXT_MENU_NAME  # folder name under ...\shell\
 
@@ -89,17 +93,23 @@ def add_context_menu():
         # First, try to remove any existing entries to avoid conflicts
         remove_context_menu()
 
-        # Add context menu under SystemFileAssociations\image
-        image_menu_key = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}"
-        with winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, image_menu_key) as key:
+        # Add context menu under HKCU so it shows up for the current user
+        # Path: HKCU\Software\Classes\SystemFileAssociations\image\shell\{name}\command
+        image_menu_key_hkcu = f"{HKCU_SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}"
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, image_menu_key_hkcu) as key:
             winreg.SetValueEx(key, None, 0, winreg.REG_SZ, CONTEXT_MENU_NAME)
             winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, icon_path)
+            # Allow the verb to appear for multi-selection
+            try:
+                winreg.SetValueEx(key, "MultiSelectModel", 0, winreg.REG_SZ, "Player")
+            except Exception:
+                pass
 
-        image_cmd_key = f"{image_menu_key}\\command"
-        with winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, image_cmd_key) as key:
+        image_cmd_key_hkcu = f"{image_menu_key_hkcu}\\command"
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, image_cmd_key_hkcu) as key:
             command = f'"{exe_path}" "%1"'
             winreg.SetValueEx(key, None, 0, winreg.REG_SZ, command)
-            print(f"   ✅ Added: HKCR\\{image_cmd_key} -> {command}")
+            print(f"   ✅ Added: HKCU\\{image_cmd_key_hkcu} -> {command}")
 
         # Force Windows to refresh the shell context menu
         print("🔄 Refreshing Windows shell...")
@@ -125,18 +135,31 @@ def remove_context_menu():
     try:
         removed_count = 0
 
-        # Remove new SystemFileAssociations entry
+        # Remove per-user entry under HKCU
         try:
-            image_cmd_key = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}\\command"
-            winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, image_cmd_key)
-            image_menu_key = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}"
-            winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, image_menu_key)
+            image_cmd_key_hkcu = f"{HKCU_SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}\\command"
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, image_cmd_key_hkcu)
+            image_menu_key_hkcu = f"{HKCU_SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}"
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, image_menu_key_hkcu)
             removed_count += 1
-            print(f"   ✅ Removed HKCR\\{image_menu_key}")
+            print(f"   ✅ Removed HKCU\\{image_menu_key_hkcu}")
         except FileNotFoundError:
             pass
         except Exception as e:
-            print(f"   ⚠️ Could not remove SystemFileAssociations entry: {e}")
+            print(f"   ⚠️ Could not remove HKCU entry: {e}")
+
+        # Also remove any HKCR entry (older installs may have used HKCR)
+        try:
+            image_cmd_key_hkcr = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}\\command"
+            winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, image_cmd_key_hkcr)
+            image_menu_key_hkcr = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}"
+            winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, image_menu_key_hkcr)
+            removed_count += 1
+            print(f"   ✅ Removed HKCR\\{image_menu_key_hkcr}")
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            print(f"   ⚠️ Could not remove HKCR entry: {e}")
 
         # Remove any legacy per-extension entries we may have created previously
         for ext in IMAGE_EXTENSIONS:
