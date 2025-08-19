@@ -7,8 +7,14 @@ import time
 import ctypes
 import webbrowser
 
-CONTEXT_MENU_KEY = r"*\\shell\\Convert to WebP"
+# Registry target(s)
+# Preferred: SystemFileAssociations\image applies to all images
+SFA_IMAGE_SHELL_KEY = r"SystemFileAssociations\\image\\shell"
+CONTEXT_MENU_NAME = "Convert to WebP"
+CONTEXT_MENU_KEY_NAME = CONTEXT_MENU_NAME  # folder name under ...\shell\
 
+# Legacy per-extension entries we previously created (will be removed if present)
+IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.tga', '.webp']
 
 def get_cwebp_path():
     if hasattr(sys, "_MEIPASS"):
@@ -35,7 +41,7 @@ def get_resource_path(filename):
 _toaster = None
 
 
-def show_toast(message, title="WebP Converter"):
+def show_toast(message, title="WebP Converter", duration=4):
     """Show a Windows toast notification if supported; otherwise, do nothing."""
     global _toaster
     try:
@@ -51,7 +57,7 @@ def show_toast(message, title="WebP Converter"):
 
     icon_path = get_resource_path("quicktool.ico")
     try:
-        _toaster.show_toast(title, message, icon_path=icon_path, duration=4, threaded=True)
+        _toaster.show_toast(title, message, icon_path=icon_path, duration=duration, threaded=True)
         # Give the notification a moment to display if the process is about to exit
         start_time = time.time()
         while getattr(_toaster, "notification_active", lambda: False)() and time.time() - start_time < 5:
@@ -61,7 +67,11 @@ def show_toast(message, title="WebP Converter"):
 
 
 def add_context_menu():
-    """Add 'Convert to WebP' to right-click menu."""
+    """Add 'Convert to WebP' to right-click menu for image files only.
+
+    We now register under HKCR\SystemFileAssociations\image\shell so the entry
+    appears for any file Windows treats as an image, regardless of extension/ProgID.
+    """
     try:
         exe_path = os.path.abspath(sys.argv[0])
         icon_path = exe_path
@@ -70,20 +80,42 @@ def add_context_menu():
             ico_candidate = os.path.join(script_dir, "quicktool.ico")
             if os.path.exists(ico_candidate):
                 icon_path = ico_candidate
-        # Create main key
-        with winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, CONTEXT_MENU_KEY) as key:
-            winreg.SetValueEx(key, None, 0, winreg.REG_SZ, "Convert to WebP")
-            # Set icon for the context menu entry
+        
+        # Debug: Show what we're installing
+        print(f"🔧 Installing context menu for image files only...")
+        print(f"   Executable: {exe_path}")
+        print(f"   Icon: {icon_path}")
+        
+        # First, try to remove any existing entries to avoid conflicts
+        remove_context_menu()
+
+        # Add context menu under SystemFileAssociations\image
+        image_menu_key = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}"
+        with winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, image_menu_key) as key:
+            winreg.SetValueEx(key, None, 0, winreg.REG_SZ, CONTEXT_MENU_NAME)
             winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, icon_path)
 
-        # Create command key
-        cmd_key = CONTEXT_MENU_KEY + r"\\command"
-        with winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, cmd_key) as key:
-            # Pass all selected files to a single process
-            command = f'"{exe_path}" %*'
+        image_cmd_key = f"{image_menu_key}\\command"
+        with winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, image_cmd_key) as key:
+            command = f'"{exe_path}" "%1"'
             winreg.SetValueEx(key, None, 0, winreg.REG_SZ, command)
+            print(f"   ✅ Added: HKCR\\{image_cmd_key} -> {command}")
 
-        print("✅ Context menu 'Convert to WebP' added.")
+        # Force Windows to refresh the shell context menu
+        print("🔄 Refreshing Windows shell...")
+        try:
+            import ctypes
+            # Multiple refresh commands to ensure it works
+            ctypes.windll.shell32.SHChangeNotify(0x8000000, 0, None, None)  # SHCNE_ASSOCCHANGED
+            ctypes.windll.shell32.SHChangeNotify(0x00000001, 0, None, None)  # SHCNE_CREATE
+            print("   ✅ Shell refresh commands sent")
+        except Exception as e:
+            print(f"   ⚠️ Shell refresh failed: {e}")
+
+        print("✅ Context menu 'Convert to WebP' added for image files only.")
+        print("💡 Test: Right-click any image file → Convert to WebP")
+        print("💡 If menu doesn't appear, try restarting Explorer or logging out/in")
+        
     except Exception as e:
         print(f"❌ Failed to add context menu: {e}")
 
@@ -91,16 +123,70 @@ def add_context_menu():
 def remove_context_menu():
     """Remove 'Convert to WebP' from right-click menu."""
     try:
-        winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, CONTEXT_MENU_KEY + r"\\command")
-        winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, CONTEXT_MENU_KEY)
-        print("✅ Context menu 'Convert to WebP' removed.")
-    except FileNotFoundError:
-        print("⚠️ Context menu entry not found (already removed?).")
+        removed_count = 0
+
+        # Remove new SystemFileAssociations entry
+        try:
+            image_cmd_key = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}\\command"
+            winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, image_cmd_key)
+            image_menu_key = f"{SFA_IMAGE_SHELL_KEY}\\{CONTEXT_MENU_KEY_NAME}"
+            winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, image_menu_key)
+            removed_count += 1
+            print(f"   ✅ Removed HKCR\\{image_menu_key}")
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            print(f"   ⚠️ Could not remove SystemFileAssociations entry: {e}")
+
+        # Remove any legacy per-extension entries we may have created previously
+        for ext in IMAGE_EXTENSIONS:
+            try:
+                cmd_key = f"{ext}\\shell\\{CONTEXT_MENU_NAME}\\command"
+                winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, cmd_key)
+                ext_key = f"{ext}\\shell\\{CONTEXT_MENU_NAME}"
+                winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, ext_key)
+                removed_count += 1
+                print(f"   ✅ Removed legacy entry for {ext}")
+            except FileNotFoundError:
+                pass
+            except Exception as e:
+                print(f"   ⚠️ Could not remove legacy for {ext}: {e}")
+        
+        # Also check for any old general entries that might conflict
+        try:
+            old_keys = [
+                r"*\\shell\\Convert to WebP\\command",
+                r"*\\shell\\Convert to WebP"
+            ]
+            for old_key in old_keys:
+                try:
+                    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, old_key)
+                    print(f"   ✅ Removed old entry: {old_key}")
+                    removed_count += 1
+                except FileNotFoundError:
+                    pass
+        except Exception as e:
+            print(f"   ⚠️ Could not remove old entries: {e}")
+        
+        if removed_count > 0:
+            print(f"✅ Context menu 'Convert to WebP' removed from {removed_count} locations.")
+        else:
+            print("✨ No context menu entries found to remove.")
+            
+        # Refresh Windows shell
+        try:
+            import ctypes
+            ctypes.windll.shell32.SHChangeNotify(0x8000000, 0, None, None)
+            print("🔄 Windows shell refreshed")
+        except Exception as e:
+            print(f"   ⚠️ Could not refresh shell: {e}")
+            
     except Exception as e:
         print(f"❌ Failed to remove context menu: {e}")
 
 
 def convert_to_webp(image_path):
+    """Convert image to WebP format. Returns True if successful, False otherwise."""
     image_path = Path(image_path)
     if not image_path.exists():
         return False
@@ -112,20 +198,16 @@ def convert_to_webp(image_path):
     # Output file path
     output_file = output_dir / (image_path.stem + ".webp")
 
-    # Run cwebp command
+    # Run cwebp command silently
     try:
         subprocess.run(
             [get_cwebp_path(), "-q", "80", str(image_path), "-o", str(output_file)],
             check=True,
             capture_output=True,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
         )
-
-        print(f"✅ Converted: {output_file}")
-        show_toast(f"Converted {image_path.name} → webp")
         return True
-    except Exception as e:
-        print(f"❌ Error converting {image_path}: {e}")
-        show_toast(f"Failed to convert {image_path.name}")
+    except Exception:
         return False
 
 
@@ -138,7 +220,7 @@ def show_menu():
 
     message = (
         "Add or remove the context menu entry?\n\n"
-        "Yes = Add 'Convert to WebP'\n"
+        "Yes = Add 'Convert to WebP' (image files only)\n"
         "No = Remove entry\n"
         "Cancel = Exit"
     )
@@ -148,7 +230,7 @@ def show_menu():
 
     if result == IDYES:
         add_context_menu()
-        ctypes.windll.user32.MessageBoxW(None, "Context menu added.", "WebP Converter", 0)
+        ctypes.windll.user32.MessageBoxW(None, "Context menu added for image files.", "WebP Converter", 0)
     elif result == IDNO:
         remove_context_menu()
         ctypes.windll.user32.MessageBoxW(None, "Context menu removed.", "WebP Converter", 0)
@@ -156,7 +238,7 @@ def show_menu():
         return
 
     # Offer to open website
-    site_url = "https://jdip19.github.io/"
+    site_url = "https://jdip19.github.io/support-jdip.html"
     open_site = ctypes.windll.user32.MessageBoxW(
         None, "Want to support creator?", "WebP Converter", MB_ICONQUESTION | MB_YESNO
     )
@@ -167,9 +249,6 @@ def show_menu():
             pass
 
 
-    
-
-
 def main():
     if len(sys.argv) == 1:
         # Run without arguments → show install/uninstall menu
@@ -177,8 +256,16 @@ def main():
         return
 
     # Run with arguments (from context menu)
-    for arg in sys.argv[1:]:
+    args = sys.argv[1:]
+    if not args:
+        return
+
+    # Convert all images
+    for arg in args:
         convert_to_webp(arg)
+
+    # Show simple completion toast
+    show_toast("WebP conversion completed!")
 
 
 if __name__ == "__main__":

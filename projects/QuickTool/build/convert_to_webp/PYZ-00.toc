@@ -1,5 +1,5 @@
 ('D:\\Jaydip '
- 'Upadhyay\\jdip19.github.io\\projects\\Quicktool\\build\\convert_to_webp\\PYZ-00.pyz',
+ 'Upadhyay\\jdip19.github.io\\projects\\QuickTool\\build\\convert_to_webp\\PYZ-00.pyz',
  [('__future__', 'C:\\Python312\\Lib\\__future__.py', 'PYMODULE'),
   ('_aix_support', 'C:\\Python312\\Lib\\_aix_support.py', 'PYMODULE'),
   ('_compat_pickle', 'C:\\Python312\\Lib\\_compat_pickle.py', 'PYMODULE'),
