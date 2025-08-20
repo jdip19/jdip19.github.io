@@ -179,7 +179,7 @@ function extractSvg(action) {
         } else {
           console.error("SVG element not found.");
         }
-      }, 1000);
+      }, 2000);
     });
   } else {
     console.error("Edit button not found.");
