@@ -2960,7 +2960,7 @@ h2.list-items__item-title {
 	justify-content: space-between;
 }
 
-.reas-card .btn ,
+.reas-card .btn,
 .s-support .btn {
 	padding: 8px 16px;
 	width: fit-content;
@@ -3610,7 +3610,7 @@ section#resources {
 	}
 
 	a.smoothscroll.cbtn {
-		width: 40%;
+		width: 44%;
 	}
 
 	.s-header__menu-links {
@@ -3686,7 +3686,7 @@ section#resources {
 		left: 0;
 	}
 
-	.s-header__nav a:not(.btn) {
+	.s-header__menu-links a:not(.btn) {
 		display: inline-block;
 		font-size: var(--text-xl);
 		color: var(--color-white);
@@ -3712,7 +3712,7 @@ section#resources {
 		width: 100%;
 		clip-path: polygon(79% 100%, 20% 100%, 26% 0, 72% 0%);
 		margin: 0;
-
+		padding: 12px 0;
 	}
 
 	.s-header__menu-toggle {
@@ -4207,6 +4207,8 @@ section#resources {
 		transition-delay: 2.1s;
 		bottom: 0;
 	}
+
+	
 }
 
 @media screen and (max-width: 800px) {
@@ -5068,6 +5070,16 @@ section#resources {
 		word-break: break-all;
 		margin-top: calc(100vw * 0.01);
 		line-height: 90%;
+	}
+	.s-intro__scroll-down.cv {
+		height: 100%;
+	}
+	.cv a.smoothscroll.cbtn {
+		width:100%;
+		height: 100%;
+		padding: 0 2rem 0 8rem;
+		clip-path: polygon(16% 0, 250% 0%, 30% 150%, 34% 106%);
+		font-size: calc(var(--text-size) * 0.8);
 	}
 }
 
