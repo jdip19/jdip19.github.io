@@ -34,12 +34,21 @@
       "command": "addbreakline"
     },
     {
+      "name": "Breaklines to Textlayers",
+      "command": "brklinetotxt"
+    },
+    {
       "name": "Remove Breaklines & Space",
       "command": "rmvspace"
     },
     {
       "name": "Remove Bullets & Leading Space",
       "command": "rmvbullets"
+    },
+    {
+      "name": "Formate Specific Text",
+      "command": "frmtxt"
     }
+    
   ]
 }

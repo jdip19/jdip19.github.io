@@ -98,6 +98,109 @@ loadAllFonts(allFonts)
     figma.closePlugin();
   });
 
+function handleTextFormatting(node: TextNode): void {
+  // Show UI for text formatting options
+  figma.showUI(__html__, { width: 400, height: 300 });
+  
+  figma.ui.onmessage = async (msg) => {
+    switch (msg.type) {
+      case 'apply-style':
+        await applyTextStyle(msg.keywords, msg.styleId);
+        break;
+      case 'apply-bold':
+        await applyBoldFormatting(msg.keywords);
+        break;
+      case 'apply-italic':
+        await applyItalicFormatting(msg.keywords);
+        break;
+      case 'apply-underline':
+        await applyUnderlineFormatting(msg.keywords);
+        break;
+      default:
+        console.log('Unknown formatting type:', msg.type);
+    }
+  };
+}
+
+async function applyTextStyle(keywords: string, styleId: string): Promise<void> {
+  const keywordList = keywords.split(',').map((k: string) => k.trim());
+  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
+
+  for (const node of textNodes) {
+    await figma.loadFontAsync(node.fontName as FontName);
+    const text = node.characters;
+
+    keywordList.forEach((word: string) => {
+      let index = text.indexOf(word);
+      while (index !== -1) {
+        node.setRangeTextStyleId(index, index + word.length, styleId);
+        index = text.indexOf(word, index + word.length);
+      }
+    });
+  }
+  figma.notify("✅ Text style applied!");
+}
+
+async function applyBoldFormatting(keywords: string): Promise<void> {
+  const keywordList = keywords.split(',').map((k: string) => k.trim());
+  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
+
+  for (const node of textNodes) {
+    await figma.loadFontAsync(node.fontName as FontName);
+    const text = node.characters;
+
+    keywordList.forEach((word: string) => {
+      let index = text.indexOf(word);
+      while (index !== -1) {
+        // Apply bold formatting logic here
+        node.setRangeTextStyleId(index, index + word.length, "bold-style-id");
+        index = text.indexOf(word, index + word.length);
+      }
+    });
+  }
+  figma.notify("✅ Bold formatting applied!");
+}
+
+async function applyItalicFormatting(keywords: string): Promise<void> {
+  const keywordList = keywords.split(',').map((k: string) => k.trim());
+  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
+
+  for (const node of textNodes) {
+    await figma.loadFontAsync(node.fontName as FontName);
+    const text = node.characters;
+
+    keywordList.forEach((word: string) => {
+      let index = text.indexOf(word);
+      while (index !== -1) {
+        // Apply italic formatting logic here
+        node.setRangeTextStyleId(index, index + word.length, "italic-style-id");
+        index = text.indexOf(word, index + word.length);
+      }
+    });
+  }
+  figma.notify("✅ Italic formatting applied!");
+}
+
+async function applyUnderlineFormatting(keywords: string): Promise<void> {
+  const keywordList = keywords.split(',').map((k: string) => k.trim());
+  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
+
+  for (const node of textNodes) {
+    await figma.loadFontAsync(node.fontName as FontName);
+    const text = node.characters;
+
+    keywordList.forEach((word: string) => {
+      let index = text.indexOf(word);
+      while (index !== -1) {
+        // Apply underline formatting logic here
+        node.setRangeTextStyleId(index, index + word.length, "underline-style-id");
+        index = text.indexOf(word, index + word.length);
+      }
+    });
+  }
+  figma.notify("✅ Underline formatting applied!");
+}
+
 function handleTextCase(node: TextNode): void {
   const originalCharacters = node.characters;
   const originalFills = [];
@@ -210,6 +313,9 @@ function handleTextCase(node: TextNode): void {
       newText = newText.replace(/\s+$/gm, '');
       figma.notify('Tadaannn... 🥁 Bullet points and leading spaces removed!');
       break;
+    case 'frmtxt':
+      handleTextFormatting(node);
+      break;  
 
     default:
       console.error('Unknown command:', figma.command);
