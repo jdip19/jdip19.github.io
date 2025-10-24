@@ -34,8 +34,8 @@
       "command": "addbreakline"
     },
     {
-      "name": "Breaklines to Textlayers",
-      "command": "brklinetotxt"
+      "name": "Split into individual layers",
+      "command": "splitindividually"
     },
     {
       "name": "Remove Breaklines & Space",
@@ -44,10 +44,6 @@
     {
       "name": "Remove Bullets & Leading Space",
       "command": "rmvbullets"
-    },
-    {
-      "name": "Formate Specific Text",
-      "command": "frmtxt"
     }
     
   ]

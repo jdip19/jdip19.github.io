@@ -313,9 +313,58 @@ function handleTextCase(node: TextNode): void {
       newText = newText.replace(/\s+$/gm, '');
       figma.notify('Tadaannn... 🥁 Bullet points and leading spaces removed!');
       break;
-    case 'frmtxt':
-      handleTextFormatting(node);
-      break;  
+    case 'splitindividually':
+      // Split text into individual layers based on line breaks
+      const lines = originalCharacters.split(/\r\n|\r|\n/);
+      
+      if (lines.length <= 1) {
+        figma.notify('No line breaks found.');
+        return;
+      }
+      
+      // Create new text layers for each line
+      const parent = node.parent;
+      const newLayers: TextNode[] = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const lineText = lines[i].trim();
+        if (lineText === '') continue; // Skip empty lines
+        
+        // Clone the original node to preserve all properties
+        const newLayer = node.clone();
+        newLayer.characters = lineText;
+        newLayer.name = `${node.name} - Line ${i + 1}`;
+        
+        // Position the new layer
+        if (i === 0) {
+          // First layer stays in original position
+          newLayer.x = node.x;
+          newLayer.y = node.y;
+        } else {
+          // Subsequent layers are positioned below the previous one
+          const previousLayer = newLayers[i - 1];
+          newLayer.x = node.x;
+          newLayer.y = previousLayer.y + previousLayer.height + 8; // 8px spacing
+        }
+        
+        // Add to parent
+        if (parent && 'appendChild' in parent) {
+          parent.appendChild(newLayer);
+        }
+        
+        newLayers.push(newLayer);
+      }
+      
+      // Remove the original layer
+      node.remove();
+      
+      // Select all new layers
+      figma.currentPage.selection = newLayers;
+      
+      figma.notify(`Tadaannn... 🥁 Split into ${newLayers.length} individual text layers!`);
+      
+      // Return early to prevent further processing of the removed node
+      return;  
 
     default:
       console.error('Unknown command:', figma.command);
@@ -323,24 +372,43 @@ function handleTextCase(node: TextNode): void {
   }
 
   // Update the node with the modified text
-  node.characters = newText;
+  try {
+    node.characters = newText;
+  } catch (error) {
+    console.error('Error updating text characters:', error);
+    return; // Exit early if we can't update the text
+  }
 
   // Reapply fill style if it was uniform
   if (hadUniformFillStyle && uniformFillStyleId) {
-    node.fillStyleId = uniformFillStyleId;
+    try {
+      node.fillStyleId = uniformFillStyleId;
+    } catch (error) {
+      console.error('Error applying fill style ID:', error);
+    }
   } else if (hadUniformFill && uniformFill) {
-    node.fills = uniformFill;
+    try {
+      node.fills = uniformFill;
+    } catch (error) {
+      console.error('Error applying uniform fill:', error);
+    }
   } else {
     // Reapply the original fills to the corresponding character ranges
-    for (let i = 0; i < newText.length; i++) {
-      if (originalFills[i] !== null && originalFills[i] !== undefined) {
-        node.setRangeFills(i, i + 1, originalFills[i] as Paint[]);
+    try {
+      for (let i = 0; i < newText.length; i++) {
+        if (originalFills[i] !== null && originalFills[i] !== undefined) {
+          node.setRangeFills(i, i + 1, originalFills[i] as Paint[]);
+        }
       }
+    } catch (error) {
+      console.error('Error applying range fills:', error);
     }
   }
 
   // Apply the text style after the transformation is done
-  node.setTextStyleIdAsync(currentTextStyleId as string).catch(error => {
-    console.error('Error applying text style:', error);
-  });
+  if (currentTextStyleId && currentTextStyleId !== figma.mixed) {
+    node.setTextStyleIdAsync(currentTextStyleId as string).catch(error => {
+      console.error('Error applying text style:', error);
+    });
+  }
 }
