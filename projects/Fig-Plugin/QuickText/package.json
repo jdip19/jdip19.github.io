@@ -5,12 +5,13 @@
   "main": "code.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "watch": "npm run build -- --watch"
+    "watch": "npm run build -- --watch",
+    "dev": "npm run watch"
   },
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "@figma/plugin-typings": "^1.116.0",
+    "@figma/plugin-typings": "^1.119.0",
     "typescript": "^5.8.3"
   }
 }

@@ -218,6 +218,73 @@ function handleTextCase(node: TextNode): void {
 
   // Get the current text style ID dynamically from the selected text node
   const currentTextStyleId = node.textStyleId;
+
+  /**
+   * Clone the current text node into multiple layers, place them in an auto layout
+   * frame, and keep the resulting layers selected for easy manipulation.
+   */
+  const splitTextIntoLayers = (
+    segments: string[],
+    nameBuilder: (index: number, text: string) => string,
+    emptyMessage: string,
+    successMessage: (count: number) => string,
+    containerName: string
+  ): void => {
+    const filteredSegments = segments
+      .map(segment => segment.trim())
+      .filter(segment => segment.length > 0);
+
+    if (filteredSegments.length === 0) {
+      figma.notify(emptyMessage);
+      return;
+    }
+
+    const parent = node.parent;
+    if (!parent || !('appendChild' in parent)) {
+      figma.notify('Unable to split this text because it has no valid parent.');
+      return;
+    }
+
+    const newLayers: TextNode[] = [];
+
+    filteredSegments.forEach((segmentText, index) => {
+      const newLayer = node.clone();
+      newLayer.characters = segmentText;
+      const trimmedSegmentText = segmentText.trim();
+      const MAX_NAME_LENGTH = 60;
+      let layerName =
+        trimmedSegmentText.length > 0
+          ? trimmedSegmentText
+          : nameBuilder(index, segmentText);
+      if (layerName.length > MAX_NAME_LENGTH) {
+        layerName = `${layerName.slice(0, MAX_NAME_LENGTH - 1)}…`;
+      }
+      newLayer.name = layerName;
+      newLayers.push(newLayer);
+    });
+
+    const autoLayoutFrame = figma.createFrame();
+    autoLayoutFrame.name = containerName;
+    autoLayoutFrame.layoutMode = 'VERTICAL';
+    autoLayoutFrame.primaryAxisSizingMode = 'AUTO';
+    autoLayoutFrame.counterAxisSizingMode = 'AUTO';
+    autoLayoutFrame.itemSpacing = 8;
+    autoLayoutFrame.paddingTop = 0;
+    autoLayoutFrame.paddingBottom = 0;
+    autoLayoutFrame.paddingLeft = 0;
+    autoLayoutFrame.paddingRight = 0;
+    autoLayoutFrame.fills = [];
+    autoLayoutFrame.clipsContent = false;
+    autoLayoutFrame.x = node.x;
+    autoLayoutFrame.y = node.y;
+
+    parent.appendChild(autoLayoutFrame);
+    newLayers.forEach(layer => autoLayoutFrame.appendChild(layer));
+
+    node.remove();
+    figma.currentPage.selection = newLayers;
+    figma.notify(successMessage(newLayers.length));
+  };
   switch (figma.command) {
     case 'titlecase':
       const conjunctions = ['for', 'as', 'an', 'a', 'in', 'on', 'of', 'am', 'are', 'and', 'to', 'is', 'at', 'also', 'with'];
@@ -313,58 +380,47 @@ function handleTextCase(node: TextNode): void {
       newText = newText.replace(/\s+$/gm, '');
       figma.notify('Tadaannn... 🥁 Bullet points and leading spaces removed!');
       break;
-    case 'splitindividually':
-      // Split text into individual layers based on line breaks
+    case 'splitindividually': {
       const lines = originalCharacters.split(/\r\n|\r|\n/);
-      
+
       if (lines.length <= 1) {
         figma.notify('No line breaks found.');
         return;
       }
-      
-      // Create new text layers for each line
-      const parent = node.parent;
-      const newLayers: TextNode[] = [];
-      
-      for (let i = 0; i < lines.length; i++) {
-        const lineText = lines[i].trim();
-        if (lineText === '') continue; // Skip empty lines
-        
-        // Clone the original node to preserve all properties
-        const newLayer = node.clone();
-        newLayer.characters = lineText;
-        newLayer.name = `${node.name} - Line ${i + 1}`;
-        
-        // Position the new layer
-        if (i === 0) {
-          // First layer stays in original position
-          newLayer.x = node.x;
-          newLayer.y = node.y;
-        } else {
-          // Subsequent layers are positioned below the previous one
-          const previousLayer = newLayers[i - 1];
-          newLayer.x = node.x;
-          newLayer.y = previousLayer.y + previousLayer.height + 8; // 8px spacing
-        }
-        
-        // Add to parent
-        if (parent && 'appendChild' in parent) {
-          parent.appendChild(newLayer);
-        }
-        
-        newLayers.push(newLayer);
-      }
-      
-      // Remove the original layer
-      node.remove();
-      
-      // Select all new layers
-      figma.currentPage.selection = newLayers;
-      
-      figma.notify(`Tadaannn... 🥁 Split into ${newLayers.length} individual text layers!`);
-      
-      // Return early to prevent further processing of the removed node
-      return;  
+
+      splitTextIntoLayers(
+        lines,
+        (index) => `${node.name} - Line ${index + 1}`,
+        'No text lines found to split.',
+        (count) => `Tadaannn... 🥁 Split into ${count} individual text layers!`,
+        `${node.name} - Split Lines`
+      );
+      return;
+    }
+
+    case 'splitwords': {
+      const words = originalCharacters.split(/\s+/);
+      splitTextIntoLayers(
+        words,
+        (index) => `${node.name} - Word ${index + 1}`,
+        'No words found to split.',
+        (count) => `Tadaannn... 🥁 Split into ${count} word layers!`,
+        `${node.name} - Split Words`
+      );
+      return;
+    }
+
+    case 'splitletters': {
+      const letters = Array.from(originalCharacters);
+      splitTextIntoLayers(
+        letters.filter(letter => /\S/.test(letter)),
+        (index, letter) => `${node.name} - Letter ${index + 1}: ${letter}`,
+        'No letters found to split.',
+        (count) => `Tadaannn... 🥁 Split into ${count} letter layers!`,
+        `${node.name} - Split Letters`
+      );
+      return;
+    }
 
     default:
       console.error('Unknown command:', figma.command);

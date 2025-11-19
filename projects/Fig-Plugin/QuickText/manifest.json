@@ -14,35 +14,43 @@
   "ui": "ui.html",
   "menu": [
     {
-      "name": "TitleCase",
+      "name": "to TitleCase",
       "command": "titlecase"
     },
     {
-      "name": "Sentencecase",
+      "name": "to Sentencecase",
       "command": "sentencecase"
     },
     {
-      "name": "UPPERCASE",
+      "name": "to UPPERCASE",
       "command": "uppercase"
     },
     {
-      "name": "lowercase",
+      "name": "to lowercase",
       "command": "lowercase"
     },
     {
-      "name": "Add Breaklines",
+      "name": "add Breaklines",
       "command": "addbreakline"
     },
     {
-      "name": "Split into individual layers",
+      "name": "split into Layers",
       "command": "splitindividually"
     },
     {
-      "name": "Remove Breaklines & Space",
+      "name": "split into Words",
+      "command": "splitwords"
+    },
+    {
+      "name": "split into Letters",
+      "command": "splitletters"
+    },
+    {
+      "name": "remove Breaklines & Space",
       "command": "rmvspace"
     },
     {
-      "name": "Remove Bullets & Leading Space",
+      "name": "remove Bullets & Leading Space",
       "command": "rmvbullets"
     }
     
