@@ -78,12 +78,39 @@ async function processAllTextNodes(textNodes: TextNode[]) {
   }
 }
 
+function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
+  const result: TextNode[] = [];
+  const visited = new Set<string>();
+
+  const traverse = (node: SceneNode) => {
+    if (node.type === 'TEXT') {
+      if (!visited.has(node.id)) {
+        result.push(node as TextNode);
+        visited.add(node.id);
+      }
+    }
+
+    if ('children' in node) {
+      for (const child of node.children as readonly SceneNode[]) {
+        traverse(child);
+      }
+    }
+  };
+
+  nodes.forEach(traverse);
+  return result;
+}
+
 const selection = figma.currentPage.selection;
-const textNodes = selection.filter(node => node.type === 'TEXT') as TextNode[];
+const textNodes = collectTextNodes(selection);
 
 if (textNodes.length === 0) {
   figma.notify('Please select at least one text layer. 😕');
   figma.closePlugin();
+}
+
+if (textNodes.length !== selection.length) {
+  figma.currentPage.selection = textNodes;
 }
 
 const allFonts = getAllUniqueFonts(textNodes);
