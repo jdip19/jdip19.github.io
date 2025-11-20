@@ -34,6 +34,10 @@
       "command": "addbreakline"
     },
     {
+      "name": "to Slug",
+      "command": "slug"
+    },
+    {
       "name": "split into Layers",
       "command": "splitindividually"
     },
@@ -46,12 +50,28 @@
       "command": "splitletters"
     },
     {
+      "command": "removesymbols",
+      "name": "Remove Symbols"
+    },
+    {
       "name": "remove Breaklines & Space",
       "command": "rmvspace"
     },
     {
       "name": "remove Bullets & Leading Space",
       "command": "rmvbullets"
+    },
+    {
+      "command": "addprefix",
+      "name": "add Prefix"
+    },
+    {
+      "command": "addsuffix",
+      "name": "add Suffix"
+    },
+    {
+      "command": "addbetween",
+      "name": "add In-Between"
     }
     
   ]

@@ -1,14 +1,14 @@
 {
   "name": "QuickText",
   "version": "1.0.0",
-  "description": "To Change Text Quickly",
+  "description": "Formatting text effciently",
   "main": "code.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "watch": "npm run build -- --watch",
     "dev": "npm run watch"
   },
-  "author": "Your Name",
+  "author": "Jaydip Upadhyay",
   "license": "MIT",
   "devDependencies": {
     "@figma/plugin-typings": "^1.119.0",

@@ -9,7 +9,35 @@
   </style>
 </head>
 
-<body></body>
-  
+<body>
+  <div id="dynamicBox" class="hidden">
+    <h3>Enter Text</h3>
+    <input id="dynamicInput" placeholder="Type prefix/suffix/text">
+    <button id="applyDynamic">Apply</button>
+  </div>
+
+  <script>
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === "show-dynamic-box") {
+        document.getElementById("dynamicBox").classList.remove("hidden");
+        window.currentMode = msg.mode;
+      }
+    };
+
+    document.getElementById("applyDynamic").onclick = () => {
+      parent.postMessage({
+        pluginMessage: {
+          type: "apply-dynamic",
+          value: document.getElementById("dynamicInput").value,
+          mode: window.currentMode
+        }
+      }, "*");
+    };
+  </script>
+</body>
+
 
 </html>

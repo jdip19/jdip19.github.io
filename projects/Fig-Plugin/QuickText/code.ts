@@ -2,7 +2,7 @@
 async function loadAllFontsForNode(node: TextNode): Promise<boolean> {
   const fontPromises: Promise<void>[] = [];
   let failed = false;
-  for (let i = 0; i < node.characters.length; ) {
+  for (let i = 0; i < node.characters.length;) {
     const font = node.getRangeFontName(i, i + 1);
     let j = i + 1;
     // Find the next range where the font changes
@@ -28,7 +28,7 @@ function getAllUniqueFonts(textNodes: TextNode[]): FontName[] {
   const fontSet = new Set<string>();
   const fonts: FontName[] = [];
   for (const node of textNodes) {
-    for (let i = 0; i < node.characters.length; ) {
+    for (let i = 0; i < node.characters.length;) {
       const font = node.getRangeFontName(i, i + 1);
       let j = i + 1;
       while (j < node.characters.length && JSON.stringify(node.getRangeFontName(j, j + 1)) === JSON.stringify(font)) {
@@ -101,6 +101,19 @@ function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   return result;
 }
 
+type DynamicCommand = 'addprefix' | 'addsuffix' | 'addbetween';
+const dynamicCommandModes: Record<DynamicCommand, 'prefix' | 'suffix' | 'between'> = {
+  addprefix: 'prefix',
+  addsuffix: 'suffix',
+  addbetween: 'between',
+};
+
+function handleDynamicCommand(command: DynamicCommand): void {
+  const mode = dynamicCommandModes[command];
+  figma.showUI(__html__, { width: 300, height: 160 });
+  figma.ui.postMessage({ type: 'show-dynamic-box', mode });
+}
+
 const selection = figma.currentPage.selection;
 const textNodes = collectTextNodes(selection);
 
@@ -113,22 +126,29 @@ if (textNodes.length !== selection.length) {
   figma.currentPage.selection = textNodes;
 }
 
-const allFonts = getAllUniqueFonts(textNodes);
-loadAllFonts(allFonts)
-  .then(success => {
-    if (!success) {
-      figma.notify('Some fonts could not be loaded. Some nodes may be skipped.');
-    }
-    processAllTextNodes(textNodes);
-  })
-  .then(() => {
-    figma.closePlugin();
-  });
+const isDynamicCommand = figma.command && figma.command in dynamicCommandModes;
+
+if (isDynamicCommand) {
+  handleDynamicCommand(figma.command as DynamicCommand);
+  // Dynamic commands wait for UI input and manage plugin closing themselves.
+} else {
+  const allFonts = getAllUniqueFonts(textNodes);
+  loadAllFonts(allFonts)
+    .then(success => {
+      if (!success) {
+        figma.notify('Some fonts could not be loaded. Some nodes may be skipped.');
+      }
+      processAllTextNodes(textNodes);
+    })
+    .then(() => {
+      figma.closePlugin();
+    });
+}
 
 function handleTextFormatting(node: TextNode): void {
   // Show UI for text formatting options
   figma.showUI(__html__, { width: 400, height: 300 });
-  
+
   figma.ui.onmessage = async (msg) => {
     switch (msg.type) {
       case 'apply-style':
@@ -407,6 +427,22 @@ function handleTextCase(node: TextNode): void {
       newText = newText.replace(/\s+$/gm, '');
       figma.notify('Tadaannn... 🥁 Bullet points and leading spaces removed!');
       break;
+
+    case "removesymbols":
+      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
+      figma.notify("Removed punctuation & symbols ✔");
+      break;
+
+    case 'slug':
+      newText = originalCharacters
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      figma.notify('Tadaannn... 🥁 Converted to slug format.');
+      break;
     case 'splitindividually': {
       const lines = originalCharacters.split(/\r\n|\r|\n/);
 
@@ -448,7 +484,6 @@ function handleTextCase(node: TextNode): void {
       );
       return;
     }
-
     default:
       console.error('Unknown command:', figma.command);
       return;
@@ -493,5 +528,38 @@ function handleTextCase(node: TextNode): void {
     node.setTextStyleIdAsync(currentTextStyleId as string).catch(error => {
       console.error('Error applying text style:', error);
     });
+  }
+}
+figma.ui.onmessage = async (msg) => {
+  if (msg.type === "apply-dynamic") {
+    await applyDynamicFormat(msg.value, msg.mode);
+    figma.closePlugin("Done!");
+    return;
+  }
+};
+async function applyDynamicFormat(value: string, mode: string) {
+  const nodes = figma.currentPage.selection.filter(n => n.type === "TEXT") as TextNode[];
+
+  if (nodes.length === 0) {
+    figma.notify("Please select at least one text layer");
+    return;
+  }
+
+  for (const node of nodes) {
+    await figma.loadFontAsync(node.fontName as FontName);
+    let text = node.characters;
+
+    if (mode === "prefix") {
+      text = value + text;
+    }
+    else if (mode === "suffix") {
+      text = text + value;
+    }
+    else if (mode === "between") {
+      const parts = text.split(/\s+/);
+      text = parts.join(value);
+    }
+
+    node.characters = text;
   }
 }
