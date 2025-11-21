@@ -1,3 +1,43 @@
+// ==================== MONETIZATION SETTINGS ====================
+// Set to false to disable usage limits for testing
+// TODO: Set to true when ready to launch with Gumroad
+const ENABLE_MONETIZATION = false;
+
+// ==================== WHITELIST SYSTEM ====================
+// Add user IDs here for free unlimited access
+// 
+// HOW TO FIND USER IDs:
+// Option 1: Add this temporarily to see your ID in console:
+console.log('Current User ID:', figma.currentUser?.id);
+//   console.log('Current User Name:', figma.currentUser?.name);
+//
+// Option 2: Have the user run the plugin and check browser console (F12)
+//
+// Option 3: Temporarily show a notification with the ID:
+//   figma.notify(`Your User ID: ${figma.currentUser?.id}`);
+//
+const WHITELISTED_USER_IDS: string[] = [
+  "1065580884738218710"
+];
+
+// Check if current user is whitelisted
+function isWhitelisted(): boolean {
+  if (WHITELISTED_USER_IDS.length === 0) {
+    return false;
+  }
+  
+  const currentUser = figma.currentUser;
+  if (!currentUser || !currentUser.id) {
+    return false;
+  }
+  
+  return WHITELISTED_USER_IDS.includes(currentUser.id);
+}
+
+// Helper function to get current user ID (for debugging/adding to whitelist)
+// Uncomment the line below temporarily to see your user ID in console
+// console.log('Current User ID:', figma.currentUser?.id, 'Name:', figma.currentUser?.name);
+
 // Utility to get all font ranges in a text node
 async function loadAllFontsForNode(node: TextNode): Promise<boolean> {
   const fontPromises: Promise<void>[] = [];
@@ -6,7 +46,11 @@ async function loadAllFontsForNode(node: TextNode): Promise<boolean> {
     const font = node.getRangeFontName(i, i + 1);
     let j = i + 1;
     // Find the next range where the font changes
-    while (j < node.characters.length && JSON.stringify(node.getRangeFontName(j, j + 1)) === JSON.stringify(font)) {
+    while (j < node.characters.length) {
+      const nextFont = node.getRangeFontName(j, j + 1);
+      if (!fontsEqual(nextFont, font)) {
+        break;
+      }
       j++;
     }
     if (font !== figma.mixed) {
@@ -31,10 +75,14 @@ function getAllUniqueFonts(textNodes: TextNode[]): FontName[] {
     for (let i = 0; i < node.characters.length;) {
       const font = node.getRangeFontName(i, i + 1);
       let j = i + 1;
-      while (j < node.characters.length && JSON.stringify(node.getRangeFontName(j, j + 1)) === JSON.stringify(font)) {
+      while (j < node.characters.length) {
+        const nextFont = node.getRangeFontName(j, j + 1);
+        if (!fontsEqual(nextFont, font)) {
+          break;
+        }
         j++;
       }
-      const fontKey = JSON.stringify(font);
+      const fontKey = createFontKey(font);
       if (font !== figma.mixed && !fontSet.has(fontKey)) {
         fontSet.add(fontKey);
         fonts.push(font as FontName);
@@ -46,17 +94,71 @@ function getAllUniqueFonts(textNodes: TextNode[]): FontName[] {
 }
 
 async function loadAllFonts(fonts: FontName[]): Promise<boolean> {
-  let failed = false;
-  for (const font of fonts) {
-    try {
-      console.log('Loading font:', font);
-      await figma.loadFontAsync(font);
-    } catch (err) {
-      console.error('Error loading font:', font, err);
-      failed = true;
-    }
+  const loadResults = await Promise.all(
+    fonts.map(async (font) => {
+      try {
+        console.log('Loading font:', font);
+        await figma.loadFontAsync(font);
+        return true;
+      } catch (err) {
+        console.error('Error loading font:', font, err);
+        return false;
+      }
+    })
+  );
+  return loadResults.every(Boolean);
+}
+
+type FontReference = FontName | typeof figma.mixed;
+
+function fontsEqual(a: FontReference, b: FontReference): boolean {
+  if (a === b) {
+    return true;
   }
-  return !failed;
+  if (a === figma.mixed || b === figma.mixed) {
+    return false;
+  }
+  return a.family === b.family && a.style === b.style;
+}
+
+function createFontKey(font: FontReference): string {
+  if (font === figma.mixed) {
+    return 'mixed';
+  }
+  return `${font.family}::${font.style}`;
+}
+
+const getAllTextNodes = (): TextNode[] => {
+  return figma.root.findAll(n => n.type === "TEXT") as TextNode[];
+};
+
+function getKeywordList(keywords: string): string[] {
+  return keywords
+    .split(',')
+    .map((k: string) => k.trim())
+    .filter((k: string) => k.length > 0);
+}
+
+async function applyFormattingToKeywords(
+  keywords: string,
+  applyRange: (node: TextNode, start: number, end: number) => void
+): Promise<void> {
+  const keywordList = getKeywordList(keywords);
+  if (keywordList.length === 0) {
+    return;
+  }
+  const textNodes = getAllTextNodes();
+  for (const node of textNodes) {
+    await figma.loadFontAsync(node.fontName as FontName);
+    const text = node.characters;
+    keywordList.forEach((word: string) => {
+      let index = text.indexOf(word);
+      while (index !== -1) {
+        applyRange(node, index, index + word.length);
+        index = text.indexOf(word, index + word.length);
+      }
+    });
+  }
 }
 
 async function processAllTextNodes(textNodes: TextNode[]) {
@@ -67,7 +169,7 @@ async function processAllTextNodes(textNodes: TextNode[]) {
       figma.notify('Warning: Some text nodes have mixed color styles. These may be lost after processing.');
     }
     try {
-      handleTextCase(node);
+      await handleTextCase(node);
     } catch (err) {
       skippedCount++;
       console.error('Error processing node:', node, err);
@@ -126,24 +228,41 @@ if (textNodes.length !== selection.length) {
   figma.currentPage.selection = textNodes;
 }
 
-const isDynamicCommand = figma.command && figma.command in dynamicCommandModes;
+// Check usage before executing commands
+(async () => {
+  const usageCheck = await canUsePlugin();
+  
+  if (!usageCheck.allowed) {
+    showLicenseUI(0);
+    return;
+  }
+  
+  // Show remaining count if free user (only when monetization is enabled)
+  if (ENABLE_MONETIZATION && usageCheck.remaining !== undefined && usageCheck.remaining <= 3) {
+    figma.notify(`⚠️ ${usageCheck.remaining} free commands remaining today`);
+  }
+  
+  const isDynamicCommand = figma.command && figma.command in dynamicCommandModes;
 
-if (isDynamicCommand) {
-  handleDynamicCommand(figma.command as DynamicCommand);
-  // Dynamic commands wait for UI input and manage plugin closing themselves.
-} else {
-  const allFonts = getAllUniqueFonts(textNodes);
-  loadAllFonts(allFonts)
-    .then(success => {
-      if (!success) {
-        figma.notify('Some fonts could not be loaded. Some nodes may be skipped.');
-      }
-      processAllTextNodes(textNodes);
-    })
-    .then(() => {
-      figma.closePlugin();
-    });
-}
+  if (isDynamicCommand) {
+    await handleDynamicCommand(figma.command as DynamicCommand);
+    // Dynamic commands wait for UI input and manage plugin closing themselves.
+  } else {
+    const allFonts = getAllUniqueFonts(textNodes);
+    loadAllFonts(allFonts)
+      .then(success => {
+        if (!success) {
+          figma.notify('Some fonts could not be loaded. Some nodes may be skipped.');
+        }
+        return processAllTextNodes(textNodes);
+      })
+      .then(async () => {
+        // Increment usage after successful execution
+        await incrementUsage();
+        figma.closePlugin();
+      });
+  }
+})();
 
 function handleTextFormatting(node: TextNode): void {
   // Show UI for text formatting options
@@ -170,85 +289,34 @@ function handleTextFormatting(node: TextNode): void {
 }
 
 async function applyTextStyle(keywords: string, styleId: string): Promise<void> {
-  const keywordList = keywords.split(',').map((k: string) => k.trim());
-  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
-
-  for (const node of textNodes) {
-    await figma.loadFontAsync(node.fontName as FontName);
-    const text = node.characters;
-
-    keywordList.forEach((word: string) => {
-      let index = text.indexOf(word);
-      while (index !== -1) {
-        node.setRangeTextStyleId(index, index + word.length, styleId);
-        index = text.indexOf(word, index + word.length);
-      }
-    });
-  }
+  await applyFormattingToKeywords(keywords, (node, start, end) => {
+    node.setRangeTextStyleId(start, end, styleId);
+  });
   figma.notify("✅ Text style applied!");
 }
 
 async function applyBoldFormatting(keywords: string): Promise<void> {
-  const keywordList = keywords.split(',').map((k: string) => k.trim());
-  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
-
-  for (const node of textNodes) {
-    await figma.loadFontAsync(node.fontName as FontName);
-    const text = node.characters;
-
-    keywordList.forEach((word: string) => {
-      let index = text.indexOf(word);
-      while (index !== -1) {
-        // Apply bold formatting logic here
-        node.setRangeTextStyleId(index, index + word.length, "bold-style-id");
-        index = text.indexOf(word, index + word.length);
-      }
-    });
-  }
+  await applyFormattingToKeywords(keywords, (node, start, end) => {
+    node.setRangeTextStyleId(start, end, "bold-style-id");
+  });
   figma.notify("✅ Bold formatting applied!");
 }
 
 async function applyItalicFormatting(keywords: string): Promise<void> {
-  const keywordList = keywords.split(',').map((k: string) => k.trim());
-  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
-
-  for (const node of textNodes) {
-    await figma.loadFontAsync(node.fontName as FontName);
-    const text = node.characters;
-
-    keywordList.forEach((word: string) => {
-      let index = text.indexOf(word);
-      while (index !== -1) {
-        // Apply italic formatting logic here
-        node.setRangeTextStyleId(index, index + word.length, "italic-style-id");
-        index = text.indexOf(word, index + word.length);
-      }
-    });
-  }
+  await applyFormattingToKeywords(keywords, (node, start, end) => {
+    node.setRangeTextStyleId(start, end, "italic-style-id");
+  });
   figma.notify("✅ Italic formatting applied!");
 }
 
 async function applyUnderlineFormatting(keywords: string): Promise<void> {
-  const keywordList = keywords.split(',').map((k: string) => k.trim());
-  const textNodes = figma.root.findAll(n => n.type === "TEXT") as TextNode[];
-
-  for (const node of textNodes) {
-    await figma.loadFontAsync(node.fontName as FontName);
-    const text = node.characters;
-
-    keywordList.forEach((word: string) => {
-      let index = text.indexOf(word);
-      while (index !== -1) {
-        // Apply underline formatting logic here
-        node.setRangeTextStyleId(index, index + word.length, "underline-style-id");
-        index = text.indexOf(word, index + word.length);
-      }
-    });
-  }
+  await applyFormattingToKeywords(keywords, (node, start, end) => {
+    node.setRangeTextStyleId(start, end, "underline-style-id");
+  });
   figma.notify("✅ Underline formatting applied!");
 }
 
-function handleTextCase(node: TextNode): void {
+async function handleTextCase(node: TextNode): Promise<void> {
   const originalCharacters = node.characters;
   const originalFills = [];
   const hadUniformFill = node.fills !== figma.mixed;
@@ -413,6 +481,21 @@ function handleTextCase(node: TextNode): void {
       figma.notify('Tadaannn... 🥁 Your Text now has line breaks after Fullstop.');
       break;
 
+    case "copycta":
+      await cycleCopyText(node, CTA_TEXTS, 'ctaIndex');
+      figma.notify('Tadaannn... 🥁 Button Text Added');
+      return;
+
+    case "copyhero":
+      await cycleCopyText(node, HERO_TEXTS, 'heroIndex');
+      figma.notify('Tadaannn... 🥁 Hero Text Added');
+      return;
+
+    case "copyerror":
+      await cycleCopyText(node, ERROR_TEXTS, 'errorIndex');
+      figma.notify('Tadaannn... 🥁 Error Text Added');
+      return;
+
     case 'rmvspace':
       newText = newText.replace(/\s+/g, ' ');
       figma.notify('Tadaannn... 🥁 Your Text is now unwanted space free. 🤧');
@@ -524,7 +607,37 @@ function handleTextCase(node: TextNode): void {
 figma.ui.onmessage = async (msg) => {
   if (msg.type === "apply-dynamic") {
     await applyDynamicFormat(msg.value, msg.mode);
+    await incrementUsage();
     figma.closePlugin("Done!");
+    return;
+  }
+  
+  if (msg.type === "activate-license") {
+    const success = await activateLicense(msg.licenseKey);
+    if (success) {
+      figma.notify("✅ License activated! Enjoy unlimited usage.");
+      figma.ui.postMessage({ type: 'license-activated' });
+      // Reload the plugin to apply license
+      setTimeout(() => {
+        figma.closePlugin();
+      }, 1000);
+    } else {
+      figma.notify("❌ Invalid license key. Please check and try again.");
+      figma.ui.postMessage({ type: 'license-error', message: 'Invalid license key' });
+    }
+    return;
+  }
+  
+  if (msg.type === "check-usage") {
+    const usageCheck = await canUsePlugin();
+    const usage = await getUsageData();
+    figma.ui.postMessage({ 
+      type: 'usage-info', 
+      hasLicense: await hasLicense(),
+      remaining: usageCheck.remaining || 'unlimited',
+      used: usage.count,
+      limit: FREE_DAILY_LIMIT
+    });
     return;
   }
 };
@@ -553,4 +666,174 @@ async function applyDynamicFormat(value: string, mode: string) {
 
     node.characters = text;
   }
+}
+const CTA_TEXTS = [
+  "Get Started",
+  "Learn More",
+  "Know More",
+  "Read More",
+  "Buy Now",
+  "Try Free Demo",
+  "Explore Features",
+  "Continue",
+  "Subscribe",
+  "Contact Us"
+];
+
+const HERO_TEXTS = [
+  "Transform Your Ideas Into Reality",
+  "Build Something Amazing",
+  "Your Journey Starts Here",
+  "Innovation Meets Excellence",
+  "Empower Your Creativity",
+  "Where Great Things Happen",
+  "Unlock Your Potential",
+  "Design. Create. Inspire.",
+  "Make It Happen",
+  "Start Building Today"
+];
+
+const ERROR_TEXTS = [
+  "Something went wrong",
+  "Oops! Something went wrong",
+  "An error occurred",
+  "We're sorry, something went wrong",
+  "Unable to complete this action",
+  "Please try again",
+  "Error loading content",
+  "Something unexpected happened",
+  "We encountered an issue",
+  "Please refresh and try again"
+];
+
+// ==================== MONETIZATION SYSTEM ====================
+const FREE_DAILY_LIMIT = 10;
+const LICENSE_PRICE = 5; // $5 lifetime
+
+interface UsageData {
+  count: number;
+  date: string; // YYYY-MM-DD format
+}
+
+// Check if user has valid license
+async function hasLicense(): Promise<boolean> {
+  const licenseKey = await figma.clientStorage.getAsync('licenseKey');
+  if (!licenseKey) return false;
+  
+  // Simple validation - in production, verify against your server
+  // For now, we'll use a simple hash check
+  const isValid = validateLicenseKey(licenseKey as string);
+  return isValid;
+}
+
+// Simple license key validation (replace with server-side validation in production)
+function validateLicenseKey(key: string): boolean {
+  // Basic format check: should be a valid format
+  // In production, verify this against your payment system/database
+  return key.length >= 20 && /^[A-Z0-9-]+$/.test(key);
+}
+
+// Helper to pad number with leading zero
+function padZero(num: number): string {
+  return num < 10 ? `0${num}` : `${num}`;
+}
+
+// Get today's date in YYYY-MM-DD format
+function getTodayDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())}`;
+}
+
+// Get current usage data
+async function getUsageData(): Promise<UsageData> {
+  const stored = await figma.clientStorage.getAsync('usageData');
+  const today = getTodayDate();
+  
+  if (!stored) {
+    return { count: 0, date: today };
+  }
+  
+  const usage = stored as UsageData;
+  
+  // Reset if it's a new day
+  if (usage.date !== today) {
+    return { count: 0, date: today };
+  }
+  
+  return usage;
+}
+
+// Increment usage count
+async function incrementUsage(): Promise<void> {
+  const usage = await getUsageData();
+  usage.count++;
+  await figma.clientStorage.setAsync('usageData', usage);
+}
+
+// Check if user can use the plugin (has license or under daily limit)
+async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }> {
+  // Bypass monetization if disabled for testing
+  if (!ENABLE_MONETIZATION) {
+    return { allowed: true };
+  }
+  
+  // Check whitelist first - whitelisted users get free unlimited access
+  if (isWhitelisted()) {
+    return { allowed: true };
+  }
+  
+  const licensed = await hasLicense();
+  if (licensed) {
+    return { allowed: true };
+  }
+  
+  const usage = await getUsageData();
+  const remaining = FREE_DAILY_LIMIT - usage.count;
+  
+  return {
+    allowed: remaining > 0,
+    remaining: Math.max(0, remaining)
+  };
+}
+
+// Show payment/license UI
+function showLicenseUI(remaining: number): void {
+  figma.showUI(__html__, { width: 400, height: 500 });
+  figma.ui.postMessage({ 
+    type: 'show-license', 
+    remaining,
+    price: LICENSE_PRICE
+  });
+}
+
+// Activate license (called from UI after payment)
+async function activateLicense(licenseKey: string): Promise<boolean> {
+  if (validateLicenseKey(licenseKey)) {
+    await figma.clientStorage.setAsync('licenseKey', licenseKey);
+    return true;
+  }
+  return false;
+}
+
+// Get stored index or default to 0
+async function getStoredIndex(key: string): Promise<number> {
+  const stored = await figma.clientStorage.getAsync(key);
+  return stored !== undefined ? stored : 0;
+}
+
+// Save index for next plugin run
+async function saveStoredIndex(key: string, index: number): Promise<void> {
+  await figma.clientStorage.setAsync(key, index);
+}
+
+async function cycleCopyText(node: TextNode, texts: string[], storageKey: string): Promise<void> {
+  const index = await getStoredIndex(storageKey);
+  const text = texts[index];
+
+  await figma.loadFontAsync(node.fontName as FontName);
+  node.characters = text;
+
+  // Move to next text and save for next run
+  const nextIndex = (index + 1) % texts.length;
+  await saveStoredIndex(storageKey, nextIndex);
 }

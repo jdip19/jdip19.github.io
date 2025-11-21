@@ -1,7 +1,7 @@
 {
   "name": "QuickText",
   "version": "1.0.0",
-  "description": "Formatting text effciently",
+  "description": "Formatting text effcientlyT",
   "main": "code.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -14,6 +14,9 @@
     "figma"
   ],
   "ui": "ui.html",
+  "permissions": [
+    "currentuser"
+  ],
   "menu": [
     {
       "name": "to TitleCase",
@@ -42,6 +45,18 @@
     {
       "command": "addsuffix",
       "name": "add Suffix"
+    },
+    {
+      "command": "copyhero",
+      "name": "add Hero Text"
+    },
+    {
+      "command": "copycta",
+      "name": "add CTA Text"
+    },
+    {
+      "command": "copyerror",
+      "name": "add Error Text"
     },
     {
       "command": "addbetween",

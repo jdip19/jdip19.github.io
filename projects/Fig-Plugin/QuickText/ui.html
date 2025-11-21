@@ -6,6 +6,193 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QuickText</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      padding: 20px;
+      background: #ffffff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #dynamicBox {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #dynamicBox h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    #dynamicInput {
+      padding: 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    #applyDynamic {
+      padding: 10px 20px;
+      background: #18a0fb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    #applyDynamic:hover {
+      background: #1592e6;
+    }
+
+    /* License UI Styles */
+    #licenseBox {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .license-header {
+      text-align: center;
+    }
+
+    .license-header h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+
+    .license-header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .usage-info {
+      background: #f5f5f5;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .usage-info .remaining {
+      font-size: 32px;
+      font-weight: 700;
+      color: #ff6b6b;
+      margin: 8px 0;
+    }
+
+    .usage-info .limit-text {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .pricing-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .pricing-card .price {
+      font-size: 48px;
+      font-weight: 700;
+      margin: 12px 0;
+    }
+
+    .pricing-card .price-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .features {
+      list-style: none;
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .features li {
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .features li:before {
+      content: "✓ ";
+      color: #4caf50;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    .license-input {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+      font-family: monospace;
+    }
+
+    .license-input:focus {
+      outline: none;
+      border-color: #18a0fb;
+    }
+
+    .activate-btn {
+      padding: 12px 24px;
+      background: #18a0fb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      width: 100%;
+    }
+
+    .activate-btn:hover {
+      background: #1592e6;
+    }
+
+    .activate-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .buy-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      color: #18a0fb;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .buy-link:hover {
+      text-decoration: underline;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
   </style>
 </head>
 
@@ -16,28 +203,118 @@
     <button id="applyDynamic">Apply</button>
   </div>
 
+  <div id="licenseBox" class="hidden">
+    <div class="license-header">
+      <h2>🚀 Upgrade to Pro</h2>
+      <p>You've reached your daily limit</p>
+    </div>
+
+    <div class="usage-info">
+      <div class="limit-text">Free commands remaining today:</div>
+      <div class="remaining" id="remainingCount">0</div>
+      <div class="limit-text">Limit: 10 commands/day</div>
+    </div>
+
+    <div class="pricing-card">
+      <div class="price-label">Lifetime License</div>
+      <div class="price">$<span id="price">5</span></div>
+      <ul class="features">
+        <li>Unlimited commands forever</li>
+        <li>All premium features</li>
+        <li>Priority support</li>
+        <li>No recurring fees</li>
+      </ul>
+    </div>
+
+    <div>
+      <input 
+        type="text" 
+        id="licenseKeyInput" 
+        class="license-input" 
+        placeholder="Enter your license key"
+        autocomplete="off"
+      >
+      <div class="error-message" id="errorMessage"></div>
+      <button id="activateLicense" class="activate-btn">Activate License</button>
+      <a href="#" id="buyLink" class="buy-link" target="_blank">Don't have a key? Purchase here →</a>
+    </div>
+  </div>
+
   <script>
+    let currentMode = null;
+    let remainingCount = 0;
+    let licensePrice = 5;
+
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
       if (!msg) return;
 
       if (msg.type === "show-dynamic-box") {
         document.getElementById("dynamicBox").classList.remove("hidden");
-        window.currentMode = msg.mode;
+        document.getElementById("licenseBox").classList.add("hidden");
+        currentMode = msg.mode;
+      }
+
+      if (msg.type === "show-license") {
+        document.getElementById("dynamicBox").classList.add("hidden");
+        document.getElementById("licenseBox").classList.remove("hidden");
+        remainingCount = msg.remaining || 0;
+        licensePrice = msg.price || 5;
+        
+        document.getElementById("remainingCount").textContent = remainingCount;
+        document.getElementById("price").textContent = licensePrice;
+        
+        // Update buy link (replace with your actual payment URL)
+        document.getElementById("buyLink").href = 
+          `https://your-payment-page.com?plugin=quicktext&price=${licensePrice}`;
+      }
+
+      if (msg.type === "license-activated") {
+        document.getElementById("errorMessage").classList.remove("show");
+        document.getElementById("licenseKeyInput").value = "";
+      }
+
+      if (msg.type === "license-error") {
+        const errorEl = document.getElementById("errorMessage");
+        errorEl.textContent = msg.message || "Invalid license key";
+        errorEl.classList.add("show");
       }
     };
 
-    document.getElementById("applyDynamic").onclick = () => {
+    document.getElementById("applyDynamic")?.addEventListener("click", () => {
       parent.postMessage({
         pluginMessage: {
           type: "apply-dynamic",
           value: document.getElementById("dynamicInput").value,
-          mode: window.currentMode
+          mode: currentMode
         }
       }, "*");
-    };
+    });
+
+    document.getElementById("activateLicense")?.addEventListener("click", () => {
+      const licenseKey = document.getElementById("licenseKeyInput").value.trim();
+      if (!licenseKey) {
+        const errorEl = document.getElementById("errorMessage");
+        errorEl.textContent = "Please enter a license key";
+        errorEl.classList.add("show");
+        return;
+      }
+
+      parent.postMessage({
+        pluginMessage: {
+          type: "activate-license",
+          licenseKey: licenseKey
+        }
+      }, "*");
+    });
+
+    // Allow Enter key to activate license
+    document.getElementById("licenseKeyInput")?.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        document.getElementById("activateLicense").click();
+      }
+    });
   </script>
 </body>
-
 
 </html>
