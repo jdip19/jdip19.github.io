@@ -6,7 +6,9 @@
   "enableProposedApi": false,
   "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": ["none"]
+    "allowedDomains": [
+      "none"
+    ]
   },
   "editorType": [
     "figma"
@@ -34,8 +36,24 @@
       "command": "addbreakline"
     },
     {
-      "name": "to Slug",
-      "command": "slug"
+      "command": "addprefix",
+      "name": "add Prefix"
+    },
+    {
+      "command": "addsuffix",
+      "name": "add Suffix"
+    },
+    {
+      "command": "addbetween",
+      "name": "add In-Between"
+    },
+    {
+      "command": "removesymbols",
+      "name": "remove Symbols"
+    },
+    {
+      "name": "remove Breaklines & Space",
+      "command": "rmvspace"
     },
     {
       "name": "split into Layers",
@@ -50,29 +68,8 @@
       "command": "splitletters"
     },
     {
-      "command": "removesymbols",
-      "name": "Remove Symbols"
-    },
-    {
-      "name": "remove Breaklines & Space",
-      "command": "rmvspace"
-    },
-    {
-      "name": "remove Bullets & Leading Space",
-      "command": "rmvbullets"
-    },
-    {
-      "command": "addprefix",
-      "name": "add Prefix"
-    },
-    {
-      "command": "addsuffix",
-      "name": "add Suffix"
-    },
-    {
-      "command": "addbetween",
-      "name": "add In-Between"
+      "name": "to Slug",
+     "command": "slug"
     }
-    
   ]
 }

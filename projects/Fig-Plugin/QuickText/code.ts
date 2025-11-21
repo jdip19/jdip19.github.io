@@ -418,18 +418,9 @@ function handleTextCase(node: TextNode): void {
       figma.notify('Tadaannn... 🥁 Your Text is now unwanted space free. 🤧');
       break;
 
-    case 'rmvbullets':
-      // Normalize all line breaks to \n
-      newText = newText.replace(/\r\n|\r|\u2028|\u2029/g, '\n');
-      // Remove common bullet points and leading whitespace at the start of each line
-      newText = newText.replace(/^[\s\u00A0\u00B7\u2022\u2023\u25E6\u2043\u2219\*-]+/gm, '');
-      // Optionally, trim trailing whitespace on each line
-      newText = newText.replace(/\s+$/gm, '');
-      figma.notify('Tadaannn... 🥁 Bullet points and leading spaces removed!');
-      break;
 
     case "removesymbols":
-      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
+      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, " ");
       figma.notify("Removed punctuation & symbols ✔");
       break;
 
