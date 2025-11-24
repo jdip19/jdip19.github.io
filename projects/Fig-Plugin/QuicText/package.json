@@ -1,5 +1,5 @@
 {
-  "name": "QuickText",
+  "name": "QuicText",
   "version": "1.0.0",
   "description": "Formatting text effcientlyT",
   "main": "code.js",
@@ -13,5 +13,8 @@
   "devDependencies": {
     "@figma/plugin-typings": "^1.119.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "dodopayments": "^2.6.0"
   }
 }

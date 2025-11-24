@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "typescript",
-			"tsconfig": "projects/Fig-Plugin/QuickText/tsconfig.json",
+			"tsconfig": "projects/Fig-Plugin/QuicText/tsconfig.json",
 			"problemMatcher": [
 				"$tsc"
 			],
@@ -11,7 +11,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"label": "tsc: build - projects/Fig-Plugin/QuickText/tsconfig.json"
+			"label": "tsc: build - projects/Fig-Plugin/QuicText/tsconfig.json"
 		}
 	]
 }
