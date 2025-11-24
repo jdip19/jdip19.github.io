@@ -1,5 +1,5 @@
 {
-  "name": "QuicText",
+  "name": "QuicText Pro",
   "id": "1365014672422582628",
   "api": "1.0.0",
   "main": "code.js",
@@ -18,6 +18,10 @@
     "currentuser"
   ],
   "menu": [
+    {
+      "name": "Get unlimited command with Quictext Pro",
+      "command": "getpro"
+    },
     {
       "name": "to TitleCase",
       "command": "titlecase"
@@ -84,7 +88,7 @@
     },
     {
       "name": "to Slug",
-     "command": "slug"
+      "command": "slug"
     }
   ]
 }

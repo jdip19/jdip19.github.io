@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QuicText</title>
+  <title>QuicText Pro</title>
   <style>
     * {
       margin: 0;
@@ -203,7 +203,7 @@
     <button id="applyDynamic">Apply</button>
   </div>
 
-  <div id="licenseBox" class="hidden">
+  <div id="licenseBox" class="">
     <div class="license-header">
       <h2>🚀 Upgrade to Pro</h2>
       <p>You've reached your daily limit</p>
@@ -217,7 +217,7 @@
 
     <div class="pricing-card">
       <div class="price-label">Lifetime License</div>
-      <div class="price">$<span id="price">5</span></div>
+      <div class="price">$<span id="price">9</span></div>
       <ul class="features">
         <li>Unlimited commands forever</li>
         <li>All premium features</li>
@@ -227,13 +227,8 @@
     </div>
 
     <div>
-      <input 
-        type="text" 
-        id="licenseKeyInput" 
-        class="license-input" 
-        placeholder="Enter your license key"
-        autocomplete="off"
-      >
+      <input type="text" id="licenseKeyInput" class="license-input" placeholder="Enter your license key"
+        autocomplete="off">
       <div class="error-message" id="errorMessage"></div>
       <button id="activateLicense" class="activate-btn">Activate License</button>
       <a href="#" id="buyLink" class="buy-link" target="_blank">Don't have a key? Purchase here →</a>
@@ -241,6 +236,10 @@
   </div>
 
   <script>
+    // Make sure buy link always works even if no message arrives
+    document.getElementById("buyLink").href =
+      "https://test.checkout.dodopayments.com/buy/pdt_kacwOHATQ7klbZXszV8bP?quantity=1&showDiscounts=false";
+
     let currentMode = null;
     let remainingCount = 0;
     let licensePrice = 5;
@@ -260,13 +259,11 @@
         document.getElementById("licenseBox").classList.remove("hidden");
         remainingCount = msg.remaining || 0;
         licensePrice = msg.price || 5;
-        
+
         document.getElementById("remainingCount").textContent = remainingCount;
         document.getElementById("price").textContent = licensePrice;
-        
-        // Update buy link (replace with your actual payment URL)
-        document.getElementById("buyLink").href = 
-          `https://your-payment-page.com?plugin=QuicText&price=${licensePrice}`;
+
+        // Update buy link (replace with your actual payment URL
       }
 
       if (msg.type === "license-activated") {

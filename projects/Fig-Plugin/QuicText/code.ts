@@ -1,7 +1,7 @@
 // ==================== MONETIZATION SETTINGS ====================
 // Set to false to disable usage limits for testing
 // TODO: Set to true when ready to launch with Gumroad
-const ENABLE_MONETIZATION = false;
+const ENABLE_MONETIZATION = true;
 
 // ==================== WHITELIST SYSTEM ====================
 // Add user IDs here for free unlimited access
@@ -25,12 +25,12 @@ function isWhitelisted(): boolean {
   if (WHITELISTED_USER_IDS.length === 0) {
     return false;
   }
-  
+
   const currentUser = figma.currentUser;
   if (!currentUser || !currentUser.id) {
     return false;
   }
-  
+
   return WHITELISTED_USER_IDS.includes(currentUser.id);
 }
 
@@ -210,6 +210,7 @@ const dynamicCommandModes: Record<DynamicCommand, 'prefix' | 'suffix' | 'between
   addbetween: 'between',
 };
 
+
 function handleDynamicCommand(command: DynamicCommand): void {
   const mode = dynamicCommandModes[command];
   figma.showUI(__html__, { width: 300, height: 160 });
@@ -219,10 +220,14 @@ function handleDynamicCommand(command: DynamicCommand): void {
 const selection = figma.currentPage.selection;
 const textNodes = collectTextNodes(selection);
 
-if (textNodes.length === 0) {
-  figma.notify('Please select at least one text layer. 😕');
+// Skip selection requirement for some commands
+const commandsNotRequiringSelection = ["getpro"];
+
+if (textNodes.length === 0 && figma.command !== "getpro") {
+  figma.notify("Please select at least one text layer. 😕");
   figma.closePlugin();
 }
+
 
 if (textNodes.length !== selection.length) {
   figma.currentPage.selection = textNodes;
@@ -230,18 +235,25 @@ if (textNodes.length !== selection.length) {
 
 // Check usage before executing commands
 (async () => {
+
+  if (figma.command === "getpro") {
+    showLicenseUI(0);
+    return; // VALID because inside a function
+  }
+
+
   const usageCheck = await canUsePlugin();
-  
+
   if (!usageCheck.allowed) {
     showLicenseUI(0);
     return;
   }
-  
+
   // Show remaining count if free user (only when monetization is enabled)
   if (ENABLE_MONETIZATION && usageCheck.remaining !== undefined && usageCheck.remaining <= 3) {
     figma.notify(`⚠️ ${usageCheck.remaining} free commands remaining today`);
   }
-  
+
   const isDynamicCommand = figma.command && figma.command in dynamicCommandModes;
 
   if (isDynamicCommand) {
@@ -259,7 +271,7 @@ if (textNodes.length !== selection.length) {
       .then(async () => {
         // Increment usage after successful execution
         await incrementUsage();
-        figma.closePlugin();
+        // figma.closePlugin();
       });
   }
 })();
@@ -400,6 +412,8 @@ async function handleTextCase(node: TextNode): Promise<void> {
     figma.currentPage.selection = newLayers;
     figma.notify(successMessage(newLayers.length));
   };
+
+
   switch (figma.command) {
     case 'titlecase':
       const conjunctions = ['for', 'as', 'an', 'a', 'in', 'on', 'of', 'am', 'are', 'and', 'to', 'is', 'at', 'also', 'with'];
@@ -611,7 +625,7 @@ figma.ui.onmessage = async (msg) => {
     figma.closePlugin("Done!");
     return;
   }
-  
+
   if (msg.type === "activate-license") {
     const success = await activateLicense(msg.licenseKey);
     if (success) {
@@ -627,12 +641,12 @@ figma.ui.onmessage = async (msg) => {
     }
     return;
   }
-  
+
   if (msg.type === "check-usage") {
     const usageCheck = await canUsePlugin();
     const usage = await getUsageData();
-    figma.ui.postMessage({ 
-      type: 'usage-info', 
+    figma.ui.postMessage({
+      type: 'usage-info',
       hasLicense: await hasLicense(),
       remaining: usageCheck.remaining || 'unlimited',
       used: usage.count,
@@ -648,6 +662,7 @@ async function applyDynamicFormat(value: string, mode: string) {
     figma.notify("Please select at least one text layer");
     return;
   }
+
 
   for (const node of nodes) {
     await figma.loadFontAsync(node.fontName as FontName);
@@ -719,7 +734,7 @@ interface UsageData {
 async function hasLicense(): Promise<boolean> {
   const licenseKey = await figma.clientStorage.getAsync('licenseKey');
   if (!licenseKey) return false;
-  
+
   // Simple validation - in production, verify against your server
   // For now, we'll use a simple hash check
   const isValid = validateLicenseKey(licenseKey as string);
@@ -748,18 +763,18 @@ function getTodayDate(): string {
 async function getUsageData(): Promise<UsageData> {
   const stored = await figma.clientStorage.getAsync('usageData');
   const today = getTodayDate();
-  
+
   if (!stored) {
     return { count: 0, date: today };
   }
-  
+
   const usage = stored as UsageData;
-  
+
   // Reset if it's a new day
   if (usage.date !== today) {
     return { count: 0, date: today };
   }
-  
+
   return usage;
 }
 
@@ -776,20 +791,20 @@ async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }>
   if (!ENABLE_MONETIZATION) {
     return { allowed: true };
   }
-  
+
   // Check whitelist first - whitelisted users get free unlimited access
   if (isWhitelisted()) {
     return { allowed: true };
   }
-  
+
   const licensed = await hasLicense();
   if (licensed) {
     return { allowed: true };
   }
-  
+
   const usage = await getUsageData();
   const remaining = FREE_DAILY_LIMIT - usage.count;
-  
+
   return {
     allowed: remaining > 0,
     remaining: Math.max(0, remaining)
@@ -799,8 +814,8 @@ async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }>
 // Show payment/license UI
 function showLicenseUI(remaining: number): void {
   figma.showUI(__html__, { width: 400, height: 500 });
-  figma.ui.postMessage({ 
-    type: 'show-license', 
+  figma.ui.postMessage({
+    type: 'show-license',
     remaining,
     price: LICENSE_PRICE
   });
