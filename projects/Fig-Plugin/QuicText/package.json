@@ -1,0 +1,20 @@
+{
+  "name": "QuicText",
+  "version": "1.0.0",
+  "description": "Formatting text effcientlyT",
+  "main": "code.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "npm run build -- --watch",
+    "dev": "npm run watch"
+  },
+  "author": "Jaydip Upadhyay",
+  "license": "MIT",
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.119.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "dodopayments": "^2.6.0"
+  }
+}
