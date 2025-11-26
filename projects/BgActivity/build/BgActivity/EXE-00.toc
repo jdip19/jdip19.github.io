@@ -1,4 +1,4 @@
-('D:\\Jaydip Upadhyay\\UI UX\\My '
+('D:\\Jaydip-Upadhyay\\UI UX\\My '
  'Plugin\\exercise\\projects\\BgActivity\\dist\\BgActivity.exe',
  False,
  False,
@@ -30,31 +30,31 @@
  None,
  None,
  None,
- 'D:\\Jaydip Upadhyay\\UI UX\\My '
+ 'D:\\Jaydip-Upadhyay\\UI UX\\My '
  'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\BgActivity.pkg',
  [('pyi-contents-directory _internal', '', 'OPTION'),
   ('PYZ-00.pyz',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\PYZ-00.pyz',
    'PYZ'),
   ('struct',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\localpycs\\struct.pyc',
    'PYMODULE'),
   ('pyimod01_archive',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\localpycs\\pyimod01_archive.pyc',
    'PYMODULE'),
   ('pyimod02_importers',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\localpycs\\pyimod02_importers.pyc',
    'PYMODULE'),
   ('pyimod03_ctypes',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\localpycs\\pyimod03_ctypes.pyc',
    'PYMODULE'),
   ('pyimod04_pywin32',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\localpycs\\pyimod04_pywin32.pyc',
    'PYMODULE'),
   ('pyiboot01_bootstrap',
@@ -73,7 +73,7 @@
    'C:\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth__tkinter.py',
    'PYSOURCE'),
   ('BgActivity',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\BgActivity.py',
    'PYSOURCE'),
   ('python312.dll', 'C:\\Python312\\python312.dll', 'BINARY'),
@@ -103,7 +103,7 @@
   ('tk86t.dll', 'C:\\Python312\\DLLs\\tk86t.dll', 'BINARY'),
   ('zlib1.dll', 'C:\\Python312\\DLLs\\zlib1.dll', 'BINARY'),
   ('base_library.zip',
-   'D:\\Jaydip Upadhyay\\UI UX\\My '
+   'D:\\Jaydip-Upadhyay\\UI UX\\My '
    'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\base_library.zip',
    'DATA'),
   ('_tcl_data\\tzdata\\Asia\\Irkutsk',

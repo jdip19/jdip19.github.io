@@ -1,0 +1,27 @@
+# ninja log v7
+5	1339	7844518759266774	CMakeFiles/quiczip.dir/src/file_selection.cpp.obj	bb7f347eb6c5598d
+60	6512	7857762435444671	CMakeFiles/quiczip.dir/src/quiczip.cpp.obj	2defd46db7fb1e80
+1	122	7858352294358402	build.ninja	ae22ed8241d7b860
+1	122	7858352294358402	D:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/build/cmake_install.cmake	ae22ed8241d7b860
+62	1124	7857762435464780	CMakeFiles/quiczip.dir/src/miniz.c.obj	83ed366ad1d29c64
+68	1113	7857762435464780	CMakeFiles/quiczip.dir/src/miniz_tinfl.c.obj	fb4bace235355fa8
+65	1134	7857762435464780	CMakeFiles/quiczip.dir/src/miniz_tdef.c.obj	e5856feac894d842
+70	3305	7857762435565062	CMakeFiles/quiczip.dir/src/miniz_zip.c.obj	a5e6134df3c6cb51
+6512	6956	7857762499980360	quiczip.exe	bfa0b43bef383b82
+9	447	7857762434599928	D:/Jaydip Upadhyay/jdip19.github.io/projects/Helpers/quiczip/build/cmake_install.cmake	da3d8a68f56e18d8
+74	673	7857762435590313	CMakeFiles/quiczip.dir/resources/app.rc.obj	a9704fc7b1ecee63
+57	126	7857772402104443	CMakeFiles/QuickZip.dir/resources/app.rc.obj	38dfa9483976fd81
+46	235	7857772401980138	CMakeFiles/QuickZip.dir/src/miniz.c.obj	b64755042ff74045
+51	246	7857772401980138	CMakeFiles/QuickZip.dir/src/miniz_tinfl.c.obj	baea5b1e1cc7e4fe
+49	329	7857772401980138	CMakeFiles/QuickZip.dir/src/miniz_tdef.c.obj	caa58fa31705c61b
+54	1179	7857772402040366	CMakeFiles/QuickZip.dir/src/miniz_zip.c.obj	3d58b3d80f843447
+40	2247	7857772401920083	CMakeFiles/QuickZip.dir/src/quiczip.cpp.obj	538285c4c8c95351
+5	1967	7858349740837472	CMakeFiles/QuickZip.dir/src/file_selection.cpp.obj	fd44d5169ddd50b7
+25	161	7858350248209860	QuickZip.exe	94bc00347f210784
+2	398	7858352294358402	build.ninja	ae22ed8241d7b860
+2	398	7858352294358402	D:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/build/cmake_install.cmake	ae22ed8241d7b860
+5	1523	7858353504078209	CMakeFiles/QuickZip.dir/src/file_selection.cpp.obj	fd44d5169ddd50b7
+1523	1639	7858353519238356	QuickZip.exe	10f892e439a17f46
+5	2043	7858377823613521	CMakeFiles/QuickZip.dir/src/quiczip.cpp.obj	538285c4c8c95351
+5	2025	7858378204524265	CMakeFiles/QuickZip.dir/src/quiczip.cpp.obj	538285c4c8c95351
+23	128	7858378886928683	QuickZip.exe	10f892e439a17f46

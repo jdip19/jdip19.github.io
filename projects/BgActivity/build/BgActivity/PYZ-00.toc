@@ -1,4 +1,4 @@
-('D:\\Jaydip Upadhyay\\UI UX\\My '
+('D:\\Jaydip-Upadhyay\\UI UX\\My '
  'Plugin\\exercise\\projects\\BgActivity\\build\\BgActivity\\PYZ-00.pyz',
  [('__future__', 'C:\\Python312\\Lib\\__future__.py', 'PYMODULE'),
   ('_aix_support', 'C:\\Python312\\Lib\\_aix_support.py', 'PYMODULE'),
