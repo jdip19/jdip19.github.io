@@ -36,75 +36,75 @@ include CMakeFiles/rules.ninja
 
 cmake_ninja_workdir = D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/build/
 # =============================================================================
-# Object build statements for EXECUTABLE target QuickZip
+# Object build statements for EXECUTABLE target Quiczip
 
 
 #############################################
-# Order-only phony target for QuickZip
+# Order-only phony target for Quiczip
 
-build cmake_object_order_depends_target_QuickZip: phony || .
+build cmake_object_order_depends_target_Quiczip: phony || .
 
-build CMakeFiles/QuickZip.dir/src/quiczip.cpp.obj: CXX_COMPILER__QuickZip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/quiczip.cpp || cmake_object_order_depends_target_QuickZip
-  DEP_FILE = CMakeFiles\QuickZip.dir\src\quiczip.cpp.obj.d
+build CMakeFiles/Quiczip.dir/src/quiczip.cpp.obj: CXX_COMPILER__Quiczip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/quiczip.cpp || cmake_object_order_depends_target_Quiczip
+  DEP_FILE = CMakeFiles\Quiczip.dir\src\quiczip.cpp.obj.d
   FLAGS = -std=gnu++17
   INCLUDES = -ID:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
-  OBJECT_FILE_DIR = CMakeFiles\QuickZip.dir\src
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
+  OBJECT_FILE_DIR = CMakeFiles\Quiczip.dir\src
 
-build CMakeFiles/QuickZip.dir/src/file_selection.cpp.obj: CXX_COMPILER__QuickZip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/file_selection.cpp || cmake_object_order_depends_target_QuickZip
-  DEP_FILE = CMakeFiles\QuickZip.dir\src\file_selection.cpp.obj.d
+build CMakeFiles/Quiczip.dir/src/file_selection.cpp.obj: CXX_COMPILER__Quiczip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/file_selection.cpp || cmake_object_order_depends_target_Quiczip
+  DEP_FILE = CMakeFiles\Quiczip.dir\src\file_selection.cpp.obj.d
   FLAGS = -std=gnu++17
   INCLUDES = -ID:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
-  OBJECT_FILE_DIR = CMakeFiles\QuickZip.dir\src
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
+  OBJECT_FILE_DIR = CMakeFiles\Quiczip.dir\src
 
-build CMakeFiles/QuickZip.dir/src/miniz.c.obj: C_COMPILER__QuickZip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz.c || cmake_object_order_depends_target_QuickZip
-  DEP_FILE = CMakeFiles\QuickZip.dir\src\miniz.c.obj.d
+build CMakeFiles/Quiczip.dir/src/miniz.c.obj: C_COMPILER__Quiczip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz.c || cmake_object_order_depends_target_Quiczip
+  DEP_FILE = CMakeFiles\Quiczip.dir\src\miniz.c.obj.d
   INCLUDES = -ID:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
-  OBJECT_FILE_DIR = CMakeFiles\QuickZip.dir\src
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
+  OBJECT_FILE_DIR = CMakeFiles\Quiczip.dir\src
 
-build CMakeFiles/QuickZip.dir/src/miniz_tdef.c.obj: C_COMPILER__QuickZip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz_tdef.c || cmake_object_order_depends_target_QuickZip
-  DEP_FILE = CMakeFiles\QuickZip.dir\src\miniz_tdef.c.obj.d
+build CMakeFiles/Quiczip.dir/src/miniz_tdef.c.obj: C_COMPILER__Quiczip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz_tdef.c || cmake_object_order_depends_target_Quiczip
+  DEP_FILE = CMakeFiles\Quiczip.dir\src\miniz_tdef.c.obj.d
   INCLUDES = -ID:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
-  OBJECT_FILE_DIR = CMakeFiles\QuickZip.dir\src
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
+  OBJECT_FILE_DIR = CMakeFiles\Quiczip.dir\src
 
-build CMakeFiles/QuickZip.dir/src/miniz_tinfl.c.obj: C_COMPILER__QuickZip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz_tinfl.c || cmake_object_order_depends_target_QuickZip
-  DEP_FILE = CMakeFiles\QuickZip.dir\src\miniz_tinfl.c.obj.d
+build CMakeFiles/Quiczip.dir/src/miniz_tinfl.c.obj: C_COMPILER__Quiczip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz_tinfl.c || cmake_object_order_depends_target_Quiczip
+  DEP_FILE = CMakeFiles\Quiczip.dir\src\miniz_tinfl.c.obj.d
   INCLUDES = -ID:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
-  OBJECT_FILE_DIR = CMakeFiles\QuickZip.dir\src
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
+  OBJECT_FILE_DIR = CMakeFiles\Quiczip.dir\src
 
-build CMakeFiles/QuickZip.dir/src/miniz_zip.c.obj: C_COMPILER__QuickZip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz_zip.c || cmake_object_order_depends_target_QuickZip
-  DEP_FILE = CMakeFiles\QuickZip.dir\src\miniz_zip.c.obj.d
+build CMakeFiles/Quiczip.dir/src/miniz_zip.c.obj: C_COMPILER__Quiczip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/src/miniz_zip.c || cmake_object_order_depends_target_Quiczip
+  DEP_FILE = CMakeFiles\Quiczip.dir\src\miniz_zip.c.obj.d
   INCLUDES = -ID:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
-  OBJECT_FILE_DIR = CMakeFiles\QuickZip.dir\src
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
+  OBJECT_FILE_DIR = CMakeFiles\Quiczip.dir\src
 
-build CMakeFiles/QuickZip.dir/resources/app.rc.obj: RC_COMPILER__QuickZip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/resources/app.rc || cmake_object_order_depends_target_QuickZip
-  DEP_FILE = CMakeFiles\QuickZip.dir\resources\app.rc.obj.d
+build CMakeFiles/Quiczip.dir/resources/app.rc.obj: RC_COMPILER__Quiczip_unscanned_ D$:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/resources/app.rc || cmake_object_order_depends_target_Quiczip
+  DEP_FILE = CMakeFiles\Quiczip.dir\resources\app.rc.obj.d
   FLAGS = -I"D:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include"
   INCLUDES = -I D:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/include
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
-  OBJECT_FILE_DIR = CMakeFiles\QuickZip.dir\resources
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
+  OBJECT_FILE_DIR = CMakeFiles\Quiczip.dir\resources
 
 
 # =============================================================================
-# Link build statements for EXECUTABLE target QuickZip
+# Link build statements for EXECUTABLE target Quiczip
 
 
 #############################################
-# Link the executable QuickZip.exe
+# Link the executable Quiczip.exe
 
-build QuickZip.exe: CXX_EXECUTABLE_LINKER__QuickZip_ CMakeFiles/QuickZip.dir/src/quiczip.cpp.obj CMakeFiles/QuickZip.dir/src/file_selection.cpp.obj CMakeFiles/QuickZip.dir/src/miniz.c.obj CMakeFiles/QuickZip.dir/src/miniz_tdef.c.obj CMakeFiles/QuickZip.dir/src/miniz_tinfl.c.obj CMakeFiles/QuickZip.dir/src/miniz_zip.c.obj CMakeFiles/QuickZip.dir/resources/app.rc.obj
+build Quiczip.exe: CXX_EXECUTABLE_LINKER__Quiczip_ CMakeFiles/Quiczip.dir/src/quiczip.cpp.obj CMakeFiles/Quiczip.dir/src/file_selection.cpp.obj CMakeFiles/Quiczip.dir/src/miniz.c.obj CMakeFiles/Quiczip.dir/src/miniz_tdef.c.obj CMakeFiles/Quiczip.dir/src/miniz_tinfl.c.obj CMakeFiles/Quiczip.dir/src/miniz_zip.c.obj CMakeFiles/Quiczip.dir/resources/app.rc.obj
   LINK_LIBRARIES = -lshlwapi  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
-  OBJECT_DIR = CMakeFiles\QuickZip.dir
+  OBJECT_DIR = CMakeFiles\Quiczip.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
-  TARGET_FILE = QuickZip.exe
-  TARGET_IMPLIB = libQuickZip.dll.a
-  TARGET_PDB = QuickZip.exe.dbg
+  TARGET_FILE = Quiczip.exe
+  TARGET_IMPLIB = libQuiczip.dll.a
+  TARGET_PDB = Quiczip.exe.dbg
 
 
 #############################################
@@ -132,7 +132,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 # =============================================================================
 # Target aliases.
 
-build QuickZip: phony QuickZip.exe
+build Quiczip: phony Quiczip.exe
 
 # =============================================================================
 # Folder targets.
@@ -142,7 +142,7 @@ build QuickZip: phony QuickZip.exe
 #############################################
 # Folder: D:/Jaydip-Upadhyay/jdip19.github.io/projects/Helpers/quiczip/build
 
-build all: phony QuickZip.exe
+build all: phony Quiczip.exe
 
 # =============================================================================
 # Built-in targets

@@ -8,7 +8,7 @@ include_directories(include)
 set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} -I\"${CMAKE_CURRENT_SOURCE_DIR}/include\"")
 
 
-add_executable(QuickZip
+add_executable(Quiczip
     src/quiczip.cpp
     src/file_selection.cpp
     src/miniz.c
@@ -18,4 +18,4 @@ add_executable(QuickZip
     resources/app.rc
 )
 
-target_link_libraries(QuickZip shlwapi)
+target_link_libraries(Quiczip shlwapi)

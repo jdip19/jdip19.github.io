@@ -2,4 +2,4 @@
 #include <string>
 #include <vector>
 
-std::vector<std::wstring> getSelectedFiles();
+std::vector<std::string> GetSelectedFiles();

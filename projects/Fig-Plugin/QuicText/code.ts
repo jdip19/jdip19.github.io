@@ -271,7 +271,7 @@ if (textNodes.length !== selection.length) {
       .then(async () => {
         // Increment usage after successful execution
         await incrementUsage();
-        // figma.closePlugin();
+        figma.closePlugin();
       });
   }
 })();
