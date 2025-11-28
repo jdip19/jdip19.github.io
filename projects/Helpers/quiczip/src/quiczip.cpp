@@ -5,42 +5,104 @@
 #include <vector>
 #include <string>
 #include <filesystem>
-#define IDI_APP_ICON 
+#include <fstream>
+#include <algorithm>
+#include <conio.h>
+#include "resource.h"
 
 namespace fs = std::filesystem;
-HWND g_hWnd;
+HWND g_hHiddenWnd = NULL;
+LRESULT CALLBACK HiddenWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    if (msg == WM_APP + 1)
+    {
+        // handle tray events here if needed
+    }
+    return DefWindowProc(hWnd, msg, wParam, lParam);
+}
 
+HWND CreateHiddenWindow()
+{
+    WNDCLASS wc = {0};
+    wc.lpfnWndProc = HiddenWndProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = "QuickZipHiddenWindowClass";
+
+    RegisterClass(&wc);
+
+    return CreateWindow(
+        "QuickZipHiddenWindowClass",
+        "QuickZipHiddenWindow",
+        0, 0, 0, 0, 0,
+        NULL, NULL, wc.hInstance, NULL
+    );
+}
+
+
+bool IsFirstRun()
+{
+    HKEY hKey;
+    LONG result = RegOpenKeyExA(
+        HKEY_CURRENT_USER,
+        "Software\\QuickZip",
+        0,
+        KEY_READ,
+        &hKey
+    );
+
+    if (result != ERROR_SUCCESS)
+        return true;  // Key not found → first run
+
+    RegCloseKey(hKey);
+    return false; 
+}
+
+void ShowWelcomeConsole()
+{
+    AllocConsole();
+    freopen("CONOUT$", "w", stdout);
+
+    std::cout << "--------------------------------------------\n";
+    std::cout << "      🎉 Welcome to QuickZip! 🎉\n";
+    std::cout << "--------------------------------------------\n\n";
+    std::cout << "You made a smart choice by choosing QuickZip.\n";
+    std::cout << "Use CTRL + ALT + Z to zip/unzip instantly.\n\n";
+    std::cout << "Press O to open website.\n";
+    std::cout << "Press X to close this window.\n\n";
+
+    while (true)
+    {
+        char c = toupper(_getch());
+        if (c == 'X')
+            break;
+        else if (c == 'O')
+            ShellExecuteA(NULL, "open", "https://jdip19.github.io", NULL, NULL, SW_SHOWNORMAL);
+    }
+
+    FreeConsole();
+}
 
 
 void ShowTrayMessage(HWND hWnd, const char* title, const char* message)
 {
-    NOTIFYICONDATA nid = {};
-    nid.cbSize = sizeof(NOTIFYICONDATA);
+    NOTIFYICONDATA nid = {0};
+    nid.cbSize = sizeof(nid);
     nid.hWnd = hWnd;
     nid.uID = 1;
 
-    // Show icon + balloon
-    nid.uFlags = NIF_INFO | NIF_ICON | NIF_MESSAGE | NIF_TIP;
-
-    // Load your icon from resources (same as EXE icon)
+    nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_INFO;
+    nid.uCallbackMessage = WM_APP + 1;
     nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_APP_ICON));
 
-    // Tooltip (optional)
     strcpy_s(nid.szTip, "QuickZip");
 
-    // Balloon title + message
     strcpy_s(nid.szInfoTitle, title);
     strcpy_s(nid.szInfo, message);
     nid.dwInfoFlags = NIIF_INFO;
 
-    // Timeout (2 seconds)
-    nid.uTimeout = 2000; // milliseconds
-
-    // Add + modify notification
     Shell_NotifyIcon(NIM_ADD, &nid);
     Shell_NotifyIcon(NIM_MODIFY, &nid);
 }
-
 
 //
 // ---------------- ZIP LOGIC ----------------
@@ -147,21 +209,21 @@ void ProcessSelection()
     CoInitialize(nullptr);
     auto files = GetSelectedFiles();
     CoUninitialize();
-    
+
     if (files.empty())
     {
-        MessageBox(nullptr, "No file selected.", "Quiczip", MB_OK);
+        ShowTrayMessage(GetConsoleWindow(), "QuickZip", "No file selected.");
         return;
     }
 
-    // Check if UNZIP case
+    // ----------------- CHECK FOR UNZIP -----------------
     bool containsZip = false;
     std::string zipFile;
 
     for (auto& f : files)
     {
         std::string ext = fs::path(f).extension().string();
-        for (auto& c : ext) c = tolower(c);
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
         if (ext == ".zip")
         {
@@ -173,67 +235,53 @@ void ProcessSelection()
 
     if (containsZip)
     {
-        // UNZIP
         std::string folderName = zipFile.substr(0, zipFile.size() - 4);
+
         if (UnzipToFolder(zipFile, folderName))
-        {
-            MessageBox(nullptr, "Unzip completed!", "Quiczip", MB_OK);
-        }
+            ShowTrayMessage(GetConsoleWindow(), "QuickZip", "Unzip completed!");
         else
-        {
-            MessageBox(nullptr, "Unzip failed!", "Quiczip", MB_OK);
-        }
+            ShowTrayMessage(GetConsoleWindow(), "QuickZip", "Unzip failed!");
+
         return;
     }
 
-    // ZIP CASE
-    if (files.size() == 1)
+    // ----------------- ZIP CASE -----------------
+    fs::path outDir = fs::path(files[0]).parent_path();
+    fs::path zipPath = outDir / (fs::path(files[0]).stem().string() + ".zip");
+
+    if (ZipFiles(files, zipPath.string()))
     {
-        fs::path file = files[0];
-        fs::path dir  = file.parent_path();
-        std::string base = file.stem().string();
-
-        fs::path out = dir / (base + ".zip");
-
-        if (ZipFiles(files, out.string()))
-            MessageBox(nullptr, "Zip created!", "Quiczip", MB_OK);
-        else
-            MessageBox(nullptr, "Zip failed!", "Quiczip", MB_OK);
+        ShowTrayMessage(GetConsoleWindow(), "QuickZip", "Zip created!");
     }
     else
     {
-        fs::path firstPath = files[0];
-        fs::path dir      = firstPath.parent_path();          // same folder
-        std::string base  = firstPath.stem().string();        // filename without extension
-
-        fs::path out = dir / (base + ".zip");                 // final zip path
-
-        if (ZipFiles(files, out.string()))
-            MessageBox(nullptr, "Zip created!", "Quiczip", MB_OK);
-        else
-            MessageBox(nullptr, "Zip failed!", "Quiczip", MB_OK);
+        ShowTrayMessage(GetConsoleWindow(), "QuickZip", "Zip failed!");
     }
 }
 
 //
 // ---------------- HOTKEY LISTENER ----------------
 //
-int main()
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR args, int nShow)
 {
-    RegisterHotKey(nullptr, 1, MOD_CONTROL | MOD_ALT, 'Z');
-
-    ShowTrayMessage(GetConsoleWindow(), "Quiczip", "Press CTRL + ALT + Z to zip/unzip.");
-
-
-    MSG msg = {0};
-
-    while (GetMessage(&msg, nullptr, 0, 0))
+    if (IsFirstRun())
     {
-        if (msg.message == WM_HOTKEY)
-        {
-            ProcessSelection();
-        }
+        ShowWelcomeConsole();   // Show console
     }
 
+    // After console is closed, continue silently
+
+    g_hHiddenWnd = CreateHiddenWindow();
+
+    RegisterHotKey(NULL, 1, MOD_CONTROL | MOD_ALT, 'Z');
+
+    ShowTrayMessage(g_hHiddenWnd, "QuickZip", "Press CTRL + ALT + Z to zip/unzip.");
+
+    MSG msg = {0};
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
+        if (msg.message == WM_HOTKEY)
+            ProcessSelection();
+    }
     return 0;
 }

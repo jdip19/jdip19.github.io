@@ -4,11 +4,10 @@ project(quiczip)
 set(CMAKE_CXX_STANDARD 17)
 include_directories(include)
 
-# Fix windres issue with spaces in paths
+# Resource compiler include fix
 set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} -I\"${CMAKE_CURRENT_SOURCE_DIR}/include\"")
 
-
-add_executable(Quiczip
+add_executable(Quiczip WIN32
     src/quiczip.cpp
     src/file_selection.cpp
     src/miniz.c
@@ -19,3 +18,4 @@ add_executable(Quiczip
 )
 
 target_link_libraries(Quiczip shlwapi)
+set(CMAKE_WIN32_EXECUTABLE TRUE)
