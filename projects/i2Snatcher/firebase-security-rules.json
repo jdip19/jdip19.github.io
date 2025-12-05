@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "svgStats": {
+      ".read": true,
+      ".write": true,
+      "copied": {
+        ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() >= data.val()) && (!data.exists() || newData.val() <= data.val() + 100)"
+      },
+      "downloaded": {
+        ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() >= data.val()) && (!data.exists() || newData.val() <= data.val() + 100)"
+      },
+      "$other": {
+        ".write": false
+      }
+    },
+    "ueVersion": {
+      ".read": true,
+      ".write": false
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
+

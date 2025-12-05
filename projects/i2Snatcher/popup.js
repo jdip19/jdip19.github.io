@@ -1,24 +1,40 @@
 document.addEventListener("DOMContentLoaded", function () {
   const iconTab = document.getElementById("iconTab");
   const imageTab = document.getElementById("imageTab");
+  const settingsTab = document.getElementById("settingsTab");
   const iconContent = document.getElementById("iconContent");
   const imageContent = document.getElementById("imageContent");
+  const settingsContent = document.getElementById("settingsContent");
   const imageList = document.getElementById("imageList");
   const svgSizeInput = document.getElementById("svgSize");
+  const autoCloseToggle = document.getElementById("autoCloseToggle");
 
   // Add click event listeners for tabs
   iconTab.addEventListener("click", function () {
     iconTab.classList.add("active");
     imageTab.classList.remove("active");
+    settingsTab.classList.remove("active");
     iconContent.classList.add("active");
     imageContent.classList.remove("active");
+    settingsContent.classList.remove("active");
   });
 
   imageTab.addEventListener("click", function () {
     imageTab.classList.add("active");
     iconTab.classList.remove("active");
+    settingsTab.classList.remove("active");
     imageContent.classList.add("active");
     iconContent.classList.remove("active");
+    settingsContent.classList.remove("active");
+  });
+
+  settingsTab.addEventListener("click", function () {
+    settingsTab.classList.add("active");
+    iconTab.classList.remove("active");
+    imageTab.classList.remove("active");
+    settingsContent.classList.add("active");
+    iconContent.classList.remove("active");
+    imageContent.classList.remove("active");
   });
 
   // Function to display images based on the selected filter
@@ -145,6 +161,51 @@ document.addEventListener("DOMContentLoaded", function () {
       versionElement.classList.remove("blink");
     }
   });
+
+  // Load and handle auto-close toggle setting (default: true)
+  chrome.storage.sync.get("autoClosePopup", function (data) {
+    const autoCloseEnabled = data.autoClosePopup !== false; // Default to true
+    autoCloseToggle.checked = autoCloseEnabled;
+  });
+
+  // Save auto-close preference when toggle changes
+  autoCloseToggle.addEventListener("change", function () {
+    chrome.storage.sync.set({ autoClosePopup: autoCloseToggle.checked });
+    console.log("Auto-close popup:", autoCloseToggle.checked ? "enabled" : "disabled");
+  });
+
+  // Check and show shortcut nudge if needed
+  async function checkShortcutsAndShowNudge() {
+    try {
+      const commands = await chrome.commands.getAll();
+      const copyCommand = commands.find(cmd => cmd.name === "copy_svg");
+      const downloadCommand = commands.find(cmd => cmd.name === "download_svg");
+      
+      const shortcutsRegistered = 
+        (copyCommand && copyCommand.shortcut) && 
+        (downloadCommand && downloadCommand.shortcut);
+      
+      const shortcutNudge = document.getElementById("shortcutNudge");
+      const setupShortcutsBtn = document.getElementById("setupShortcutsBtn");
+      
+      if (!shortcutsRegistered && shortcutNudge) {
+        shortcutNudge.style.display = "block";
+        
+        // Add click handler to open shortcuts page
+        setupShortcutsBtn.addEventListener("click", () => {
+          chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+        });
+      } else if (shortcutNudge) {
+        shortcutNudge.style.display = "none";
+      }
+    } catch (error) {
+      console.error("Error checking shortcuts:", error);
+    }
+  }
+
+  // Check shortcuts when popup opens
+  checkShortcutsAndShowNudge();
+
   svgSizeInput.focus();
 });
 
