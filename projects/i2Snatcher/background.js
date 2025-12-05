@@ -5,7 +5,11 @@ import {
   set,
   get,
 } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
-import { firebaseConfig, ALLOWED_DB_PATHS, RATE_LIMIT } from "./firebase-config.js";
+import {
+  firebaseConfig,
+  ALLOWED_DB_PATHS,
+  RATE_LIMIT,
+} from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
@@ -20,20 +24,24 @@ const RATE_LIMIT_WINDOW = 60000; // 1 minute in milliseconds
 // Validate database path to prevent unauthorized access
 function validateDbPath(path) {
   const allowedPaths = Object.values(ALLOWED_DB_PATHS);
-  return allowedPaths.some(allowed => path.startsWith(allowed));
+  return allowedPaths.some((allowed) => path.startsWith(allowed));
 }
 
 // Rate limiting check
 function checkRateLimit() {
   const now = Date.now();
   // Remove requests older than 1 minute
-  requestHistory = requestHistory.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
-  
+  requestHistory = requestHistory.filter(
+    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW
+  );
+
   if (requestHistory.length >= RATE_LIMIT.MAX_UPDATES_PER_MINUTE) {
-    console.warn("Rate limit exceeded. Please wait before making more requests.");
+    console.warn(
+      "Rate limit exceeded. Please wait before making more requests."
+    );
     return false;
   }
-  
+
   requestHistory.push(now);
   return true;
 }
@@ -47,7 +55,10 @@ const BATCH_SIZE_THRESHOLD = 5; // Sync immediately if batch reaches this size
 
 // Function to sync pending updates to Firebase
 async function syncPendingUpdatesToFirebase() {
-  if (isSyncing || (pendingUpdates.copied === 0 && pendingUpdates.downloaded === 0)) {
+  if (
+    isSyncing ||
+    (pendingUpdates.copied === 0 && pendingUpdates.downloaded === 0)
+  ) {
     return;
   }
 
@@ -61,8 +72,14 @@ async function syncPendingUpdatesToFirebase() {
   const totalPending = pendingUpdates.copied + pendingUpdates.downloaded;
   if (totalPending > RATE_LIMIT.MAX_BATCH_SIZE) {
     console.error("Batch size exceeds limit. Truncating to prevent abuse.");
-    pendingUpdates.copied = Math.min(pendingUpdates.copied, RATE_LIMIT.MAX_BATCH_SIZE);
-    pendingUpdates.downloaded = Math.min(pendingUpdates.downloaded, RATE_LIMIT.MAX_BATCH_SIZE);
+    pendingUpdates.copied = Math.min(
+      pendingUpdates.copied,
+      RATE_LIMIT.MAX_BATCH_SIZE
+    );
+    pendingUpdates.downloaded = Math.min(
+      pendingUpdates.downloaded,
+      RATE_LIMIT.MAX_BATCH_SIZE
+    );
   }
 
   isSyncing = true;
@@ -86,7 +103,9 @@ async function syncPendingUpdatesToFirebase() {
     ]);
 
     const currentCopied = copiedSnap.exists() ? copiedSnap.val() : 0;
-    const currentDownloaded = downloadedSnap.exists() ? downloadedSnap.val() : 0;
+    const currentDownloaded = downloadedSnap.exists()
+      ? downloadedSnap.val()
+      : 0;
 
     // Update Firebase with batched increments (only 2 writes instead of multiple)
     const newCopied = currentCopied + updatesToSync.copied;
@@ -107,7 +126,9 @@ async function syncPendingUpdatesToFirebase() {
       payload: finalCounts,
     });
 
-    console.log(`Synced ${updatesToSync.copied} copied, ${updatesToSync.downloaded} downloaded to Firebase`);
+    console.log(
+      `Synced ${updatesToSync.copied} copied, ${updatesToSync.downloaded} downloaded to Firebase`
+    );
   } catch (error) {
     console.error("Firebase sync error:", error);
     // Re-add failed updates back to pending
@@ -155,27 +176,35 @@ get(versionRef).then((snapshot) => {
 async function checkAndNudgeShortcuts() {
   try {
     const commands = await chrome.commands.getAll();
-    const copyCommand = commands.find(cmd => cmd.name === "copy_svg");
-    const downloadCommand = commands.find(cmd => cmd.name === "download_svg");
-    
-    const shortcutsRegistered = 
-      (copyCommand && copyCommand.shortcut) && 
-      (downloadCommand && downloadCommand.shortcut);
-    
+    const copyCommand = commands.find((cmd) => cmd.name === "copy_svg");
+    const downloadCommand = commands.find((cmd) => cmd.name === "download_svg");
+
+    const shortcutsRegistered =
+      copyCommand &&
+      copyCommand.shortcut &&
+      downloadCommand &&
+      downloadCommand.shortcut;
+
     // Check if we've already shown the nudge
     chrome.storage.local.get(["shortcutNudgeShown"], (result) => {
       if (!shortcutsRegistered && !result.shortcutNudgeShown) {
         // Show notification to nudge user
-        chrome.notifications.create({
-          type: "basic",
-          iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
-          title: "i2Snatcher - Keyboard Shortcuts",
-          message: "Click to set up keyboard shortcuts (Alt+Shift+C and Alt+Shift+D)",
-          buttons: [{ title: "Set Up Shortcuts" }],
-        }, (notificationId) => {
-          // Store notification ID for click handling
-          chrome.storage.local.set({ shortcutNotificationId: notificationId });
-        });
+        chrome.notifications.create(
+          {
+            type: "basic",
+            iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
+            title: "i2Snatcher - Keyboard Shortcuts",
+            message:
+              "Click to set up keyboard shortcuts (Alt+Shift+C and Alt+Shift+D)",
+            buttons: [{ title: "Set Up Shortcuts" }],
+          },
+          (notificationId) => {
+            // Store notification ID for click handling
+            chrome.storage.local.set({
+              shortcutNotificationId: notificationId,
+            });
+          }
+        );
       }
     });
   } catch (error) {
@@ -184,18 +213,23 @@ async function checkAndNudgeShortcuts() {
 }
 
 // Handle notification button click
-chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
-  chrome.storage.local.get(["shortcutNotificationId"], (result) => {
-    if (result.shortcutNotificationId === notificationId && buttonIndex === 0) {
-      // Open shortcuts page
-      chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-      // Mark nudge as shown
-      chrome.storage.local.set({ shortcutNudgeShown: true });
-      // Close notification
-      chrome.notifications.clear(notificationId);
-    }
-  });
-});
+chrome.notifications.onButtonClicked.addListener(
+  (notificationId, buttonIndex) => {
+    chrome.storage.local.get(["shortcutNotificationId"], (result) => {
+      if (
+        result.shortcutNotificationId === notificationId &&
+        buttonIndex === 0
+      ) {
+        // Open shortcuts page
+        chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+        // Mark nudge as shown
+        chrome.storage.local.set({ shortcutNudgeShown: true });
+        // Close notification
+        chrome.notifications.clear(notificationId);
+      }
+    });
+  }
+);
 
 // Handle notification click
 chrome.notifications.onClicked.addListener((notificationId) => {
@@ -375,7 +409,7 @@ function extractSvg(action) {
             // Close the popup after copying (if enabled in settings)
             chrome.storage.sync.get("autoClosePopup", function (data) {
               const autoCloseEnabled = data.autoClosePopup !== false; // Default to true
-              
+
               if (autoCloseEnabled) {
                 setTimeout(() => {
                   const closeButton = document.querySelector("#detail-close");
@@ -387,7 +421,9 @@ function extractSvg(action) {
                   }
                 }, 500); // Small delay to ensure copy completes
               } else {
-                console.log("Auto-close disabled. User will close popup manually.");
+                console.log(
+                  "Auto-close disabled. User will close popup manually."
+                );
               }
             });
           } else if (action === "download") {
@@ -404,6 +440,26 @@ function extractSvg(action) {
             chrome.runtime.sendMessage({
               type: "incrementSvgCounter",
               action: "downloaded",
+            });
+
+            chrome.storage.sync.get("autoClosePopup", function (data) {
+              const autoCloseEnabled = data.autoClosePopup !== false; // Default to true
+
+              if (autoCloseEnabled) {
+                setTimeout(() => {
+                  const closeButton = document.querySelector("#detail-close");
+                  if (closeButton) {
+                    closeButton.click();
+                    console.log("Popup closed after copying SVG.");
+                  } else {
+                    console.warn("Close button not found.");
+                  }
+                }, 500); // Small delay to ensure copy completes
+              } else {
+                console.log(
+                  "Auto-close disabled. User will close popup manually."
+                );
+              }
             });
           }
         } else {
