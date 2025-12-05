@@ -452,7 +452,7 @@ const quiktool = [
 ];// Update with your repo details
 
 // List of files for i2Snatcher
-const udFiles = [
+const i2SnatcherFiles = [
     'i2Snatcher/background.js',
     'i2Snatcher/contentScript.js',
     'i2Snatcher/firebase-config.js',
@@ -486,7 +486,7 @@ function fetchFilesToZip(fileArray, folderName, zip) {
 // i2Snatcher button
 document.getElementById('downloadi2Snatcher').addEventListener('click', function () {
     var zip = new JSZip();
-    fetchFilesToZip(udFiles, 'i2Snatcher', zip)
+    fetchFilesToZip(i2SnatcherFiles, 'i2Snatcher', zip)
         .then(() => zip.generateAsync({ type: "blob" }))
         .then(content => {
             saveAs(content, "i2Snatcher.zip");
