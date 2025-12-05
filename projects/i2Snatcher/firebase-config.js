@@ -1,6 +1,6 @@
 // Firebase Configuration
 // Note: These values are public by design in client-side apps
-// Security is enforced through Firebase Security Rules (see firebase-security-rules.json)
+// Security is enforced through Firebase Security Rules (configured in Firebase Console)
 
 export const firebaseConfig = {
   apiKey: "AIzaSyB00lLnYNjAI_TqdvlDniEK9wgaFQ0143I",

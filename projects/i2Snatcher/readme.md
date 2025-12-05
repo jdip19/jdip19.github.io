@@ -1,5 +1,6 @@
 Features
 Keyboard Shortcuts:
+SHIFT + ALT + A: Access Extension Quickly.
 SHIFT + ALT + C: Copy SVG Code.
 SHIFT + ALT + D: Download SVG Icon.
 Lightweight and efficient for seamless file handling.
