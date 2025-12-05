@@ -455,13 +455,14 @@ const quiktool = [
 const udFiles = [
     'i2Snatcher/background.js',
     'i2Snatcher/contentScript.js',
+    'i2Snatcher/firebase-config.js',
     'i2Snatcher/i2snatcher128.png',
     'i2Snatcher/i2snatcher16.png',
     'i2Snatcher/i2snatcher48.png',
     'i2Snatcher/manifest.json',
     'i2Snatcher/popup.html',
-    'i2Snatcher/readme.md',
-    'i2Snatcher/popup.js'
+    'i2Snatcher/popup.js',
+    'i2Snatcher/readme.md'
 ];
 
 
