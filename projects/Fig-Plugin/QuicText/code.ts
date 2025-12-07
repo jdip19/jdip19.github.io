@@ -1,42 +1,8 @@
 // ==================== MONETIZATION SETTINGS ====================
 // Set to false to disable usage limits for testing
-// TODO: Set to true when ready to launch with Gumroad
 const ENABLE_MONETIZATION = true;
+const VERIFY_LICENSE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/verify-license";
 
-// ==================== WHITELIST SYSTEM ====================
-// Add user IDs here for free unlimited access
-// 
-// HOW TO FIND USER IDs:
-// Option 1: Add this temporarily to see your ID in console:
-console.log('Current User ID:', figma.currentUser?.id);
-//   console.log('Current User Name:', figma.currentUser?.name);
-//
-// Option 2: Have the user run the plugin and check browser console (F12)
-//
-// Option 3: Temporarily show a notification with the ID:
-//   figma.notify(`Your User ID: ${figma.currentUser?.id}`);
-//
-const WHITELISTED_USER_IDS: string[] = [
-  "1065580884738218710"
-];
-
-// Check if current user is whitelisted
-function isWhitelisted(): boolean {
-  if (WHITELISTED_USER_IDS.length === 0) {
-    return false;
-  }
-
-  const currentUser = figma.currentUser;
-  if (!currentUser || !currentUser.id) {
-    return false;
-  }
-
-  return WHITELISTED_USER_IDS.includes(currentUser.id);
-}
-
-// Helper function to get current user ID (for debugging/adding to whitelist)
-// Uncomment the line below temporarily to see your user ID in console
-// console.log('Current User ID:', figma.currentUser?.id, 'Name:', figma.currentUser?.name);
 
 // Utility to get all font ranges in a text node
 async function loadAllFontsForNode(node: TextNode): Promise<boolean> {
@@ -251,6 +217,7 @@ if (textNodes.length !== selection.length) {
 
   // Show remaining count if free user (only when monetization is enabled)
   if (ENABLE_MONETIZATION && usageCheck.remaining !== undefined && usageCheck.remaining <= 3) {
+
     figma.notify(`⚠️ ${usageCheck.remaining} free commands remaining today`);
   }
 
@@ -416,7 +383,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
   switch (figma.command) {
     case 'titlecase':
-      const conjunctions = ['for', 'as', 'an', 'a', 'in', 'on', 'of', 'am', 'are', 'and', 'to', 'is', 'at', 'also', 'with'];
+      const conjunctions = ['for', 'as', 'an', 'a', 'in', 'on', 'of', 'am', 'are', 'and', 'to', 'is', 'at', 'also', 'with', 'or'];
 
       // Step 1: Convert all text to lowercase
       newText = newText.toLowerCase();
@@ -441,7 +408,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
       });
 
 
-      figma.notify('Tadaannn... 🥁 Case changed to TitleCase through Obstaclesss. 😎');
+      figma.notify('Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅');
       break;
 
 
@@ -732,21 +699,35 @@ interface UsageData {
 
 // Check if user has valid license
 async function hasLicense(): Promise<boolean> {
-  const licenseKey = await figma.clientStorage.getAsync('licenseKey');
-  if (!licenseKey) return false;
+  const savedKey = await figma.clientStorage.getAsync("licenseKey");
+  if (!savedKey) return false;
 
-  // Simple validation - in production, verify against your server
-  // For now, we'll use a simple hash check
-  const isValid = validateLicenseKey(licenseKey as string);
-  return isValid;
+  try {
+    const response = await fetch(VERIFY_LICENSE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: savedKey }),
+    });
+
+    const result = await response.json();
+
+    // If invalid server-side → user loses access
+    if (!result.valid) {
+      await figma.clientStorage.deleteAsync("licenseKey");
+      return false;
+    }
+
+    // Refresh unlimited flag if changed
+    await figma.clientStorage.setAsync("unlimited", result.unlimited ?? false);
+
+    return true;
+
+  } catch (err) {
+    console.error("License check error:", err);
+    return false;
+  }
 }
 
-// Simple license key validation (replace with server-side validation in production)
-function validateLicenseKey(key: string): boolean {
-  // Basic format check: should be a valid format
-  // In production, verify this against your payment system/database
-  return key.length >= 20 && /^[A-Z0-9-]+$/.test(key);
-}
 
 // Helper to pad number with leading zero
 function padZero(num: number): string {
@@ -786,21 +767,15 @@ async function incrementUsage(): Promise<void> {
 }
 
 // Check if user can use the plugin (has license or under daily limit)
+// Whitelist removed — use manual license rows in the database instead
 async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }> {
-  // Bypass monetization if disabled for testing
-  if (!ENABLE_MONETIZATION) {
-    return { allowed: true };
-  }
+  if (!ENABLE_MONETIZATION) return { allowed: true };
 
-  // Check whitelist first - whitelisted users get free unlimited access
-  if (isWhitelisted()) {
-    return { allowed: true };
-  }
+  const unlimited = Boolean(await figma.clientStorage.getAsync("unlimited"));
+  if (unlimited) return { allowed: true };
 
   const licensed = await hasLicense();
-  if (licensed) {
-    return { allowed: true };
-  }
+  if (licensed) return { allowed: true };
 
   const usage = await getUsageData();
   const remaining = FREE_DAILY_LIMIT - usage.count;
@@ -810,6 +785,10 @@ async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }>
     remaining: Math.max(0, remaining)
   };
 }
+
+
+
+
 
 // Show payment/license UI
 function showLicenseUI(remaining: number): void {
@@ -823,12 +802,31 @@ function showLicenseUI(remaining: number): void {
 
 // Activate license (called from UI after payment)
 async function activateLicense(licenseKey: string): Promise<boolean> {
-  if (validateLicenseKey(licenseKey)) {
-    await figma.clientStorage.setAsync('licenseKey', licenseKey);
-    return true;
+  try {
+    const response = await fetch(VERIFY_LICENSE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: licenseKey }),
+    });
+
+    const result = await response.json();
+
+    if (result.valid) {
+      // Save key + unlimited flag
+      await figma.clientStorage.setAsync("licenseEmail", result.email);
+      await figma.clientStorage.setAsync("licensePlan", result.plan);
+      await figma.clientStorage.setAsync("licenseVersion", result.version);
+      return true;
+    }
+
+    return false;
+
+  } catch (err) {
+    console.error("License activation error:", err);
+    return false;
   }
-  return false;
 }
+
 
 // Get stored index or default to 0
 async function getStoredIndex(key: string): Promise<number> {
