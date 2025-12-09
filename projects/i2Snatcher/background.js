@@ -17,6 +17,83 @@ const database = getDatabase(app);
 const versionRef = ref(database, ALLOWED_DB_PATHS.VERSION);
 const localVersion = chrome.runtime.getManifest().version;
 
+// Per-user licensing / access control
+let clientId = null;
+let userStatus = "unknown"; // "approved" | "pending" | "blocked" | "unknown"
+
+async function getOrCreateClientId() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(["clientId"], async (result) => {
+      if (result.clientId) {
+        clientId = result.clientId;
+        resolve(clientId);
+        return;
+      }
+
+      // Generate a new clientId (use crypto.randomUUID when available)
+      let newId = "";
+      if (crypto && typeof crypto.randomUUID === "function") {
+        newId = crypto.randomUUID();
+      } else {
+        newId = `user_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+      }
+
+      clientId = newId;
+      chrome.storage.sync.set({ clientId: newId }, () => {
+        resolve(newId);
+      });
+    });
+  });
+}
+
+// Fetch user status from Firebase (approved / pending / blocked)
+async function refreshUserStatus() {
+  try {
+    const id = await getOrCreateClientId();
+
+    const usersPath = `${ALLOWED_DB_PATHS.USERS}`;
+    if (!validateDbPath(usersPath)) {
+      throw new Error("Invalid users path");
+    }
+
+    const userRef = ref(database, `${usersPath}/${id}`);
+    const snapshot = await get(userRef);
+
+    if (!snapshot.exists()) {
+      // First time we see this user → create pending entry
+      const now = Date.now();
+      await set(userRef, {
+        status: "pending",
+        createdAt: now,
+        lastSeen: now,
+      });
+      userStatus = "pending";
+    } else {
+      const data = snapshot.val() || {};
+      userStatus = data.status || "pending";
+
+      // Update lastSeen for analytics
+      try {
+        await set(userRef, { ...data, lastSeen: Date.now() });
+      } catch (e) {
+        // Non-fatal
+        console.warn("Failed to update lastSeen:", e);
+      }
+    }
+
+    chrome.storage.local.set({ clientId: id, userStatus });
+    console.log("User status:", userStatus, "clientId:", id);
+  } catch (error) {
+    console.error("Error refreshing user status:", error);
+    userStatus = "unknown";
+    chrome.storage.local.set({ userStatus });
+  }
+}
+
+function isUserAllowed() {
+  return userStatus === "approved";
+}
+
 // Rate limiting: Track requests per user
 let requestHistory = [];
 const RATE_LIMIT_WINDOW = 60000; // 1 minute in milliseconds
@@ -265,6 +342,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     }, 1000);
   }
 
+  // Initialize / refresh user status on install
+  refreshUserStatus();
+
   // Sync any pending updates on install/update
   syncPendingUpdatesToFirebase();
 });
@@ -274,12 +354,17 @@ chrome.runtime.onStartup.addListener(() => {
   setTimeout(() => {
     checkAndNudgeShortcuts();
   }, 1000);
+
+  // Refresh user status on startup
+  refreshUserStatus();
+
   syncPendingUpdatesToFirebase();
 });
 
 // Check shortcuts on initial load
 setTimeout(() => {
   checkAndNudgeShortcuts();
+  refreshUserStatus();
 }, 2000);
 
 // Periodic sync every 30 seconds to ensure nothing is missed
@@ -291,6 +376,18 @@ setInterval(() => {
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info) => {
+  if (!isUserAllowed()) {
+    console.warn("User not approved. Action blocked.");
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
+      title: "i2Snatcher",
+      message:
+        "Your access is not approved yet. Please contact the extension owner.",
+    });
+    return;
+  }
+
   if (info.menuItemId === "copySvg") {
     processSvg(info.linkUrl, "copy");
   } else if (info.menuItemId === "downloadSvg") {
@@ -300,6 +397,18 @@ chrome.contextMenus.onClicked.addListener((info) => {
 
 // Handle keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
+  if (!isUserAllowed()) {
+    console.warn("User not approved. Shortcut blocked.");
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
+      title: "i2Snatcher",
+      message:
+        "Your access is not approved yet. Please contact the extension owner.",
+    });
+    return;
+  }
+
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]?.id) {
       const tabId = tabs[0].id;

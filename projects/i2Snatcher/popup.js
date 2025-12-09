@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const imageList = document.getElementById("imageList");
   const svgSizeInput = document.getElementById("svgSize");
   const autoCloseToggle = document.getElementById("autoCloseToggle");
+  const clientIdDisplay = document.getElementById("clientIdDisplay");
+  const userStatusDisplay = document.getElementById("userStatusDisplay");
 
   // Add click event listeners for tabs
   iconTab.addEventListener("click", function () {
@@ -172,6 +174,24 @@ document.addEventListener("DOMContentLoaded", function () {
   autoCloseToggle.addEventListener("change", function () {
     chrome.storage.sync.set({ autoClosePopup: autoCloseToggle.checked });
     console.log("Auto-close popup:", autoCloseToggle.checked ? "enabled" : "disabled");
+  });
+
+  // Load client ID and user status for display
+  chrome.storage.local.get(["clientId", "userStatus"], (data) => {
+    if (clientIdDisplay && data.clientId) {
+      clientIdDisplay.textContent = data.clientId;
+    }
+
+    if (userStatusDisplay) {
+      const status = data.userStatus || "unknown";
+      let label = "";
+      if (status === "approved") label = "Status: Approved ✅";
+      else if (status === "pending") label = "Status: Pending approval ⏳";
+      else if (status === "blocked") label = "Status: Access blocked ⛔";
+      else label = "Status: Unknown";
+
+      userStatusDisplay.textContent = label;
+    }
   });
 
   // Check and show shortcut nudge if needed

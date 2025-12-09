@@ -17,6 +17,7 @@ export const firebaseConfig = {
 export const ALLOWED_DB_PATHS = {
   SVG_STATS: "svgStats",
   VERSION: "ueVersion",
+  USERS: "users",
 };
 
 // Rate limiting configuration
