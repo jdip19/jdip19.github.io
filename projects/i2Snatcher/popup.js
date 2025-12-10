@@ -185,9 +185,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (userStatusDisplay) {
       const status = data.userStatus || "unknown";
       let label = "";
-      if (status === "approved") label = "Status: Approved ✅";
-      else if (status === "pending") label = "Status: Pending approval ⏳";
-      else if (status === "blocked") label = "Status: Access blocked ⛔";
+      if (status === "approved") label = "Status: Approvedd";
+      else if (status === "pending") label = "Status: Pending approval";
+      else if (status === "blocked") label = "Status: Access blocked";
       else label = "Status: Unknown";
 
       userStatusDisplay.textContent = label;

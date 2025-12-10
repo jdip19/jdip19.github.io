@@ -71,6 +71,7 @@ async function refreshUserStatus() {
     } else {
       const data = snapshot.val() || {};
       userStatus = data.status || "pending";
+      console.log("User status:", userStatus);
 
       // Update lastSeen for analytics
       try {
