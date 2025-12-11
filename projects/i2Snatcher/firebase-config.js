@@ -21,7 +21,7 @@ export const ALLOWED_DB_PATHS = {
 };
 
 // Rate limiting configuration
-export const RATE_LIMIT = {
+export const RATE_LIMIT_WINDOW = {
   MAX_UPDATES_PER_MINUTE: 60, // Maximum updates per minute per user
   MAX_BATCH_SIZE: 100, // Maximum batch size to prevent abuse
 };

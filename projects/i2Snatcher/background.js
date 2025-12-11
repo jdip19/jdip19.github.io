@@ -5,17 +5,48 @@ import {
   set,
   get,
 } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
-import {
-  firebaseConfig,
-  ALLOWED_DB_PATHS,
-  RATE_LIMIT,
-} from "./firebase-config.js";
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+let firebaseConfig = {};
+let ALLOWED_DB_PATHS = {};
+let RATE_LIMIT_WINDOW = {};  // rename properly
+let database = null;
 
-const versionRef = ref(database, ALLOWED_DB_PATHS.VERSION);
-const localVersion = chrome.runtime.getManifest().version;
+// Remote config loader
+async function loadRemoteConfig() {
+  try {
+    const response = await fetch("https://jdip19.github.io/js/firebase-setup.json");
+    const config = await response.json();
+
+    firebaseConfig = config.firebaseConfig;
+    ALLOWED_DB_PATHS = config.ALLOWED_DB_PATHS;
+    RATE_LIMIT_WINDOW = config.RATE_LIMIT;  // FIXED
+
+    console.log("Remote config loaded");
+  } catch (err) {
+    console.error("Failed to load remote config:", err);
+  }
+}
+
+// Wait for Firebase before allowing references
+async function init() {
+  await loadRemoteConfig();
+
+  const app = initializeApp(firebaseConfig);
+  database = getDatabase(app);
+
+  console.log("Firebase initialized");
+
+  // Now database is safe to use
+  runPostFirebaseInit();
+}
+
+init();
+
+function runPostFirebaseInit() {
+  const versionRef = ref(database, ALLOWED_DB_PATHS.VERSION);
+  const localVersion = chrome.runtime.getManifest().version;
+}
+
 
 // Per-user licensing / access control
 let clientId = null;
@@ -108,61 +139,63 @@ function isUserAllowed() {
 function isUserAllowedAsync() {
   return new Promise((resolve) => {
     // Read cached status + timestamp first to avoid remote calls when recent
-    chrome.storage.local.get(["userStatus", "statusCheckedAt"], async (result) => {
-      const stored = result.userStatus || userStatus || "unknown";
-      const checkedAt = result.statusCheckedAt || statusCheckedAt || 0;
+    chrome.storage.local.get(
+      ["userStatus", "statusCheckedAt"],
+      async (result) => {
+        const stored = result.userStatus || userStatus || "unknown";
+        const checkedAt = result.statusCheckedAt || statusCheckedAt || 0;
 
-      // If we have a recent successful check, use it immediately
-      const age = Date.now() - checkedAt;
-      if (stored === "approved") {
-        // hydrate runtime vars
-        userStatus = stored;
-        statusCheckedAt = checkedAt;
-        return resolve(true);
+        // If we have a recent successful check, use it immediately
+        const age = Date.now() - checkedAt;
+        if (stored === "approved") {
+          // hydrate runtime vars
+          userStatus = stored;
+          statusCheckedAt = checkedAt;
+          return resolve(true);
+        }
+
+        if (age < STATUS_CACHE_TTL && stored !== "unknown") {
+          // cached non-approved decision is recent enough to use
+          userStatus = stored;
+          statusCheckedAt = checkedAt;
+          return resolve(stored === "approved");
+        }
+
+        // Otherwise, perform a remote refresh but don't block too long.
+        // If refresh doesn't finish within TIMEOUT, fall back to stored value (if any)
+        const REFRESH_TIMEOUT = 1500; // ms
+
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+          timedOut = true;
+          // If we have a cached value, use it; otherwise deny (safe default)
+          if (stored) return resolve(stored === "approved");
+          return resolve(false);
+        }, REFRESH_TIMEOUT);
+
+        try {
+          await refreshUserStatus();
+          clearTimeout(timeout);
+          if (timedOut) return; // already resolved via timeout
+          // read stored status after refresh
+          chrome.storage.local.get(["userStatus", "statusCheckedAt"], (r2) => {
+            userStatus = r2.userStatus || userStatus;
+            statusCheckedAt = r2.statusCheckedAt || statusCheckedAt;
+            resolve(userStatus === "approved");
+          });
+        } catch (e) {
+          clearTimeout(timeout);
+          if (timedOut) return;
+          // On error, fallback to stored value if present
+          resolve(stored === "approved");
+        }
       }
-
-      if (age < STATUS_CACHE_TTL && stored !== "unknown") {
-        // cached non-approved decision is recent enough to use
-        userStatus = stored;
-        statusCheckedAt = checkedAt;
-        return resolve(stored === "approved");
-      }
-
-      // Otherwise, perform a remote refresh but don't block too long.
-      // If refresh doesn't finish within TIMEOUT, fall back to stored value (if any)
-      const REFRESH_TIMEOUT = 1500; // ms
-
-      let timedOut = false;
-      const timeout = setTimeout(() => {
-        timedOut = true;
-        // If we have a cached value, use it; otherwise deny (safe default)
-        if (stored) return resolve(stored === "approved");
-        return resolve(false);
-      }, REFRESH_TIMEOUT);
-
-      try {
-        await refreshUserStatus();
-        clearTimeout(timeout);
-        if (timedOut) return; // already resolved via timeout
-        // read stored status after refresh
-        chrome.storage.local.get(["userStatus", "statusCheckedAt"], (r2) => {
-          userStatus = r2.userStatus || userStatus;
-          statusCheckedAt = r2.statusCheckedAt || statusCheckedAt;
-          resolve(userStatus === "approved");
-        });
-      } catch (e) {
-        clearTimeout(timeout);
-        if (timedOut) return;
-        // On error, fallback to stored value if present
-        resolve(stored === "approved");
-      }
-    });
+    );
   });
 }
 
 // Rate limiting: Track requests per user
 let requestHistory = [];
-const RATE_LIMIT_WINDOW = 60000; // 1 minute in milliseconds
 
 // Validate database path to prevent unauthorized access
 function validateDbPath(path) {
@@ -175,10 +208,10 @@ function checkRateLimit() {
   const now = Date.now();
   // Remove requests older than 1 minute
   requestHistory = requestHistory.filter(
-    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW
+    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW.MAX_UPDATES_PER_MINUTE
   );
 
-  if (requestHistory.length >= RATE_LIMIT.MAX_UPDATES_PER_MINUTE) {
+  if (requestHistory.length >= RATE_LIMIT_WINDOW.MAX_UPDATES_PER_MINUTE) {
     console.warn(
       "Rate limit exceeded. Please wait before making more requests."
     );
@@ -213,15 +246,15 @@ async function syncPendingUpdatesToFirebase() {
 
   // Validate batch size to prevent abuse
   const totalPending = pendingUpdates.copied + pendingUpdates.downloaded;
-  if (totalPending > RATE_LIMIT.MAX_BATCH_SIZE) {
+  if (totalPending > RATE_LIMIT_WINDOW.MAX_BATCH_SIZE) {
     console.error("Batch size exceeds limit. Truncating to prevent abuse.");
     pendingUpdates.copied = Math.min(
       pendingUpdates.copied,
-      RATE_LIMIT.MAX_BATCH_SIZE
+      RATE_LIMIT_WINDOW.MAX_BATCH_SIZE
     );
     pendingUpdates.downloaded = Math.min(
       pendingUpdates.downloaded,
-      RATE_LIMIT.MAX_BATCH_SIZE
+      RATE_LIMIT_WINDOW.MAX_BATCH_SIZE
     );
   }
 
@@ -316,11 +349,14 @@ get(versionRef).then((snapshot) => {
 });
 
 // Hydrate runtime status from storage on worker start so checks are fast
-chrome.storage.local.get(["userStatus", "clientId", "statusCheckedAt"], (result) => {
-  if (result.userStatus) userStatus = result.userStatus;
-  if (result.clientId) clientId = result.clientId;
-  if (result.statusCheckedAt) statusCheckedAt = result.statusCheckedAt;
-});
+chrome.storage.local.get(
+  ["userStatus", "clientId", "statusCheckedAt"],
+  (result) => {
+    if (result.userStatus) userStatus = result.userStatus;
+    if (result.clientId) clientId = result.clientId;
+    if (result.statusCheckedAt) statusCheckedAt = result.statusCheckedAt;
+  }
+);
 
 // Check if keyboard shortcuts are registered and nudge user if needed
 async function checkAndNudgeShortcuts() {
@@ -510,7 +546,7 @@ setInterval(() => {
   try {
     refreshUserStatus();
   } catch (e) {
-    console.warn('Periodic refreshUserStatus failed', e);
+    console.warn("Periodic refreshUserStatus failed", e);
   }
 }, 5 * 60 * 1000); // every 5 minutes
 
