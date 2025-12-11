@@ -448,7 +448,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
     case 'uppercase':
       newText = newText.toUpperCase();
-      figma.notify('Tadaannn... 🥁 Your Text case changed to UPPERCASE. 👿');
+      figma.notify('Tadaannn... 🥁 Your Text case changed to UPPERCASE. 🐘');
       break;
 
     case 'lowercase':
@@ -595,6 +595,7 @@ figma.ui.onmessage = async (msg) => {
 
   if (msg.type === "activate-license") {
     const success = await activateLicense(msg.licenseKey);
+    console.log("activate license", success);
     if (success) {
       figma.notify("✅ License activated! Enjoy unlimited usage.");
       figma.ui.postMessage({ type: 'license-activated' });
@@ -700,6 +701,7 @@ interface UsageData {
 // Check if user has valid license
 async function hasLicense(): Promise<boolean> {
   const savedKey = await figma.clientStorage.getAsync("licenseKey");
+  console.log(savedKey);
   if (!savedKey) return false;
 
   try {
@@ -787,7 +789,13 @@ async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }>
 }
 
 
-
+async function getDeviceId(): Promise<string> {
+  const deviceId = await figma.clientStorage.getAsync("deviceId");
+  if (deviceId) return deviceId as string;
+  const newId = crypto.randomUUID();
+  await figma.clientStorage.setAsync("deviceId", newId);
+  return newId;
+}
 
 
 // Show payment/license UI
@@ -802,20 +810,27 @@ function showLicenseUI(remaining: number): void {
 
 // Activate license (called from UI after payment)
 async function activateLicense(licenseKey: string): Promise<boolean> {
+  console.log("activate license", licenseKey);
+
+  const device_id = await getDeviceId(); // REQUIRED
+
   try {
     const response = await fetch(VERIFY_LICENSE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: licenseKey }),
+      body: JSON.stringify({ key: licenseKey, device_id }), // FIXED
     });
 
     const result = await response.json();
 
     if (result.valid) {
-      // Save key + unlimited flag
-      await figma.clientStorage.setAsync("licenseEmail", result.email);
-      await figma.clientStorage.setAsync("licensePlan", result.plan);
-      await figma.clientStorage.setAsync("licenseVersion", result.version);
+      await figma.clientStorage.setAsync("licenseKey", licenseKey);
+      await figma.clientStorage.setAsync("unlimited", result.unlimited ?? false);
+
+      await figma.clientStorage.setAsync("licenseEmail", result.email ?? "");
+      await figma.clientStorage.setAsync("licensePlan", result.plan ?? "");
+      await figma.clientStorage.setAsync("licenseVersion", result.version ?? "");
+
       return true;
     }
 
@@ -826,6 +841,7 @@ async function activateLicense(licenseKey: string): Promise<boolean> {
     return false;
   }
 }
+
 
 
 // Get stored index or default to 0
