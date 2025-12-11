@@ -5,21 +5,100 @@ import {
   set,
   get,
 } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
-import {
-  firebaseConfig,
-  ALLOWED_DB_PATHS,
-  RATE_LIMIT,
-} from "./firebase-config.js";
 
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+let firebaseConfig = {};
+let ALLOWED_DB_PATHS = {};
+let RATE_LIMIT = {};  // from firebase-setup.json
+let database = null;
+let firebaseReady = false;
 
-const versionRef = ref(database, ALLOWED_DB_PATHS.VERSION);
+// Remote config loader
+async function loadRemoteConfig() {
+  try {
+    const response = await fetch("https://jdip19.github.io/js/firebase-setup.json");
+    const config = await response.json();
+
+    firebaseConfig = config.firebaseConfig;
+    ALLOWED_DB_PATHS = config.ALLOWED_DB_PATHS;
+    RATE_LIMIT = config.RATE_LIMIT;
+    return true;
+  } catch (err) {
+    console.error("Failed to load remote config:", err);
+    return false;
+  }
+}
+
+// Wait for Firebase before allowing references
+async function init() {
+  const configLoaded = await loadRemoteConfig();
+  if (!configLoaded) {
+    console.error("Cannot initialize Firebase: config loading failed");
+    return;
+  }
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    database = getDatabase(app);
+    firebaseReady = true;
+
+    // Database is ready
+    runPostFirebaseInit();
+  } catch (err) {
+    console.error("Firebase initialization failed:", err);
+  }
+}
+
+init();
+
+// Helper to ensure Firebase is ready before operations
+function ensureFirebaseReady() {
+  return new Promise((resolve) => {
+    const maxWait = 5000; // 5 second timeout
+    const startTime = Date.now();
+    const checkReady = () => {
+      if (firebaseReady) {
+        resolve(true);
+        return;
+      }
+      if (Date.now() - startTime > maxWait) {
+        console.error("Firebase initialization timeout");
+        resolve(false);
+        return;
+      }
+      setTimeout(checkReady, 100);
+    };
+    checkReady();
+  });
+}
+
+function runPostFirebaseInit() {
+  const versionRef = ref(database, ALLOWED_DB_PATHS.VERSION);
+
+  get(versionRef).then((snapshot) => {
+  if (snapshot.exists()) {
+    const remoteVersion = snapshot.val();
+
+    // Store remote version and comparison result
+    chrome.storage.local.set({
+      remoteVersion,
+      updateAvailable: remoteVersion > localVersion,
+    });
+  }
+
+});
+}
+
 const localVersion = chrome.runtime.getManifest().version;
+
 
 // Per-user licensing / access control
 let clientId = null;
 let userStatus = "unknown"; // "approved" | "pending" | "blocked" | "unknown"
+// Timestamp (ms) of last remote status check stored in chrome.storage.local
+let statusCheckedAt = 0;
+
+// Cache TTL for stored status to avoid frequent remote checks (2 minutes)
+const STATUS_CACHE_TTL = 2 * 60 * 1000;
 
 async function getOrCreateClientId() {
   return new Promise((resolve) => {
@@ -49,6 +128,12 @@ async function getOrCreateClientId() {
 // Fetch user status from Firebase (approved / pending / blocked)
 async function refreshUserStatus() {
   try {
+    // Ensure Firebase is ready before attempting to access database
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      throw new Error("Firebase not ready");
+    }
+
     const id = await getOrCreateClientId();
 
     const usersPath = `${ALLOWED_DB_PATHS.USERS}`;
@@ -71,19 +156,19 @@ async function refreshUserStatus() {
     } else {
       const data = snapshot.val() || {};
       userStatus = data.status || "pending";
-      console.log("User status:", userStatus);
 
       // Update lastSeen for analytics
       try {
         await set(userRef, { ...data, lastSeen: Date.now() });
       } catch (e) {
         // Non-fatal
-        console.warn("Failed to update lastSeen:", e);
       }
     }
 
     chrome.storage.local.set({ clientId: id, userStatus });
-    console.log("User status:", userStatus, "clientId:", id);
+    // record when we checked the status
+    statusCheckedAt = Date.now();
+    chrome.storage.local.set({ statusCheckedAt });
   } catch (error) {
     console.error("Error refreshing user status:", error);
     userStatus = "unknown";
@@ -91,13 +176,69 @@ async function refreshUserStatus() {
   }
 }
 
-function isUserAllowed() {
-  return userStatus === "approved";
+
+// Async helper that prefers stored status (survives worker unloads).
+// If status is unknown it will attempt a fresh refresh before deciding.
+function isUserAllowedAsync() {
+  return new Promise((resolve) => {
+    // Read cached status + timestamp first to avoid remote calls when recent
+    chrome.storage.local.get(
+      ["userStatus", "statusCheckedAt"],
+      async (result) => {
+        const stored = result.userStatus || userStatus || "unknown";
+        const checkedAt = result.statusCheckedAt || statusCheckedAt || 0;
+
+        // If we have a recent successful check, use it immediately
+        const age = Date.now() - checkedAt;
+        if (stored === "approved") {
+          // hydrate runtime vars
+          userStatus = stored;
+          statusCheckedAt = checkedAt;
+          return resolve(true);
+        }
+
+        if (age < STATUS_CACHE_TTL && stored !== "unknown") {
+          // cached non-approved decision is recent enough to use
+          userStatus = stored;
+          statusCheckedAt = checkedAt;
+          return resolve(stored === "approved");
+        }
+
+        // Otherwise, perform a remote refresh but don't block too long.
+        // If refresh doesn't finish within TIMEOUT, fall back to stored value (if any)
+        const REFRESH_TIMEOUT = 1500; // ms
+
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+          timedOut = true;
+          // If we have a cached value, use it; otherwise deny (safe default)
+          if (stored) return resolve(stored === "approved");
+          return resolve(false);
+        }, REFRESH_TIMEOUT);
+
+        try {
+          await refreshUserStatus();
+          clearTimeout(timeout);
+          if (timedOut) return; // already resolved via timeout
+          // read stored status after refresh
+          chrome.storage.local.get(["userStatus", "statusCheckedAt"], (r2) => {
+            userStatus = r2.userStatus || userStatus;
+            statusCheckedAt = r2.statusCheckedAt || statusCheckedAt;
+            resolve(userStatus === "approved");
+          });
+        } catch (e) {
+          clearTimeout(timeout);
+          if (timedOut) return;
+          // On error, fallback to stored value if present
+          resolve(stored === "approved");
+        }
+      }
+    );
+  });
 }
 
 // Rate limiting: Track requests per user
 let requestHistory = [];
-const RATE_LIMIT_WINDOW = 60000; // 1 minute in milliseconds
 
 // Validate database path to prevent unauthorized access
 function validateDbPath(path) {
@@ -108,18 +249,9 @@ function validateDbPath(path) {
 // Rate limiting check
 function checkRateLimit() {
   const now = Date.now();
-  // Remove requests older than 1 minute
-  requestHistory = requestHistory.filter(
-    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW
-  );
-
-  if (requestHistory.length >= RATE_LIMIT.MAX_UPDATES_PER_MINUTE) {
-    console.warn(
-      "Rate limit exceeded. Please wait before making more requests."
-    );
-    return false;
-  }
-
+  const maxPerMinute = RATE_LIMIT?.MAX_UPDATES_PER_MINUTE || 60;
+  requestHistory = requestHistory.filter((timestamp) => now - timestamp < 60000);
+  if (requestHistory.length >= maxPerMinute) return false;
   requestHistory.push(now);
   return true;
 }
@@ -141,22 +273,20 @@ async function syncPendingUpdatesToFirebase() {
   }
 
   // Rate limiting check
-  if (!checkRateLimit()) {
-    console.warn("Rate limit exceeded. Deferring sync.");
-    return;
-  }
+  if (!checkRateLimit()) return;
 
   // Validate batch size to prevent abuse
   const totalPending = pendingUpdates.copied + pendingUpdates.downloaded;
-  if (totalPending > RATE_LIMIT.MAX_BATCH_SIZE) {
+  const maxBatchSize = RATE_LIMIT?.MAX_BATCH_SIZE || 100;
+  if (totalPending > maxBatchSize) {
     console.error("Batch size exceeds limit. Truncating to prevent abuse.");
     pendingUpdates.copied = Math.min(
       pendingUpdates.copied,
-      RATE_LIMIT.MAX_BATCH_SIZE
+      maxBatchSize
     );
     pendingUpdates.downloaded = Math.min(
       pendingUpdates.downloaded,
-      RATE_LIMIT.MAX_BATCH_SIZE
+      maxBatchSize
     );
   }
 
@@ -165,6 +295,12 @@ async function syncPendingUpdatesToFirebase() {
   pendingUpdates = { copied: 0, downloaded: 0 }; // Reset pending updates
 
   try {
+    // Ensure Firebase is ready before attempting to access database
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      throw new Error("Firebase not ready");
+    }
+
     // Validate paths before accessing
     const statsPath = `${ALLOWED_DB_PATHS.SVG_STATS}`;
     if (!validateDbPath(statsPath)) {
@@ -203,10 +339,6 @@ async function syncPendingUpdatesToFirebase() {
       type: "svgCountUpdated",
       payload: finalCounts,
     });
-
-    console.log(
-      `Synced ${updatesToSync.copied} copied, ${updatesToSync.downloaded} downloaded to Firebase`
-    );
   } catch (error) {
     console.error("Firebase sync error:", error);
     // Re-add failed updates back to pending
@@ -238,17 +370,17 @@ function scheduleSync() {
   }, SYNC_DELAY);
 }
 
-get(versionRef).then((snapshot) => {
-  if (snapshot.exists()) {
-    const remoteVersion = snapshot.val();
 
-    // Store remote version and comparison result
-    chrome.storage.local.set({
-      remoteVersion,
-      updateAvailable: remoteVersion > localVersion,
-    });
+
+// Hydrate runtime status from storage on worker start so checks are fast
+chrome.storage.local.get(
+  ["userStatus", "clientId", "statusCheckedAt"],
+  (result) => {
+    if (result.userStatus) userStatus = result.userStatus;
+    if (result.clientId) clientId = result.clientId;
+    if (result.statusCheckedAt) statusCheckedAt = result.statusCheckedAt;
   }
-});
+);
 
 // Check if keyboard shortcuts are registered and nudge user if needed
 async function checkAndNudgeShortcuts() {
@@ -377,53 +509,65 @@ setInterval(() => {
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info) => {
-  if (!isUserAllowed()) {
-    console.warn("User not approved. Action blocked.");
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
-      title: "i2Snatcher",
-      message:
-        "Your access is not approved yet. Please contact the extension owner.",
-    });
-    return;
-  }
+  isUserAllowedAsync().then((allowed) => {
+    if (!allowed) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
+        title: "i2Snatcher",
+        message:
+          "Your access is not approved yet. Please contact the extension owner.",
+      });
+      return;
+    }
 
-  if (info.menuItemId === "copySvg") {
-    processSvg(info.linkUrl, "copy");
-  } else if (info.menuItemId === "downloadSvg") {
-    processSvg(info.linkUrl, "download");
-  }
+    if (info.menuItemId === "copySvg") {
+      processSvg(info.linkUrl, "copy");
+    } else if (info.menuItemId === "downloadSvg") {
+      processSvg(info.linkUrl, "download");
+    }
+  });
 });
 
 // Handle keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
-  if (!isUserAllowed()) {
-    console.warn("User not approved. Shortcut blocked.");
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
-      title: "i2Snatcher",
-      message:
-        "Your access is not approved yet. Please contact the extension owner.",
-    });
-    return;
-  }
-
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]?.id) {
-      const tabId = tabs[0].id;
-      const action = command === "copy_svg" ? "copy" : "download";
-      console.log("taken" + action);
-
-      chrome.scripting.executeScript({
-        target: { tabId },
-        function: extractSvg,
-        args: [action],
+  isUserAllowedAsync().then((allowed) => {
+    if (!allowed) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
+        title: "i2Snatcher",
+        message:
+          "Your access is not approved yet. Please contact the extension owner.",
       });
+      return;
     }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        const tabId = tabs[0].id;
+        const action = command === "copy_svg" ? "copy" : "download";
+
+        chrome.scripting.executeScript({
+          target: { tabId },
+          function: extractSvg,
+          args: [action],
+        });
+      }
+    });
   });
 });
+
+// Periodically refresh user status while active to avoid stale 'unknown' state
+// This helps when the service worker is active for a while; storage keeps the
+// last-known status across worker restarts.
+setInterval(() => {
+  try {
+    refreshUserStatus();
+  } catch (e) {
+    // Silent failure on periodic refresh
+  }
+}, 5 * 60 * 1000);
 
 // Open the link in a background tab and extract the SVG
 function processSvg(detailLink, action) {
@@ -489,8 +633,6 @@ function extractSvg(action) {
 
         if (svgElement) {
           const uniqueColors = extractUniqueColorsFromSVG(svgElement);
-          console.log("Unique colors:", uniqueColors);
-
           chrome.runtime.sendMessage({
             action: "detected_colors",
             colors: uniqueColors,
@@ -518,22 +660,12 @@ function extractSvg(action) {
 
             // Close the popup after copying (if enabled in settings)
             chrome.storage.sync.get("autoClosePopup", function (data) {
-              const autoCloseEnabled = data.autoClosePopup !== false; // Default to true
-
+              const autoCloseEnabled = data.autoClosePopup !== false;
               if (autoCloseEnabled) {
                 setTimeout(() => {
                   const closeButton = document.querySelector("#detail-close");
-                  if (closeButton) {
-                    closeButton.click();
-                    console.log("Popup closed after copying SVG.");
-                  } else {
-                    console.warn("Close button not found.");
-                  }
-                }, 500); // Small delay to ensure copy completes
-              } else {
-                console.log(
-                  "Auto-close disabled. User will close popup manually."
-                );
+                  if (closeButton) closeButton.click();
+                }, 500);
               }
             });
           } else if (action === "download") {
@@ -546,34 +678,21 @@ function extractSvg(action) {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            console.log("SVG downloaded successfully.");
             chrome.runtime.sendMessage({
               type: "incrementSvgCounter",
               action: "downloaded",
             });
 
             chrome.storage.sync.get("autoClosePopup", function (data) {
-              const autoCloseEnabled = data.autoClosePopup !== false; // Default to true
-
+              const autoCloseEnabled = data.autoClosePopup !== false;
               if (autoCloseEnabled) {
                 setTimeout(() => {
                   const closeButton = document.querySelector("#detail-close");
-                  if (closeButton) {
-                    closeButton.click();
-                    console.log("Popup closed after copying SVG.");
-                  } else {
-                    console.warn("Close button not found.");
-                  }
-                }, 500); // Small delay to ensure copy completes
-              } else {
-                console.log(
-                  "Auto-close disabled. User will close popup manually."
-                );
+                  if (closeButton) closeButton.click();
+                }, 500);
               }
             });
           }
-        } else {
-          console.error("SVG element not found.");
         }
       }, 2000);
     });

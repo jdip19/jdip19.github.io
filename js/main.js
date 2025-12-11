@@ -23,7 +23,6 @@ function loadScript(url) {
     }
 })();
 
-
 (function (html) {
 
     'use strict';
@@ -455,7 +454,6 @@ const quiktool = [
 const i2SnatcherFiles = [
     'i2Snatcher/background.js',
     'i2Snatcher/contentScript.js',
-    'i2Snatcher/firebase-config.js',
     'i2Snatcher/i2snatcher128.png',
     'i2Snatcher/i2snatcher16.png',
     'i2Snatcher/i2snatcher48.png',

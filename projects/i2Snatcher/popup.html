@@ -282,8 +282,8 @@
 
       /* Shortcut Nudge Styles */
       .shortcut-nudge {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: var(--foreground-color-light);
+        color: var(--foreground-color);
         padding: 10px 12px;
         border-radius: 6px;
         margin-bottom: 12px;
@@ -299,8 +299,8 @@
       }
 
       .shortcut-btn {
-        background: white;
-        color: #667eea;
+        background: var(--primary-color);
+        color: var(--foreground-color-light);
         border: none;
         padding: 6px 16px;
         border-radius: 4px;
@@ -340,9 +340,9 @@
       <!-- Icon Tab Content -->
       <div id="iconContent" class="tab-content active">
         <!-- Shortcut Nudge Banner -->
-        <div id="shortcutNudge" class="shortcut-nudge" style="display: none;">
+        <div id="shortcutNudge" class="shortcut-nudge" style="display: none">
           <div class="shortcut-nudge-content">
-            <span>⚡ Set up keyboard shortcuts for faster access</span>
+            <span>Set up keyboard shortcuts for faster access</span>
             <button id="setupShortcutsBtn" class="shortcut-btn">Set Up</button>
           </div>
         </div>
