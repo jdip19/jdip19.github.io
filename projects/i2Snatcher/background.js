@@ -20,6 +20,11 @@ const localVersion = chrome.runtime.getManifest().version;
 // Per-user licensing / access control
 let clientId = null;
 let userStatus = "unknown"; // "approved" | "pending" | "blocked" | "unknown"
+// Timestamp (ms) of last remote status check stored in chrome.storage.local
+let statusCheckedAt = 0;
+
+// Cache TTL for stored status to avoid frequent remote checks (2 minutes)
+const STATUS_CACHE_TTL = 2 * 60 * 1000;
 
 async function getOrCreateClientId() {
   return new Promise((resolve) => {
@@ -84,6 +89,9 @@ async function refreshUserStatus() {
 
     chrome.storage.local.set({ clientId: id, userStatus });
     console.log("User status:", userStatus, "clientId:", id);
+    // record when we checked the status
+    statusCheckedAt = Date.now();
+    chrome.storage.local.set({ statusCheckedAt });
   } catch (error) {
     console.error("Error refreshing user status:", error);
     userStatus = "unknown";
@@ -93,6 +101,63 @@ async function refreshUserStatus() {
 
 function isUserAllowed() {
   return userStatus === "approved";
+}
+
+// Async helper that prefers stored status (survives worker unloads).
+// If status is unknown it will attempt a fresh refresh before deciding.
+function isUserAllowedAsync() {
+  return new Promise((resolve) => {
+    // Read cached status + timestamp first to avoid remote calls when recent
+    chrome.storage.local.get(["userStatus", "statusCheckedAt"], async (result) => {
+      const stored = result.userStatus || userStatus || "unknown";
+      const checkedAt = result.statusCheckedAt || statusCheckedAt || 0;
+
+      // If we have a recent successful check, use it immediately
+      const age = Date.now() - checkedAt;
+      if (stored === "approved") {
+        // hydrate runtime vars
+        userStatus = stored;
+        statusCheckedAt = checkedAt;
+        return resolve(true);
+      }
+
+      if (age < STATUS_CACHE_TTL && stored !== "unknown") {
+        // cached non-approved decision is recent enough to use
+        userStatus = stored;
+        statusCheckedAt = checkedAt;
+        return resolve(stored === "approved");
+      }
+
+      // Otherwise, perform a remote refresh but don't block too long.
+      // If refresh doesn't finish within TIMEOUT, fall back to stored value (if any)
+      const REFRESH_TIMEOUT = 1500; // ms
+
+      let timedOut = false;
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        // If we have a cached value, use it; otherwise deny (safe default)
+        if (stored) return resolve(stored === "approved");
+        return resolve(false);
+      }, REFRESH_TIMEOUT);
+
+      try {
+        await refreshUserStatus();
+        clearTimeout(timeout);
+        if (timedOut) return; // already resolved via timeout
+        // read stored status after refresh
+        chrome.storage.local.get(["userStatus", "statusCheckedAt"], (r2) => {
+          userStatus = r2.userStatus || userStatus;
+          statusCheckedAt = r2.statusCheckedAt || statusCheckedAt;
+          resolve(userStatus === "approved");
+        });
+      } catch (e) {
+        clearTimeout(timeout);
+        if (timedOut) return;
+        // On error, fallback to stored value if present
+        resolve(stored === "approved");
+      }
+    });
+  });
 }
 
 // Rate limiting: Track requests per user
@@ -250,6 +315,13 @@ get(versionRef).then((snapshot) => {
   }
 });
 
+// Hydrate runtime status from storage on worker start so checks are fast
+chrome.storage.local.get(["userStatus", "clientId", "statusCheckedAt"], (result) => {
+  if (result.userStatus) userStatus = result.userStatus;
+  if (result.clientId) clientId = result.clientId;
+  if (result.statusCheckedAt) statusCheckedAt = result.statusCheckedAt;
+});
+
 // Check if keyboard shortcuts are registered and nudge user if needed
 async function checkAndNudgeShortcuts() {
   try {
@@ -377,53 +449,70 @@ setInterval(() => {
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info) => {
-  if (!isUserAllowed()) {
-    console.warn("User not approved. Action blocked.");
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
-      title: "i2Snatcher",
-      message:
-        "Your access is not approved yet. Please contact the extension owner.",
-    });
-    return;
-  }
+  // Use async allowed check that reads from storage first (fast)
+  isUserAllowedAsync().then((allowed) => {
+    if (!allowed) {
+      console.warn("User not approved. Action blocked.");
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
+        title: "i2Snatcher",
+        message:
+          "Your access is not approved yet. Please contact the extension owner.",
+      });
+      return;
+    }
 
-  if (info.menuItemId === "copySvg") {
-    processSvg(info.linkUrl, "copy");
-  } else if (info.menuItemId === "downloadSvg") {
-    processSvg(info.linkUrl, "download");
-  }
+    if (info.menuItemId === "copySvg") {
+      processSvg(info.linkUrl, "copy");
+    } else if (info.menuItemId === "downloadSvg") {
+      processSvg(info.linkUrl, "download");
+    }
+  });
 });
 
 // Handle keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
-  if (!isUserAllowed()) {
-    console.warn("User not approved. Shortcut blocked.");
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
-      title: "i2Snatcher",
-      message:
-        "Your access is not approved yet. Please contact the extension owner.",
-    });
-    return;
-  }
-
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]?.id) {
-      const tabId = tabs[0].id;
-      const action = command === "copy_svg" ? "copy" : "download";
-      console.log("taken" + action);
-
-      chrome.scripting.executeScript({
-        target: { tabId },
-        function: extractSvg,
-        args: [action],
+  // Check stored/remote status before executing shortcuts
+  isUserAllowedAsync().then((allowed) => {
+    if (!allowed) {
+      console.warn("User not approved. Shortcut blocked.");
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
+        title: "i2Snatcher",
+        message:
+          "Your access is not approved yet. Please contact the extension owner.",
       });
+      return;
     }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        const tabId = tabs[0].id;
+        const action = command === "copy_svg" ? "copy" : "download";
+        console.log("taken" + action);
+
+        chrome.scripting.executeScript({
+          target: { tabId },
+          function: extractSvg,
+          args: [action],
+        });
+      }
+    });
   });
 });
+
+// Periodically refresh user status while active to avoid stale 'unknown' state
+// This helps when the service worker is active for a while; storage keeps the
+// last-known status across worker restarts.
+setInterval(() => {
+  try {
+    refreshUserStatus();
+  } catch (e) {
+    console.warn('Periodic refreshUserStatus failed', e);
+  }
+}, 5 * 60 * 1000); // every 5 minutes
 
 // Open the link in a background tab and extract the SVG
 function processSvg(detailLink, action) {
