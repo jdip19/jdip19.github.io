@@ -119,31 +119,21 @@ document.addEventListener("DOMContentLoaded", function () {
     input.style.width = input.value.length ? input.value.length + "ch" : "2ch";
   }
 
-  // Add event listener to update width dynamically as the user types
   svgSizeInput.addEventListener("input", function () {
     resizeInput(svgSizeInput);
-  });
-
-  // Initial resize in case there's a default value
-  resizeInput(svgSizeInput);
-
-  // Load images from storage when the popup opens
-  chrome.storage.local.get("imageUrls", (data) => {
-    if (data.imageUrls) {
-      displayImages(data.imageUrls);
-    }
-  });
-
-  // ✅ Load stored size when popup opens
-  chrome.storage.sync.get("svgSize", function (data) {
-    svgSizeInput.value = data.svgSize || 128;
-    resizeInput(svgSizeInput); // Default size = 128
-  });
-
-  // ✅ Save size automatically when the user types
-  svgSizeInput.addEventListener("input", function () {
     const svgSize = svgSizeInput.value || 128;
     chrome.storage.sync.set({ svgSize });
+  });
+
+  resizeInput(svgSizeInput);
+
+  chrome.storage.local.get("imageUrls", (data) => {
+    if (data.imageUrls) displayImages(data.imageUrls);
+  });
+
+  chrome.storage.sync.get("svgSize", function (data) {
+    svgSizeInput.value = data.svgSize || 128;
+    resizeInput(svgSizeInput);
   });
 
   chrome.storage.local.get("svgCount", (data) => {
@@ -152,31 +142,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
   chrome.storage.local.get(["remoteVersion", "updateAvailable"], (data) => {
     const versionElement = document.getElementById("version");
-
-    console.log(data.remoteVersion, data.updateAvailable);
-
+    versionElement.textContent = `v${data.remoteVersion}`;
     if (data.updateAvailable) {
-      versionElement.textContent = `v${data.remoteVersion}`;
       versionElement.classList.add("blink");
     } else {
-      versionElement.textContent = `v${data.remoteVersion}`;
       versionElement.classList.remove("blink");
     }
   });
 
-  // Load and handle auto-close toggle setting (default: true)
   chrome.storage.sync.get("autoClosePopup", function (data) {
-    const autoCloseEnabled = data.autoClosePopup !== false; // Default to true
+    const autoCloseEnabled = data.autoClosePopup !== false;
     autoCloseToggle.checked = autoCloseEnabled;
   });
 
-  // Save auto-close preference when toggle changes
   autoCloseToggle.addEventListener("change", function () {
     chrome.storage.sync.set({ autoClosePopup: autoCloseToggle.checked });
-    console.log("Auto-close popup:", autoCloseToggle.checked ? "enabled" : "disabled");
   });
 
-  // Load client ID and user status for display
   chrome.storage.local.get(["clientId", "userStatus"], (data) => {
     if (clientIdDisplay && data.clientId) {
       clientIdDisplay.textContent = data.clientId;
@@ -210,8 +192,6 @@ document.addEventListener("DOMContentLoaded", function () {
       
       if (!shortcutsRegistered && shortcutNudge) {
         shortcutNudge.style.display = "block";
-        
-        // Add click handler to open shortcuts page
         setupShortcutsBtn.addEventListener("click", () => {
           chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
         });
@@ -223,22 +203,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Check shortcuts when popup opens
   checkShortcutsAndShowNudge();
-
   svgSizeInput.focus();
 });
 
 chrome.runtime.sendMessage({ action: "getSVGCount" });
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (
-    message.type === "svgCountUpdated" ||
-    message.action === "updateSVGCount"
-  ) {
+  if (message.type === "svgCountUpdated" || message.action === "updateSVGCount") {
     const { copied = 0, downloaded = 0 } = message.payload || {};
-    // document.getElementById("copiedCount").innerText = copied;
-    // document.getElementById("downloadedCount").innerText = downloaded;
     chrome.storage.local.set({ svgCount: copied + downloaded });
   }
 });
