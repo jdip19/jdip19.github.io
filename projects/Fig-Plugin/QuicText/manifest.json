@@ -3,24 +3,24 @@
   "id": "1365014672422582628",
   "api": "1.0.0",
   "main": "code.js",
-  "enableProposedApi": false,
-  "documentAccess": "dynamic-page",
-  "networkAccess": {
-    "allowedDomains": [
-      "none"
-    ]
-  },
+  "ui": "ui.html",
   "editorType": [
     "figma"
   ],
-  "ui": "ui.html",
   "permissions": [
     "currentuser"
   ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "https://kmkjuuytbgpozrigspgw.supabase.co",
+      "https://*.supabase.co"
+    ]
+  },
   "menu": [
     {
-      "name": "Get unlimited command with Quictext Pro",
-      "command": "getpro"
+      "name": "My Plan & License",
+      "command": "myplan"
     },
     {
       "name": "to TitleCase",
@@ -47,6 +47,10 @@
       "name": "add Prefix"
     },
     {
+      "command": "addbetween",
+      "name": "add In-Between"
+    },
+    {
       "command": "addsuffix",
       "name": "add Suffix"
     },
@@ -61,10 +65,6 @@
     {
       "command": "copyerror",
       "name": "add Error Text"
-    },
-    {
-      "command": "addbetween",
-      "name": "add In-Between"
     },
     {
       "command": "removesymbols",

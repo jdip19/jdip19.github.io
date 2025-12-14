@@ -387,8 +387,8 @@ function GetHTTPResponse([Uri] $Uri, [bool]$HeaderOnly, [bool]$DisableRedirect, 
                     # Despite no proxy being explicitly specified, we may still be behind a default proxy
                     $DefaultProxy = [System.Net.WebRequest]::DefaultWebProxy;
                     if ($DefaultProxy -and (-not $DefaultProxy.IsBypassed($Uri))) {
-                        if ($null -ne $DefaultProxy.GetProxy($Uri)) {
-                            $ProxyAddress = $DefaultProxy.GetProxy($Uri).OriginalString
+                        if ($null -ne $DefaultProxy.myplanxy($Uri)) {
+                            $ProxyAddress = $DefaultProxy.myplanxy($Uri).OriginalString
                         }
                         else {
                             $ProxyAddress = $null

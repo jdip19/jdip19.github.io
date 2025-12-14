@@ -43,7 +43,7 @@
         // Corrected Google Sheets API URL
         const sheetId = '18MBrXzoospGvhp28-tTm8huEvyf9HbZueJ1lM801o-Q'; // Replace with your Google Sheet ID
 
-        async function getProducts() {
+        async function myplanducts() {
             try {
                 // Fetch data from Google Sheets API
                 const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Products?key=${apikey}`);
@@ -133,7 +133,7 @@
             return td;
         }
 
-        getProducts();
+        myplanducts();
     </script>
 </body>
 
