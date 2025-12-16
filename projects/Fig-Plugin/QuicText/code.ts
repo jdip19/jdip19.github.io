@@ -1,64 +1,192 @@
-// ==================== MONETIZATION SETTINGS ====================
-// Set to false to disable usage limits for testing
+// ==================== BUNDLED FIGMA PLUGIN ====================
+
+// ==================== TYPES.TS ====================
+
+// ==================== TYPE DEFINITIONS ====================
+
+interface SupabaseResponse {
+  valid?: boolean;
+  unlimited?: boolean;
+  email?: string;
+  plan?: string;
+  version?: string;
+  error?: string;
+}
+
+interface PaymentConfig {
+  checkoutUrl: string;
+  amount: number;
+  currency: string;
+}
+
+interface UsageData {
+  count: number;
+  date: string; // YYYY-MM-DD format
+}
+
+interface LicenseData {
+  key: string;
+  unlimited: boolean;
+  email: string;
+  plan: string;
+  version: string;
+  activatedAt: string;
+}
+
+type DynamicCommand = 'addprefix' | 'addsuffix' | 'addbetween';
+
+type FontReference = FontName | typeof figma.mixed;
+
+// ==================== CONFIG.TS ====================
+
+// ==================== CONFIGURATION ====================
+
+// Monetization settings
 const ENABLE_MONETIZATION = true;
+const FREE_DAILY_LIMIT = 10;
+const LICENSE_PRICE = 9; // $5 lifetime
+
+// API endpoints
 const VERIFY_LICENSE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/verify-license";
+const SUPABASE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co";
+const SUPABASE_ANON_KEY = "99721bbe20f7fedf28087bc968479e65a32a340cb5fc72121b06e94b9484354d"; // Replace with your actual key
+
+// Demo mode for testing
+const DEMO_MODE = false; // Set to false to test real Supabase responses
+
+// Dynamic command types
+const DEFAULT_VALUES = {
+  prefix: '#',
+  between: '-',
+  suffix: '.'
+};
+
+// Text constants
+const CTA_TEXTS = [
+  "Get Started", "Learn More", "Know More", "Read More", "Buy Now",
+  "Try Free Demo", "Explore Features", "Continue", "Subscribe", "Contact Us"
+];
+
+const HERO_TEXTS = [
+  "Transform Your Ideas Into Reality", "Build Something Amazing",
+  "Your Journey Starts Here", "Innovation Meets Excellence",
+  "Empower Your Creativity", "Where Great Things Happen",
+  "Unlock Your Potential", "Design. Create. Inspire.",
+  "Make It Happen", "Start Building Today"
+];
+
+const ERROR_TEXTS = [
+  "Something went wrong", "Oops! Something went wrong", "An error occurred",
+  "We're sorry, something went wrong", "Unable to complete this action",
+  "Please try again", "Error loading content", "Something unexpected happened",
+  "We encountered an issue", "Please refresh and try again"
+];
+
+// Dynamic command mappings
+const dynamicCommandModes: Record<DynamicCommand, 'prefix' | 'suffix' | 'between'> = {
+  addprefix: 'prefix',
+  addsuffix: 'suffix',
+  addbetween: 'between',
+};
+
+// ==================== UTILS.TS ====================
+
+// ==================== UTILITY FUNCTIONS ====================
 
 
-// Utility to get all font ranges in a text node
+
+/**
+ * Get all font ranges in a text node
+ */
 async function loadAllFontsForNode(node: TextNode): Promise<boolean> {
   const fontPromises: Promise<void>[] = [];
   let failed = false;
-  for (let i = 0; i < node.characters.length;) {
-    const font = node.getRangeFontName(i, i + 1);
-    let j = i + 1;
-    // Find the next range where the font changes
-    while (j < node.characters.length) {
-      const nextFont = node.getRangeFontName(j, j + 1);
-      if (!fontsEqual(nextFont, font)) {
-        break;
-      }
-      j++;
-    }
-    if (font !== figma.mixed) {
-      fontPromises.push(
-        figma.loadFontAsync(font).catch(err => {
-          console.error('Error loading font:', font, err);
-          failed = true;
-        })
-      );
-    }
-    i = j;
-  }
-  await Promise.all(fontPromises);
-  return !failed;
-}
+  const charLength = Math.max(0, node.characters.length);
 
-// Utility to get all unique fonts from all text nodes
-function getAllUniqueFonts(textNodes: TextNode[]): FontName[] {
-  const fontSet = new Set<string>();
-  const fonts: FontName[] = [];
-  for (const node of textNodes) {
-    for (let i = 0; i < node.characters.length;) {
-      const font = node.getRangeFontName(i, i + 1);
+  for (let i = 0; i < charLength;) {
+    try {
+      const endIdx = Math.min(i + 1, charLength);
+      if (endIdx <= i) break; // Safety check
+
+      const font = node.getRangeFontName(i, endIdx);
       let j = i + 1;
-      while (j < node.characters.length) {
-        const nextFont = node.getRangeFontName(j, j + 1);
+
+      // Find the next range where the font changes
+      while (j < charLength) {
+        const nextEndIdx = Math.min(j + 1, charLength);
+        const nextFont = node.getRangeFontName(j, nextEndIdx);
         if (!fontsEqual(nextFont, font)) {
           break;
         }
         j++;
       }
-      const fontKey = createFontKey(font);
-      if (font !== figma.mixed && !fontSet.has(fontKey)) {
-        fontSet.add(fontKey);
-        fonts.push(font as FontName);
+
+      if (font !== figma.mixed) {
+        fontPromises.push(
+          figma.loadFontAsync(font).catch(err => {
+            console.error('Error loading font:', font, err);
+            failed = true;
+          })
+        );
       }
       i = j;
+    } catch (err) {
+      console.error('Error in loadAllFontsForNode:', err);
+      i++;
+    }
+  }
+
+  await Promise.all(fontPromises);
+  return !failed;
+}
+
+/**
+ * Get all unique fonts from text nodes
+ */
+function getAllUniqueFonts(textNodes: TextNode[]): FontName[] {
+  const fontSet = new Set<string>();
+  const fonts: FontName[] = [];
+  for (const node of textNodes) {
+    try {
+      const charLength = Math.max(0, node.characters.length);
+      for (let i = 0; i < charLength;) {
+        try {
+          const endIdx = Math.min(i + 1, charLength);
+          if (endIdx <= i) break;
+
+          const font = node.getRangeFontName(i, endIdx);
+          let j = i + 1;
+
+          while (j < charLength) {
+            const nextEndIdx = Math.min(j + 1, charLength);
+            const nextFont = node.getRangeFontName(j, nextEndIdx);
+            if (!fontsEqual(nextFont, font)) {
+              break;
+            }
+            j++;
+          }
+
+          const fontKey = createFontKey(font);
+          if (font !== figma.mixed && !fontSet.has(fontKey)) {
+            fontSet.add(fontKey);
+            fonts.push(font as FontName);
+          }
+          i = j;
+        } catch (err) {
+          console.warn('Error getting font range:', err);
+          i++;
+        }
+      }
+    } catch (err) {
+      console.warn('Error processing node in getAllUniqueFonts:', err);
     }
   }
   return fonts;
 }
 
+/**
+ * Load all fonts
+ */
 async function loadAllFonts(fonts: FontName[]): Promise<boolean> {
   const loadResults = await Promise.all(
     fonts.map(async (font) => {
@@ -75,8 +203,9 @@ async function loadAllFonts(fonts: FontName[]): Promise<boolean> {
   return loadResults.every(Boolean);
 }
 
-type FontReference = FontName | typeof figma.mixed;
-
+/**
+ * Check if fonts are equal
+ */
 function fontsEqual(a: FontReference, b: FontReference): boolean {
   if (a === b) {
     return true;
@@ -87,6 +216,9 @@ function fontsEqual(a: FontReference, b: FontReference): boolean {
   return a.family === b.family && a.style === b.style;
 }
 
+/**
+ * Create font key for comparison
+ */
 function createFontKey(font: FontReference): string {
   if (font === figma.mixed) {
     return 'mixed';
@@ -94,10 +226,9 @@ function createFontKey(font: FontReference): string {
   return `${font.family}::${font.style}`;
 }
 
-const getAllTextNodes = (): TextNode[] => {
-  return figma.root.findAll(n => n.type === "TEXT") as TextNode[];
-};
-
+/**
+ * Get keyword list from string
+ */
 function getKeywordList(keywords: string): string[] {
   return keywords
     .split(',')
@@ -105,6 +236,620 @@ function getKeywordList(keywords: string): string[] {
     .filter((k: string) => k.length > 0);
 }
 
+/**
+ * Helper to pad number with leading zero
+ */
+function padZero(num: number): string {
+  return num < 10 ? `0${num}` : `${num}`;
+}
+
+/**
+ * Get today's date in YYYY-MM-DD format
+ */
+function getTodayDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())}`;
+}
+
+/**
+ * Generate UUID without crypto API
+ */
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+// ==================== STORAGE.TS ====================
+
+// ==================== STORAGE UTILITIES ====================
+
+
+
+
+/**
+ * Get current usage data
+ */
+async function getUsageData(): Promise<UsageData> {
+  const stored = await figma.clientStorage.getAsync('usageData');
+  const today = getTodayDate();
+
+  if (!stored) {
+    return { count: 0, date: today };
+  }
+
+  const usage = stored as UsageData;
+
+  // Reset if it's a new day
+  if (usage.date !== today) {
+    return { count: 0, date: today };
+  }
+
+  return usage;
+}
+
+/**
+ * Increment usage count
+ */
+async function incrementUsage(): Promise<void> {
+  const usage = await getUsageData();
+  usage.count++;
+  await figma.clientStorage.setAsync('usageData', usage);
+}
+
+/**
+ * Get device ID (creates one if it doesn't exist)
+ */
+async function getDeviceId(): Promise<string> {
+  try {
+    console.log("Getting device ID from storage...");
+    const deviceId = await figma.clientStorage.getAsync("deviceId");
+    console.log("Device ID from storage:", deviceId ? "exists" : "null");
+
+    if (deviceId) {
+      console.log("Returning existing device ID");
+      return deviceId as string;
+    }
+
+    console.log("Generating new device ID...");
+    const newId = generateUUID();
+    console.log("Generated new ID:", newId.substring(0, 8) + "...");
+
+    console.log("Saving new device ID to storage...");
+    await figma.clientStorage.setAsync("deviceId", newId);
+    console.log("Device ID saved successfully");
+
+    return newId;
+  } catch (err) {
+    console.error("Error in getDeviceId:", err);
+    // Return a fallback ID if storage fails
+    const fallbackId = "fallback-" + Date.now();
+    console.log("Using fallback device ID:", fallbackId);
+    return fallbackId;
+  }
+}
+
+/**
+ * Get stored index for cycling text
+ */
+async function getStoredIndex(key: string): Promise<number> {
+  const stored = await figma.clientStorage.getAsync(key);
+  return stored !== undefined ? stored : 0;
+}
+
+/**
+ * Save index for cycling text
+ */
+async function saveStoredIndex(key: string, index: number): Promise<void> {
+  await figma.clientStorage.setAsync(key, index);
+}
+
+/**
+ * Save license data to storage
+ */
+async function saveLicenseData(licenseData: LicenseData): Promise<void> {
+  console.log("Saving consolidated license data...");
+  await figma.clientStorage.setAsync("licenseData", licenseData);
+  console.log("License data saved successfully");
+
+  // Save individual keys sequentially for backward compatibility
+  console.log("Saving individual license keys...");
+  try {
+    await figma.clientStorage.setAsync("licenseKey", licenseData.key);
+    console.log("licenseKey saved");
+  } catch (err) {
+    console.warn("Failed to save licenseKey:", err);
+  }
+
+  try {
+    await figma.clientStorage.setAsync("unlimited", licenseData.unlimited);
+    console.log("unlimited flag saved");
+  } catch (err) {
+    console.warn("Failed to save unlimited:", err);
+  }
+
+  try {
+    await figma.clientStorage.setAsync("licenseEmail", licenseData.email);
+    console.log("licenseEmail saved");
+  } catch (err) {
+    console.warn("Failed to save email:", err);
+  }
+
+  try {
+    await figma.clientStorage.setAsync("licensePlan", licenseData.plan);
+    console.log("licensePlan saved");
+  } catch (err) {
+    console.warn("Failed to save plan:", err);
+  }
+
+  try {
+    await figma.clientStorage.setAsync("licenseVersion", licenseData.version);
+    console.log("licenseVersion saved");
+  } catch (err) {
+    console.warn("Failed to save version:", err);
+  }
+
+  console.log("All individual keys saved successfully");
+}
+
+async function getEffectiveDefault(
+  key: 'prefix' | 'between' | 'suffix'
+): Promise<string> {
+  const storageKey = `default_${key}`;
+  const stored = await getDefaultValue(storageKey);
+
+  if (stored !== null && stored !== undefined && stored !== '') {
+    return stored;
+  }
+
+  return DEFAULT_VALUES[key];
+}
+
+
+/**
+ * Get a stored default value for dynamic commands (prefix/suffix/between)
+ */
+async function getDefaultValue(key: string): Promise<string | null> {
+  try {
+    const v = await figma.clientStorage.getAsync(key);
+    return v !== undefined ? (v as string) : null;
+  } catch (err) {
+    console.warn('Error reading default value:', key, err);
+    return null;
+  }
+}
+
+/**
+ * Save a default value for dynamic commands
+ */
+async function saveDefaultValue(key: string, value: string): Promise<void> {
+  try {
+    await figma.clientStorage.setAsync(key, value);
+  } catch (err) {
+    console.warn('Error saving default value:', key, err);
+  }
+}
+
+/**
+ * Read consolidated license data (if stored)
+ */
+async function getLicenseData(): Promise<LicenseData | null> {
+  try {
+    const stored = await figma.clientStorage.getAsync('licenseData');
+    if (stored) return stored as LicenseData;
+
+    // Fallback to older individual keys
+    const key = await figma.clientStorage.getAsync('licenseKey');
+    if (!key) return null;
+    const unlimited = Boolean(await figma.clientStorage.getAsync('unlimited'));
+    const email = (await figma.clientStorage.getAsync('licenseEmail')) || '';
+    const plan = (await figma.clientStorage.getAsync('licensePlan')) || '';
+    const version = (await figma.clientStorage.getAsync('licenseVersion')) || '';
+    const activatedAt = (await figma.clientStorage.getAsync('licenseActivatedAt')) || '';
+
+    return {
+      key: key as string,
+      unlimited,
+      email: email as string,
+      plan: plan as string,
+      version: version as string,
+      activatedAt: activatedAt as string
+    } as LicenseData;
+  } catch (err) {
+    console.warn('Error reading license data:', err);
+    return null;
+  }
+}
+
+/**
+ * Clear stored license information
+ */
+async function clearLicenseData(): Promise<void> {
+  try {
+    await figma.clientStorage.deleteAsync('licenseData');
+    await figma.clientStorage.deleteAsync('licenseKey');
+    await figma.clientStorage.deleteAsync('unlimited');
+    await figma.clientStorage.deleteAsync('licenseEmail');
+    await figma.clientStorage.deleteAsync('licensePlan');
+    await figma.clientStorage.deleteAsync('licenseVersion');
+    await figma.clientStorage.deleteAsync('licenseActivatedAt');
+    console.log('Cleared license data from storage');
+  } catch (err) {
+    console.warn('Error clearing license data:', err);
+  }
+}
+
+// ==================== LICENSE.TS ====================
+
+// ==================== LICENSE MANAGEMENT ====================
+
+
+
+
+
+/**
+ * Check if user has valid license
+ */
+async function hasLicense(): Promise<boolean> {
+  try {
+    // First try the new consolidated storage format
+    const licenseData = await figma.clientStorage.getAsync("licenseData");
+    if (licenseData && typeof licenseData === 'object') {
+      console.log("Found license data in consolidated format");
+      return true;
+    }
+
+    // Fallback to individual keys
+    const savedKey = await figma.clientStorage.getAsync("licenseKey");
+    if (!savedKey) return false;
+
+    if (typeof savedKey !== 'string' || savedKey.length === 0) {
+      return false;
+    }
+
+    const result = await verifyLicenseKey(savedKey as string);
+
+    if (result && result.valid) {
+      // Cache valid license info
+      await figma.clientStorage.setAsync("unlimited", result.unlimited ?? false).catch(() => {});
+      return true;
+    } else {
+      // Invalid license - clear it
+      await figma.clientStorage.deleteAsync("licenseKey").catch(() => {});
+      return false;
+    }
+  } catch (err) {
+    console.error("License check error:", err);
+    return false;
+  }
+}
+
+/**
+ * Verify license key with Supabase
+ */
+async function verifyLicenseKey(licenseKey: string): Promise<SupabaseResponse | null> {
+  if (!licenseKey || typeof licenseKey !== 'string' || licenseKey.trim().length === 0) {
+    console.warn("Invalid license key format");
+    return null;
+  }
+
+  const trimmedKey = licenseKey.trim();
+
+  // Demo mode for testing
+  if (DEMO_MODE) {
+    console.log("🔧 DEMO MODE: Accepting all test keys starting with QT-TEST-");
+    if (trimmedKey.startsWith("QT-TEST-")) {
+      console.log("✅ Demo license accepted");
+      return {
+        valid: true,
+        unlimited: true,
+        email: "demo@example.com",
+        plan: "pro",
+        version: "1.0"
+      };
+    } else {
+      console.log("❌ Demo license rejected - key doesn't start with QT-TEST-");
+      return {
+        valid: false,
+        error: "Demo mode: only accepts keys starting with QT-TEST-"
+      };
+    }
+  }
+
+  console.log("🌐 Making real Supabase API call...");
+  console.log("📡 URL:", VERIFY_LICENSE_URL);
+  console.log("🔑 License key:", trimmedKey.substring(0, 8) + "...");
+
+  try {
+    const deviceId = await getDeviceId();
+
+    if (!deviceId) {
+      console.warn("❌ Could not get device ID");
+      return { valid: false, error: "Could not get device ID" };
+    }
+
+    console.log("📱 Device ID:", deviceId.substring(0, 8) + "...");
+
+    const requestBody = {
+      key: trimmedKey,
+      device_id: deviceId
+    };
+
+    console.log("📤 Request body:", JSON.stringify(requestBody, null, 2));
+
+    // Simplified fetch without AbortController to avoid WebAssembly conflicts
+    let response: Response;
+    try {
+      console.log("⏳ Sending fetch request...");
+      console.log("🌐 Full request details:");
+      console.log("  URL:", VERIFY_LICENSE_URL);
+      console.log("  Method: POST");
+      console.log("  Headers:", {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      });
+      console.log("  Body:", requestBody);
+
+      response = await fetch(VERIFY_LICENSE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      });
+      console.log("📥 Response received");
+
+      // Check if response object exists (Figma WebAssembly compatibility issue)
+      if (!response) {
+        console.error("❌ Response object is null/undefined - this is a Figma WebAssembly environment issue");
+        return { valid: false, error: "No response received from server (WebAssembly compatibility issue)" };
+      }
+    } catch (fetchErr) {
+      console.error("❌ Fetch error details:");
+      const error = fetchErr as Error;
+      console.error("  Error type:", error.constructor?.name || 'Unknown');
+      console.error("  Error message:", error.message || String(fetchErr));
+      console.error("  Error stack:", error.stack || 'No stack trace');
+
+      // Try to determine the specific error type
+      if (error.message && error.message.includes('Failed to fetch')) {
+        console.error("🚫 This is likely a network/CORS/CSP issue");
+        console.error("💡 Possible causes:");
+        console.error("   - Plugin not reloaded after manifest.json changes");
+        console.error("   - CORS not configured on Supabase");
+        console.error("   - Supabase function not deployed");
+        console.error("   - Network connectivity issues");
+      }
+
+      return { valid: false, error: "Network error: " + String(fetchErr) };
+    }
+
+    console.log("📊 Response status:", response.status);
+    console.log("📊 Response headers available:", response.headers ? "headers available" : "headers not available");
+
+    if (!response.ok) {
+      let errorText = "";
+      try {
+        errorText = await response.text();
+        console.log("❌ Error response body:", errorText);
+      } catch (textErr) {
+        errorText = "Could not read response body";
+        console.error("❌ Could not read error response:", textErr);
+      }
+      console.error(`❌ License verification failed with status: ${response.status}`);
+      return { valid: false, error: `HTTP ${response.status}: ${errorText}` };
+    }
+
+    const contentType = response.headers?.get ? response.headers.get("content-type") : "unknown";
+    console.log("📄 Content-Type:", contentType);
+
+    // Be more lenient with content-type check - try to parse JSON regardless
+    let data: any;
+    try {
+      console.log("🔄 Parsing JSON response...");
+      data = await response.json();
+      console.log("✅ JSON parsed successfully");
+      console.log("📦 Full Supabase response:", JSON.stringify(data, null, 2));
+    } catch (jsonErr) {
+      console.error("❌ Error parsing JSON response:", jsonErr);
+      // If JSON parsing fails, that's when we return the invalid format error
+      let text = "";
+      try {
+        text = await response.text();
+        console.log("📄 Raw response text:", text);
+      } catch (textErr) {
+        text = "Could not read response";
+        console.error("❌ Could not read response:", textErr);
+      }
+      return { valid: false, error: "Invalid response format: " + text };
+    }
+
+    if (!data || typeof data !== 'object') {
+      console.warn("⚠️ Invalid response object");
+      return { valid: false, error: "Invalid response object" };
+    }
+
+    console.log("🎯 License verification result:", {
+      valid: data.valid,
+      unlimited: data.unlimited,
+      hasEmail: !!data.email,
+      hasPlan: !!data.plan,
+      hasVersion: !!data.version,
+      error: data.error
+    });
+
+    return data as SupabaseResponse;
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.name === 'AbortError') {
+        console.error("⏰ License verification timeout");
+        return { valid: false, error: "Request timeout" };
+      }
+      console.error("❌ Error verifying license:", err.message);
+      return { valid: false, error: err.message };
+    } else {
+      console.error("❌ Error verifying license:", err);
+    }
+    return { valid: false, error: String(err) };
+  }
+}
+
+/**
+ * Check if user can use the plugin (has license or under daily limit)
+ */
+async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }> {
+  if (!ENABLE_MONETIZATION) return { allowed: true };
+
+  try {
+    // Check for consolidated license data first
+    const licenseData = await figma.clientStorage.getAsync("licenseData");
+    if (licenseData && typeof licenseData === 'object' && licenseData.unlimited) {
+      return { allowed: true };
+    }
+
+    // Fallback to individual unlimited flag
+    const unlimited = Boolean(await figma.clientStorage.getAsync("unlimited"));
+    if (unlimited) return { allowed: true };
+
+    const licensed = await hasLicense();
+    if (licensed) return { allowed: true };
+
+    const usage = await getUsageData();
+    const remaining = FREE_DAILY_LIMIT - usage.count;
+
+    return {
+      allowed: remaining > 0,
+      remaining: Math.max(0, remaining)
+    };
+  } catch (err) {
+    console.error("Error in canUsePlugin:", err);
+    // On error, allow usage to prevent blocking users
+    return { allowed: true };
+  }
+}
+
+/**
+ * Activate license (called from UI after payment)
+ */
+async function activateLicense(licenseKey: string): Promise<boolean> {
+  if (!licenseKey || typeof licenseKey !== 'string' || licenseKey.trim().length === 0) {
+    console.error("Invalid license key format");
+    return false;
+  }
+
+  try {
+    console.log("Attempting to activate license:", licenseKey.substring(0, 8) + "...");
+
+    console.log("Getting device ID...");
+    const device_id = await getDeviceId();
+    console.log("Device ID obtained:", device_id ? "yes" : "no");
+
+    if (!device_id) {
+      console.error("Failed to get device ID");
+      return false;
+    }
+
+    console.log("Verifying license key...");
+    const result = await verifyLicenseKey(licenseKey.trim());
+    console.log("License verification completed");
+
+    if (!result) {
+      console.error("No response from license verification");
+      return false;
+    }
+
+    console.log("License verification result:", { valid: result.valid, error: result.error });
+
+    if (result && result.valid === true) {
+      console.log("License is valid, saving to storage...");
+
+      // Save data sequentially to avoid WebAssembly memory issues
+      try {
+        const licenseData = {
+          key: licenseKey.trim(),
+          unlimited: result.unlimited ?? false,
+          email: result.email ?? "",
+          plan: result.plan ?? "",
+          version: result.version ?? "",
+          activatedAt: new Date().toISOString()
+        };
+
+        console.log("Saving consolidated license data...");
+        await figma.clientStorage.setAsync("licenseData", licenseData);
+        console.log("License data saved successfully");
+
+        // Save individual keys sequentially for backward compatibility
+        console.log("Saving individual license keys...");
+        try {
+          await figma.clientStorage.setAsync("licenseKey", licenseKey.trim());
+          console.log("licenseKey saved");
+        } catch (err) {
+          console.warn("Failed to save licenseKey:", err);
+        }
+
+        try {
+          await figma.clientStorage.setAsync("unlimited", result.unlimited ?? false);
+          console.log("unlimited flag saved");
+        } catch (err) {
+          console.warn("Failed to save unlimited:", err);
+        }
+
+        try {
+          await figma.clientStorage.setAsync("licenseEmail", result.email ?? "");
+          console.log("licenseEmail saved");
+        } catch (err) {
+          console.warn("Failed to save email:", err);
+        }
+
+        try {
+          await figma.clientStorage.setAsync("licensePlan", result.plan ?? "");
+          console.log("licensePlan saved");
+        } catch (err) {
+          console.warn("Failed to save plan:", err);
+        }
+
+        try {
+          await figma.clientStorage.setAsync("licenseVersion", result.version ?? "");
+          console.log("licenseVersion saved");
+        } catch (err) {
+          console.warn("Failed to save version:", err);
+        }
+
+        console.log("All individual keys saved successfully");
+
+        console.log("License activated successfully");
+        return true;
+      } catch (storageErr) {
+        console.error("Error saving license to storage:", storageErr);
+        // Even if storage fails, consider the license valid for this session
+        console.log("License valid for this session despite storage error");
+        return true;
+      }
+    } else {
+      console.warn("License verification returned invalid:", result?.error || "Unknown error");
+      return false;
+    }
+  } catch (err) {
+    console.error("License activation error:", err);
+    return false;
+  }
+}
+
+
+// ==================== TEXT-PROCESSING.TS ====================
+
+// ==================== TEXT PROCESSING ====================
+
+
+
+
+
+/**
+ * Apply formatting to keywords in text nodes
+ */
 async function applyFormattingToKeywords(
   keywords: string,
   applyRange: (node: TextNode, start: number, end: number) => void
@@ -115,18 +860,36 @@ async function applyFormattingToKeywords(
   }
   const textNodes = getAllTextNodes();
   for (const node of textNodes) {
-    await figma.loadFontAsync(node.fontName as FontName);
+    try {
+      await figma.loadFontAsync(node.fontName as FontName);
+    } catch (err) {
+      console.warn('Could not load font for node:', err);
+    }
     const text = node.characters;
     keywordList.forEach((word: string) => {
+      if (word.length === 0 || word.length > text.length) {
+        return; // Skip if word is empty or longer than text
+      }
       let index = text.indexOf(word);
-      while (index !== -1) {
-        applyRange(node, index, index + word.length);
+      while (index !== -1 && index >= 0) {
+        const endIndex = index + word.length;
+        // Ensure indices are valid before applying
+        if (index >= 0 && endIndex <= text.length) {
+          try {
+            applyRange(node, index, endIndex);
+          } catch (err) {
+            console.warn(`Could not apply formatting at range ${index}-${endIndex}:`, err);
+          }
+        }
         index = text.indexOf(word, index + word.length);
       }
     });
   }
 }
 
+/**
+ * Process all text nodes with a transformation function
+ */
 async function processAllTextNodes(textNodes: TextNode[]) {
   let skippedCount = 0;
   for (const node of textNodes) {
@@ -146,6 +909,16 @@ async function processAllTextNodes(textNodes: TextNode[]) {
   }
 }
 
+/**
+ * Get all text nodes from current page
+ */
+const getAllTextNodes = (): TextNode[] => {
+  return figma.root.findAll(n => n.type === "TEXT") as TextNode[];
+};
+
+/**
+ * Collect text nodes from selection
+ */
 function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   const result: TextNode[] = [];
   const visited = new Set<string>();
@@ -169,133 +942,77 @@ function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   return result;
 }
 
-type DynamicCommand = 'addprefix' | 'addsuffix' | 'addbetween';
-const dynamicCommandModes: Record<DynamicCommand, 'prefix' | 'suffix' | 'between'> = {
-  addprefix: 'prefix',
-  addsuffix: 'suffix',
-  addbetween: 'between',
-};
-
-
-function handleDynamicCommand(command: DynamicCommand): void {
-  const mode = dynamicCommandModes[command];
-  figma.showUI(__html__, { width: 300, height: 160 });
-  figma.ui.postMessage({ type: 'show-dynamic-box', mode });
-}
-
-const selection = figma.currentPage.selection;
-const textNodes = collectTextNodes(selection);
-
-// Skip selection requirement for some commands
-const commandsNotRequiringSelection = ["getpro"];
-
-if (textNodes.length === 0 && figma.command !== "getpro") {
-  figma.notify("Please select at least one text layer. 😕");
-  figma.closePlugin();
-}
-
-
-if (textNodes.length !== selection.length) {
-  figma.currentPage.selection = textNodes;
-}
-
-// Check usage before executing commands
-(async () => {
-
-  if (figma.command === "getpro") {
-    showLicenseUI(0);
-    return; // VALID because inside a function
-  }
-
-
-  const usageCheck = await canUsePlugin();
-
-  if (!usageCheck.allowed) {
-    showLicenseUI(0);
+/**
+ * Apply a simple dynamic format (prefix/suffix/between) to current selection
+ */
+async function applyDynamicFormat(value: string, mode: 'prefix' | 'suffix' | 'between') {
+  const nodes = figma.currentPage.selection.filter(n => n.type === 'TEXT') as TextNode[];
+  if (nodes.length === 0) {
+    figma.notify('Please select at least one text layer');
     return;
   }
 
-  // Show remaining count if free user (only when monetization is enabled)
-  if (ENABLE_MONETIZATION && usageCheck.remaining !== undefined && usageCheck.remaining <= 3) {
-
-    figma.notify(`⚠️ ${usageCheck.remaining} free commands remaining today`);
-  }
-
-  const isDynamicCommand = figma.command && figma.command in dynamicCommandModes;
-
-  if (isDynamicCommand) {
-    await handleDynamicCommand(figma.command as DynamicCommand);
-    // Dynamic commands wait for UI input and manage plugin closing themselves.
-  } else {
-    const allFonts = getAllUniqueFonts(textNodes);
-    loadAllFonts(allFonts)
-      .then(success => {
-        if (!success) {
-          figma.notify('Some fonts could not be loaded. Some nodes may be skipped.');
-        }
-        return processAllTextNodes(textNodes);
-      })
-      .then(async () => {
-        // Increment usage after successful execution
-        await incrementUsage();
-        figma.closePlugin();
-      });
-  }
-})();
-
-function handleTextFormatting(node: TextNode): void {
-  // Show UI for text formatting options
-  figma.showUI(__html__, { width: 400, height: 300 });
-
-  figma.ui.onmessage = async (msg) => {
-    switch (msg.type) {
-      case 'apply-style':
-        await applyTextStyle(msg.keywords, msg.styleId);
-        break;
-      case 'apply-bold':
-        await applyBoldFormatting(msg.keywords);
-        break;
-      case 'apply-italic':
-        await applyItalicFormatting(msg.keywords);
-        break;
-      case 'apply-underline':
-        await applyUnderlineFormatting(msg.keywords);
-        break;
-      default:
-        console.log('Unknown formatting type:', msg.type);
+  for (const node of nodes) {
+    try {
+      await figma.loadFontAsync(node.fontName as FontName);
+    } catch (err) {
+      console.warn('Font load failed for node:', node, err);
     }
+
+    let text = node.characters;
+    if (mode === 'prefix') {
+      text = value + text;
+    } else if (mode === 'suffix') {
+      text = text + value;
+    } else if (mode === 'between') {
+      const parts = text.split(/\s+/);
+      text = parts.join(value);
+    }
+
+    try {
+      node.characters = text;
+    } catch (err) {
+      console.error('Failed to apply dynamic format to node:', err);
+    }
+  }
+}
+
+/**
+ * Apply a quick command (addprefix/addsuffix/addbetween) using stored defaults
+ */
+async function applyQuickCommand(command: string) {
+  const map: Record<string, { mode: 'prefix' | 'between' | 'suffix' }> = {
+    addprefix: { mode: 'prefix' },
+    addbetween: { mode: 'between' },
+    addsuffix: { mode: 'suffix' }
   };
+
+  const entry = map[command];
+  if (!entry) {
+    console.error('Unsupported quick command:', command);
+    return;
+  }
+
+  const value = await getEffectiveDefault(entry.mode);
+
+  await applyDynamicFormat(value, entry.mode);
 }
 
-async function applyTextStyle(keywords: string, styleId: string): Promise<void> {
-  await applyFormattingToKeywords(keywords, (node, start, end) => {
-    node.setRangeTextStyleId(start, end, styleId);
-  });
-  figma.notify("✅ Text style applied!");
-}
 
-async function applyBoldFormatting(keywords: string): Promise<void> {
-  await applyFormattingToKeywords(keywords, (node, start, end) => {
-    node.setRangeTextStyleId(start, end, "bold-style-id");
-  });
-  figma.notify("✅ Bold formatting applied!");
-}
 
-async function applyItalicFormatting(keywords: string): Promise<void> {
-  await applyFormattingToKeywords(keywords, (node, start, end) => {
-    node.setRangeTextStyleId(start, end, "italic-style-id");
-  });
-  figma.notify("✅ Italic formatting applied!");
-}
 
-async function applyUnderlineFormatting(keywords: string): Promise<void> {
-  await applyFormattingToKeywords(keywords, (node, start, end) => {
-    node.setRangeTextStyleId(start, end, "underline-style-id");
-  });
-  figma.notify("✅ Underline formatting applied!");
-}
-
+/**
+ * Handle text case transformation
+ */
 async function handleTextCase(node: TextNode): Promise<void> {
+  // Load all fonts for this node before processing
+  try {
+    await loadAllFontsForNode(node);
+  } catch (fontError) {
+    console.warn('Failed to load fonts for node:', fontError);
+    // Continue processing even if font loading fails
+  }
+
   const originalCharacters = node.characters;
   const originalFills = [];
   const hadUniformFill = node.fills !== figma.mixed;
@@ -380,7 +1097,6 @@ async function handleTextCase(node: TextNode): Promise<void> {
     figma.notify(successMessage(newLayers.length));
   };
 
-
   switch (figma.command) {
     case 'titlecase':
       const conjunctions = ['for', 'as', 'an', 'a', 'in', 'on', 'of', 'am', 'are', 'and', 'to', 'is', 'at', 'also', 'with', 'or'];
@@ -407,10 +1123,8 @@ async function handleTextCase(node: TextNode): Promise<void> {
         }
       });
 
-
       figma.notify('Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅');
       break;
-
 
     case 'sentencecase':
       const allUppercase = newText.split(' ').every(word => word.toUpperCase() === word);
@@ -448,7 +1162,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
     case 'uppercase':
       newText = newText.toUpperCase();
-      figma.notify('Tadaannn... 🥁 Your Text case changed to UPPERCASE. 👿');
+      figma.notify('Tadaannn... 🥁 Your Text case changed to UPPERCASE. 🐘');
       break;
 
     case 'lowercase':
@@ -482,7 +1196,6 @@ async function handleTextCase(node: TextNode): Promise<void> {
       figma.notify('Tadaannn... 🥁 Your Text is now unwanted space free. 🤧');
       break;
 
-
     case "removesymbols":
       newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, " ");
       figma.notify("Removed punctuation & symbols ✔");
@@ -498,6 +1211,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
         .replace(/^-+|-+$/g, '');
       figma.notify('Tadaannn... 🥁 Converted to slug format.');
       break;
+
     case 'splitindividually': {
       const lines = originalCharacters.split(/\r\n|\r|\n/);
 
@@ -539,6 +1253,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
       );
       return;
     }
+
     default:
       console.error('Unknown command:', figma.command);
       return;
@@ -568,9 +1283,13 @@ async function handleTextCase(node: TextNode): Promise<void> {
   } else {
     // Reapply the original fills to the corresponding character ranges
     try {
-      for (let i = 0; i < newText.length; i++) {
-        if (originalFills[i] !== null && originalFills[i] !== undefined) {
-          node.setRangeFills(i, i + 1, originalFills[i] as Paint[]);
+      for (let i = 0; i < Math.min(newText.length, originalFills.length); i++) {
+        if (i < node.characters.length && originalFills[i] !== null && originalFills[i] !== undefined) {
+          try {
+            node.setRangeFills(i, Math.min(i + 1, node.characters.length), originalFills[i] as Paint[]);
+          } catch (rangeError) {
+            console.warn(`Could not apply fill at index ${i}:`, rangeError);
+          }
         }
       }
     } catch (error) {
@@ -585,260 +1304,10 @@ async function handleTextCase(node: TextNode): Promise<void> {
     });
   }
 }
-figma.ui.onmessage = async (msg) => {
-  if (msg.type === "apply-dynamic") {
-    await applyDynamicFormat(msg.value, msg.mode);
-    await incrementUsage();
-    figma.closePlugin("Done!");
-    return;
-  }
 
-  if (msg.type === "activate-license") {
-    const success = await activateLicense(msg.licenseKey);
-    if (success) {
-      figma.notify("✅ License activated! Enjoy unlimited usage.");
-      figma.ui.postMessage({ type: 'license-activated' });
-      // Reload the plugin to apply license
-      setTimeout(() => {
-        figma.closePlugin();
-      }, 1000);
-    } else {
-      figma.notify("❌ Invalid license key. Please check and try again.");
-      figma.ui.postMessage({ type: 'license-error', message: 'Invalid license key' });
-    }
-    return;
-  }
-
-  if (msg.type === "check-usage") {
-    const usageCheck = await canUsePlugin();
-    const usage = await getUsageData();
-    figma.ui.postMessage({
-      type: 'usage-info',
-      hasLicense: await hasLicense(),
-      remaining: usageCheck.remaining || 'unlimited',
-      used: usage.count,
-      limit: FREE_DAILY_LIMIT
-    });
-    return;
-  }
-};
-async function applyDynamicFormat(value: string, mode: string) {
-  const nodes = figma.currentPage.selection.filter(n => n.type === "TEXT") as TextNode[];
-
-  if (nodes.length === 0) {
-    figma.notify("Please select at least one text layer");
-    return;
-  }
-
-
-  for (const node of nodes) {
-    await figma.loadFontAsync(node.fontName as FontName);
-    let text = node.characters;
-
-    if (mode === "prefix") {
-      text = value + text;
-    }
-    else if (mode === "suffix") {
-      text = text + value;
-    }
-    else if (mode === "between") {
-      const parts = text.split(/\s+/);
-      text = parts.join(value);
-    }
-
-    node.characters = text;
-  }
-}
-const CTA_TEXTS = [
-  "Get Started",
-  "Learn More",
-  "Know More",
-  "Read More",
-  "Buy Now",
-  "Try Free Demo",
-  "Explore Features",
-  "Continue",
-  "Subscribe",
-  "Contact Us"
-];
-
-const HERO_TEXTS = [
-  "Transform Your Ideas Into Reality",
-  "Build Something Amazing",
-  "Your Journey Starts Here",
-  "Innovation Meets Excellence",
-  "Empower Your Creativity",
-  "Where Great Things Happen",
-  "Unlock Your Potential",
-  "Design. Create. Inspire.",
-  "Make It Happen",
-  "Start Building Today"
-];
-
-const ERROR_TEXTS = [
-  "Something went wrong",
-  "Oops! Something went wrong",
-  "An error occurred",
-  "We're sorry, something went wrong",
-  "Unable to complete this action",
-  "Please try again",
-  "Error loading content",
-  "Something unexpected happened",
-  "We encountered an issue",
-  "Please refresh and try again"
-];
-
-// ==================== MONETIZATION SYSTEM ====================
-const FREE_DAILY_LIMIT = 10;
-const LICENSE_PRICE = 5; // $5 lifetime
-
-interface UsageData {
-  count: number;
-  date: string; // YYYY-MM-DD format
-}
-
-// Check if user has valid license
-async function hasLicense(): Promise<boolean> {
-  const savedKey = await figma.clientStorage.getAsync("licenseKey");
-  if (!savedKey) return false;
-
-  try {
-    const response = await fetch(VERIFY_LICENSE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: savedKey }),
-    });
-
-    const result = await response.json();
-
-    // If invalid server-side → user loses access
-    if (!result.valid) {
-      await figma.clientStorage.deleteAsync("licenseKey");
-      return false;
-    }
-
-    // Refresh unlimited flag if changed
-    await figma.clientStorage.setAsync("unlimited", result.unlimited ?? false);
-
-    return true;
-
-  } catch (err) {
-    console.error("License check error:", err);
-    return false;
-  }
-}
-
-
-// Helper to pad number with leading zero
-function padZero(num: number): string {
-  return num < 10 ? `0${num}` : `${num}`;
-}
-
-// Get today's date in YYYY-MM-DD format
-function getTodayDate(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())}`;
-}
-
-// Get current usage data
-async function getUsageData(): Promise<UsageData> {
-  const stored = await figma.clientStorage.getAsync('usageData');
-  const today = getTodayDate();
-
-  if (!stored) {
-    return { count: 0, date: today };
-  }
-
-  const usage = stored as UsageData;
-
-  // Reset if it's a new day
-  if (usage.date !== today) {
-    return { count: 0, date: today };
-  }
-
-  return usage;
-}
-
-// Increment usage count
-async function incrementUsage(): Promise<void> {
-  const usage = await getUsageData();
-  usage.count++;
-  await figma.clientStorage.setAsync('usageData', usage);
-}
-
-// Check if user can use the plugin (has license or under daily limit)
-// Whitelist removed — use manual license rows in the database instead
-async function canUsePlugin(): Promise<{ allowed: boolean; remaining?: number }> {
-  if (!ENABLE_MONETIZATION) return { allowed: true };
-
-  const unlimited = Boolean(await figma.clientStorage.getAsync("unlimited"));
-  if (unlimited) return { allowed: true };
-
-  const licensed = await hasLicense();
-  if (licensed) return { allowed: true };
-
-  const usage = await getUsageData();
-  const remaining = FREE_DAILY_LIMIT - usage.count;
-
-  return {
-    allowed: remaining > 0,
-    remaining: Math.max(0, remaining)
-  };
-}
-
-
-
-
-
-// Show payment/license UI
-function showLicenseUI(remaining: number): void {
-  figma.showUI(__html__, { width: 400, height: 500 });
-  figma.ui.postMessage({
-    type: 'show-license',
-    remaining,
-    price: LICENSE_PRICE
-  });
-}
-
-// Activate license (called from UI after payment)
-async function activateLicense(licenseKey: string): Promise<boolean> {
-  try {
-    const response = await fetch(VERIFY_LICENSE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: licenseKey }),
-    });
-
-    const result = await response.json();
-
-    if (result.valid) {
-      // Save key + unlimited flag
-      await figma.clientStorage.setAsync("licenseEmail", result.email);
-      await figma.clientStorage.setAsync("licensePlan", result.plan);
-      await figma.clientStorage.setAsync("licenseVersion", result.version);
-      return true;
-    }
-
-    return false;
-
-  } catch (err) {
-    console.error("License activation error:", err);
-    return false;
-  }
-}
-
-
-// Get stored index or default to 0
-async function getStoredIndex(key: string): Promise<number> {
-  const stored = await figma.clientStorage.getAsync(key);
-  return stored !== undefined ? stored : 0;
-}
-
-// Save index for next plugin run
-async function saveStoredIndex(key: string, index: number): Promise<void> {
-  await figma.clientStorage.setAsync(key, index);
-}
-
+/**
+ * Cycle through copy text options
+ */
 async function cycleCopyText(node: TextNode, texts: string[], storageKey: string): Promise<void> {
   const index = await getStoredIndex(storageKey);
   const text = texts[index];
@@ -850,3 +1319,185 @@ async function cycleCopyText(node: TextNode, texts: string[], storageKey: string
   const nextIndex = (index + 1) % texts.length;
   await saveStoredIndex(storageKey, nextIndex);
 }
+
+
+
+// ==================== MAIN.TS ====================
+
+// ==================== MAIN PLUGIN FILE ====================
+
+
+
+
+
+
+// Main plugin logic
+async function main() {
+  try {
+    // 1️⃣ Get Pro always opens license UI
+    if (figma.command === "myplan") {
+      await showAccountUI();
+      return;
+    }
+
+    // Quick dynamic commands (prefix/suffix/between) — handled centrally
+    const dynamicCommands = ['addprefix', 'addsuffix', 'addbetween'];
+    if (dynamicCommands.includes(figma.command || '')) {
+      await applyQuickCommand(figma.command as string);
+      figma.notify('Applied successfully!');
+      figma.closePlugin();
+      return;
+    }
+
+    // 2️⃣ Other commands → check license
+    if (ENABLE_MONETIZATION) {
+      const licensed = await hasLicense();
+      if (!licensed) {
+        await showAccountUI();
+        return;
+      }
+    }
+
+    // 3️⃣ Run command
+    await processTextCommand();
+    figma.closePlugin();
+
+  } catch (error) {
+    console.error("Plugin error:", error);
+    figma.notify("Something went wrong.");
+    figma.closePlugin();
+  }
+}
+
+
+
+
+// Process text transformation commands
+async function processTextCommand() {
+  const selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    figma.notify('Please select at least one text layer.');
+    figma.closePlugin();
+    return;
+  }
+
+  const textNodes = collectTextNodes(selection);
+  if (textNodes.length === 0) {
+    figma.notify('No text layers found in selection.');
+    figma.closePlugin();
+    return;
+  }
+
+  // Track usage
+  if (ENABLE_MONETIZATION) {
+    await incrementUsage();
+  }
+
+  await processAllTextNodes(textNodes);
+}
+
+// Handle UI messages
+figma.ui.onmessage = async (msg) => {
+  try {
+    switch (msg.type) {
+      case 'save-defaults':
+        // msg.defaults = { prefix, between, suffix }
+        if (msg.defaults) {
+          if (msg.defaults.prefix !== undefined) await saveDefaultValue('default_prefix', msg.defaults.prefix || '');
+          if (msg.defaults.between !== undefined) await saveDefaultValue('default_between', msg.defaults.between || '');
+          if (msg.defaults.suffix !== undefined) await saveDefaultValue('default_suffix', msg.defaults.suffix || '');
+        }
+        figma.ui.postMessage({ type: 'defaults-saved', success: true });
+        break;
+
+      case 'request-defaults':
+        {
+          const prefix = await getDefaultValue('default_prefix');
+          const between = await getDefaultValue('default_between');
+          const suffix = await getDefaultValue('default_suffix')
+          figma.ui.postMessage({ type: 'current-defaults', defaults: { prefix, between, suffix } });
+        }
+        break;
+      case 'verify-license':
+        const result = await verifyLicenseKey(msg.licenseKey);
+        figma.ui.postMessage({
+          type: 'license-verified',
+          success: result?.valid || false,
+          message: result?.error || (result?.valid ? 'License is valid' : 'License verification failed')
+        });
+        if (result?.valid) {
+          figma.notify('✅ License activated!');
+          // Close UI and run the original command
+          figma.ui.close();
+          await processTextCommand();
+          figma.closePlugin(); // Close plugin after processing
+        }
+        break;
+
+      case 'activate-license': {
+        const success = await activateLicense(msg.licenseKey);
+
+        figma.ui.postMessage({
+          type: success ? 'license-activated' : 'license-error',
+          message: success ? 'License activated successfully' : 'Invalid license key'
+        });
+
+        if (success) {
+          figma.notify('✅ License activated!');
+          await showAccountUI(); // 🔁 re-render UI as Pro
+        }
+        break;
+      }
+
+
+      case 'close-ui':
+        figma.ui.close();
+        figma.closePlugin(); // Close plugin when user cancels
+        break;
+      case 'logout':
+        await clearLicenseData();
+        figma.notify('Logged out');
+        await showAccountUI();
+        break;
+    }
+  } catch (error) {
+    console.error('UI message error:', error);
+    figma.ui.postMessage({
+      type: 'error',
+      message: 'An error occurred processing your request.'
+    });
+    figma.closePlugin(); // Close plugin on error
+  }
+};
+
+async function showAccountUI() {
+  const deviceId = await getDeviceId();
+  const usage = await getUsageData();
+
+  const used = usage.count;
+  const limit = 10;
+  const remaining = Math.max(0, limit - used);
+
+  const licenseData = await getLicenseData();
+  const isPro = Boolean(licenseData);
+
+  figma.showUI(__html__, {
+    width: 500,
+    height: isPro ? 420 : 520
+  });
+
+  figma.ui.postMessage({
+    type: 'show-license',
+    isPro,
+    licenseData: licenseData ?? null,
+    remaining,
+    used,
+    limit,
+    price: LICENSE_PRICE,
+    deviceId
+  });
+}
+
+// Run the plugin
+main();
+
