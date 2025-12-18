@@ -510,7 +510,7 @@
         const head = document.querySelector('.grid-section-split__header');
         const container = document.querySelector('.animation-wrap.to-right');
         const rootStyle = getComputedStyle(document.documentElement);
-        const h2cspace = parseInt(rootStyle.myplanpertyValue('--h2cspace'), 10);
+        const h2cspace = parseInt(rootStyle.getPropertyValue('--h2cspace'), 10);
 
         // Get the top position and height of the heading
         const headPositionY = head.getBoundingClientRect().top;
