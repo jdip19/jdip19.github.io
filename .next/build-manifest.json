@@ -1,11 +1,5 @@
 {
   "pages": {
-    "/": [
-      "static/chunks/b13ad10d7b54a6d9.js",
-      "static/chunks/fe4fbb9110975868.js",
-      "static/chunks/94a406fa8374416f.css",
-      "static/chunks/turbopack-1331224fc55307ac.js"
-    ],
     "/_app": [
       "static/chunks/6f9e4bea205002d7.js",
       "static/chunks/fe4fbb9110975868.js",
@@ -16,13 +10,29 @@
       "static/chunks/c6436f0c3cbeabfe.js",
       "static/chunks/fe4fbb9110975868.js",
       "static/chunks/turbopack-1f8a8791fe94e53c.js"
+    ],
+    "/index.react": [
+      "static/chunks/1abf707a1396f98f.js",
+      "static/chunks/fe4fbb9110975868.js",
+      "static/chunks/247cf1b09e501595.css",
+      "static/chunks/turbopack-87e41640827d6daa.js"
+    ],
+    "/payment-cancelled": [
+      "static/chunks/8fecda83e4be7e0b.js",
+      "static/chunks/fe4fbb9110975868.js",
+      "static/chunks/turbopack-b70afdba4d00837c.js"
+    ],
+    "/payment-success": [
+      "static/chunks/7356c808a073e7a6.js",
+      "static/chunks/fe4fbb9110975868.js",
+      "static/chunks/turbopack-9143c8422222fe53.js"
     ]
   },
   "devFiles": [],
   "polyfillFiles": [],
   "lowPriorityFiles": [
-    "static/8xgUpp-DAnH6t1YqFKN-L/_ssgManifest.js",
-    "static/8xgUpp-DAnH6t1YqFKN-L/_buildManifest.js"
+    "static/bvZ05cc75d-2HP4X2PgeT/_ssgManifest.js",
+    "static/bvZ05cc75d-2HP4X2PgeT/_buildManifest.js"
   ],
   "rootMainFiles": []
 }

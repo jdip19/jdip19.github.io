@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///D:/Work/Code/jdip19.github.io/pages/payment-success.tsx"],"sourcesContent":["export default function PaymentSuccess() {\r\n  return (\r\n    <main style={{ padding: 40 }}>\r\n      <h2>🎉 Payment Successful</h2>\r\n      <p>Your QuickText Pro license has been sent to your email.</p>\r\n      <p>Open the QuickText plugin in Figma to activate.</p>\r\n    </main>\r\n  )\r\n}\r\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACtB,qBACE,qKAAC;QAAK,OAAO;YAAE,SAAS;QAAG;;0BACzB,qKAAC;0BAAG;;;;;;0BACJ,qKAAC;0BAAE;;;;;;0BACH,qKAAC;0BAAE;;;;;;;;;;;;AAGT"}}]
+}

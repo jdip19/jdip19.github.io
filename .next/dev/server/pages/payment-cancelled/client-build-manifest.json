@@ -1,0 +1,5 @@
+{
+  "/payment-cancelled": [
+    "static/chunks/pages/payment-cancelled.js"
+  ]
+}

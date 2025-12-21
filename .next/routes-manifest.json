@@ -23,16 +23,28 @@
   "dynamicRoutes": [],
   "staticRoutes": [
     {
-      "page": "/",
-      "regex": "^/(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/(?:/)?$"
-    },
-    {
       "page": "/api/hello",
       "regex": "^/api/hello(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/hello(?:/)?$"
+    },
+    {
+      "page": "/index.react",
+      "regex": "^/index\\.react(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/index\\.react(?:/)?$"
+    },
+    {
+      "page": "/payment-cancelled",
+      "regex": "^/payment\\-cancelled(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/payment\\-cancelled(?:/)?$"
+    },
+    {
+      "page": "/payment-success",
+      "regex": "^/payment\\-success(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/payment\\-success(?:/)?$"
     }
   ],
   "dataRoutes": [],
