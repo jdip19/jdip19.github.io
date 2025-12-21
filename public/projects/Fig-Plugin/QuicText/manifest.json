@@ -1,0 +1,94 @@
+{
+  "name": "QuicText Pro",
+  "id": "1365014672422582628",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "permissions": [
+    "currentuser"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "https://kmkjuuytbgpozrigspgw.supabase.co",
+      "https://*.supabase.co"
+    ]
+  },
+  "menu": [
+    {
+      "name": "My Plan & License",
+      "command": "myplan"
+    },
+    {
+      "name": "to TitleCase",
+      "command": "titlecase"
+    },
+    {
+      "name": "to Sentencecase",
+      "command": "sentencecase"
+    },
+    {
+      "name": "to UPPERCASE",
+      "command": "uppercase"
+    },
+    {
+      "name": "to lowercase",
+      "command": "lowercase"
+    },
+    {
+      "name": "add Breaklines",
+      "command": "addbreakline"
+    },
+    {
+      "command": "addprefix",
+      "name": "add Prefix"
+    },
+    {
+      "command": "addbetween",
+      "name": "add In-Between"
+    },
+    {
+      "command": "addsuffix",
+      "name": "add Suffix"
+    },
+    {
+      "command": "copyhero",
+      "name": "add Hero Text"
+    },
+    {
+      "command": "copycta",
+      "name": "add CTA Text"
+    },
+    {
+      "command": "copyerror",
+      "name": "add Error Text"
+    },
+    {
+      "command": "removesymbols",
+      "name": "remove Symbols"
+    },
+    {
+      "name": "remove Breaklines & Space",
+      "command": "rmvspace"
+    },
+    {
+      "name": "split into Layers",
+      "command": "splitindividually"
+    },
+    {
+      "name": "split into Words",
+      "command": "splitwords"
+    },
+    {
+      "name": "split into Letters",
+      "command": "splitletters"
+    },
+    {
+      "name": "to Slug",
+      "command": "slug"
+    }
+  ]
+}

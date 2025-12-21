@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Inter, sans-serif;
+        margin: 0;
+        font-size: 14px;
+        background: #196719;
+        background-image: linear-gradient(120deg, #d4fc79 0%, #32cd32 100%);
+      }
+
+      .wrapper {
+        padding: 20px;
+      }
+
+      input,
+      button {
+        width: 100%;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+
+      button {
+        background-color: #32cd32;
+        color: #ffffff;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 0 #196719;
+        position: relative;
+        top: 0;
+      }
+
+      button:hover {
+        background-color: #2db82d;
+        box-shadow: 0 6px 0 #196719;
+        top: -2px;
+      }
+
+      button:active {
+        top: 4px;
+        box-shadow: 0 0 0 #196719;
+      }
+
+      button:disabled {
+        background-color: #ffffff;
+        box-shadow: 0 4px 0 #2c2c2c;
+        color: #0000007a;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      #fetchData {
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 15px;
+      }
+
+      .section {
+        padding-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .logo {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .logo svg {
+        width: 48px;
+        height: 48px;
+        box-shadow: 0 4px 0 #196719;
+        border-radius: 8px;
+      }
+
+      /* Table Preview Styles */
+      .table-preview {
+        margin-top: 12px;
+        height: 145px;
+        overflow-y: auto;
+        background: white;
+        border-radius: 8px;
+        align-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        display: block;
+        border: 2px solid #32cd32;
+      }
+      tr.initial-message td,
+      tr.loading td {
+        text-align: center;
+        font-size: 13px;
+        font-style: italic;
+        color: #a19393;
+      }
+
+      .table-preview.visible {
+        display: block;
+      }
+
+      .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      .preview-table th,
+      .preview-table td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 60px;
+      }
+
+      .preview-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        border-bottom: 2px solid #32cd32;
+      }
+
+      .preview-table tr:hover {
+        background: #f9f9f9;
+      }
+
+      .preview-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .preview-table td img {
+        max-width: 40px;
+        max-height: 40px;
+        object-fit: cover;
+        border-radius: 4px;
+        vertical-align: middle;
+      }
+
+      .preview-table td.image-cell {
+        padding: 4px;
+        text-align: center;
+      }
+
+      /* Loading Indicator */
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        font-style: italic;
+        color: #666;
+      }
+
+      .loading td {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-style: italic;
+      }
+
+      .loading.visible {
+        display: table-row;
+      }
+
+      /* Error Message */
+      .error-message {
+        display: none;
+        color: #d32f2f;
+        background: #fde7e7;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 12px 0;
+        font-size: 13px;
+        border: 1px solid #ffa4a4;
+      }
+
+      .error-message.visible {
+        display: block;
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        max-width: 400px;
+        width: 80%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+        position: relative;
+        height: 80%;
+        overflow-y: scroll;
+      }
+
+      .modal-title {
+        margin-top: 0;
+        color: #232323;
+        font-weight: 600;
+      }
+
+      .modal-list {
+        padding-left: 18px;
+        color: #232323;
+      }
+
+      .modal-list li {
+        margin-bottom: 8px;
+      }
+
+      input[type="text"] {
+        width: calc(100% - 40px);
+        padding: 12px;
+        border-radius: 8px 0 0 8px;
+        border: 2px solid #32cd32;
+        background: rgb(255 255 255);
+        color: #0a0a0a;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 0 #196719;
+        margin: 0;
+      }
+
+      input[type="text"]:focus {
+        border-color: #196719;
+        outline: none;
+        box-shadow: 0 4px 0 #196719;
+        transform: translateY(-2px);
+      }
+
+      input[type="text"]:hover {
+        border-color: #196719;
+        box-shadow: 0 3px 0 #196719;
+        transform: translateY(-1px);
+      }
+
+      ::placeholder {
+        color: #000000;
+        opacity: 0.6;
+        font-weight: 400;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        position: absolute;
+        align-items: baseline;
+        bottom: 0;
+        background: #2c2c2c;
+        padding: 12px;
+        text-align: center;
+        width: -webkit-fill-available;
+        font-size: 12px;
+        color: #fff;
+        border-top: 1px solid transparent;
+        overflow: hidden;
+      }
+
+      .footer a {
+        color: #ffffff;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .footer a:hover {
+      color:#E9AA70;
+      }
+      .footer a:hover svg{
+        transform: rotate(-5deg);
+        transition: transform 0.3s ease;
+      }
+      .footer a:hover .steam{
+        top:1px;
+        left: 179px;
+        transform: rotate(-5deg);
+      }
+      .tea-container {
+        display: flex;
+      }
+
+      .steam {
+        position: absolute;
+        top: 1px;
+        width: 8px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        animation: steam 2s infinite;
+      }
+
+      .steam:nth-child(1) {
+        left: 180px;
+        animation-delay: 0.2s;
+      }
+
+      .steam:nth-child(2) {
+        left: 188px;
+        animation-delay: 0.4s;
+      }
+
+      .steam:nth-child(3) {
+        left: 184px;
+        animation-delay: 0.6s;
+      }
+
+      @keyframes steam {
+        0% {
+          transform: translateY(0) scaleX(1);
+          opacity: 0;
+        }
+        15% {
+          opacity: 1;
+        }
+        50% {
+          transform: translateY(-10px) scaleX(3);
+        }
+        95% {
+          opacity: 0.2;
+        }
+        100% {
+          transform: translateY(-20px) scaleX(4);
+          opacity: 0;
+        }
+      }
+
+      .info-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        width: auto;
+      }
+
+      .info-btn:hover,
+      .info-btn:active {
+        box-shadow: none;
+        top: 0;
+      }
+
+      .input-group {
+        display: flex;
+        align-items: stretch;
+      }
+
+      .refresh-button {
+        width: 40px;
+        padding: 12px 8px;
+        border: 2px solid #32cd32;
+        border-left: none;
+        background: #32cd32;
+        color: white;
+        border-radius: 0 8px 8px 0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 0 #196719;
+      }
+
+      .refresh-button:hover {
+        background-color: #2db82d;
+      }
+
+      .refresh-button:active {
+        transform: translateY(2px);
+        box-shadow: none;
+      }
+
+      .refresh-button svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+
+      .refresh-button.spinning svg {
+        animation: spin 1s linear infinite;
+        border: 0;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Button container */
+      .button-container {
+        margin-top: 12px;
+      }
+
+      .button-container.visible {
+        display: block;
+      }
+
+      #fetchData {
+        width: 100%;
+      }
+
+      /* Message Styles */
+      tr.message td {
+        text-align: center;
+        font-size: 13px;
+        font-style: italic;
+        color: #a19393;
+        padding: 20px;
+      }
+
+      tr.message.error td {
+        color: #d32f2f;
+        background: #fde7e7;
+        padding: 12px;
+        border-radius: 4px;
+        margin: 8px;
+        font-weight: 500;
+      }
+
+      tr.message.loading td {
+        color: #196719;
+      }
+
+      tr.message.loading td::after {
+        content: "";
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #32cd32;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+      }
+      .table-preview.visible {
+        align-content: flex-start;
+      }
+    </style>
+    <script src="https://apis.google.com/js/api.js"></script>
+  </head>
+
+  <body>
+    <div class="wrapper">
+      <div class="logo">
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 1080 1080"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g clip-path="url(#clip0_175_2)">
+            <rect width="1080" height="1080" fill="url(#paint0_linear_175_2)" />
+            <path
+              d="M1212.13 692.4C1212.13 759.209 1201.96 825.534 1181.63 891.374C1162.26 957.214 1133.22 1019.67 1094.49 1078.73C1055.76 1137.79 1007.83 1190.08 950.703 1235.58C893.577 1281.09 827.736 1316.92 753.182 1343.06C679.595 1369.2 596.811 1382.27 504.828 1382.27C490.304 1382.27 471.424 1381.79 448.186 1380.82C424.948 1379.85 399.774 1379.37 372.663 1379.37C346.52 1378.4 319.41 1377.92 291.331 1377.92C269.061 1377.92 244.855 1378.4 218.713 1379.37C192.57 1379.37 167.88 1379.85 144.642 1380.82C122.373 1380.82 103.492 1381.3 88 1382.27L92.3571 1353.23C123.341 1351.29 147.547 1347.42 164.975 1341.61C183.372 1335.8 197.895 1324.18 208.546 1306.75C219.197 1289.32 228.879 1263.18 237.593 1228.32L427.853 507.95C435.599 478.903 438.987 455.665 438.019 438.237C438.019 419.84 430.757 406.285 416.234 397.571C402.678 388.857 378.472 384.015 343.616 383.047L347.973 354C364.433 354.968 384.766 355.936 408.972 356.905C433.178 357.873 458.836 358.357 485.947 358.357C514.026 358.357 540.653 358.357 565.827 358.357C584.224 357.389 606.977 356.905 634.088 356.905C661.199 355.936 688.31 355.452 715.42 355.452C742.531 354.484 765.285 354 783.681 354C923.108 354 1029.13 382.563 1101.75 439.689C1175.34 496.816 1212.13 581.053 1212.13 692.4ZM499.018 1356.13C565.827 1356.13 625.858 1343.06 679.111 1316.92C733.333 1290.77 780.777 1254.46 821.443 1207.99C863.077 1161.51 897.45 1108.26 924.56 1048.23C952.64 988.198 973.457 924.294 987.012 856.517C1001.54 787.772 1008.8 719.027 1008.8 650.282C1008.8 561.204 988.464 493.911 947.798 448.404C907.132 402.896 840.808 380.142 748.825 380.142C722.682 380.142 702.349 383.531 687.826 390.309C673.302 396.118 661.683 408.221 652.969 426.618C644.255 444.046 635.54 470.189 626.826 505.046L436.567 1231.23C427.853 1261.24 422.527 1285.45 420.591 1303.84C419.623 1322.24 424.948 1335.8 436.567 1344.51C448.186 1352.26 469.003 1356.13 499.018 1356.13Z"
+              fill="white"
+            />
+            <path
+              d="M-109 1432.5L163.216 166.452L794 166.452"
+              stroke="url(#paint1_linear_175_2)"
+              stroke-opacity="0.1"
+              stroke-width="49.0479"
+            />
+            <path
+              d="M977.441 164L793.512 270.192V57.8083L977.441 164ZM807 164V145.607H811.905V164V182.393H807V164Z"
+              fill="#090909"
+              fill-opacity="0.1"
+            />
+          </g>
+          <defs>
+            <linearGradient
+              id="paint0_linear_175_2"
+              x1="-182.5"
+              y1="-124"
+              x2="540"
+              y2="1080"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#D4FC79" />
+              <stop offset="1" stop-color="#32CD32" />
+            </linearGradient>
+            <linearGradient
+              id="paint1_linear_175_2"
+              x1="393.434"
+              y1="166.452"
+              x2="393.434"
+              y2="1432.5"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop stop-color="#090909" />
+              <stop offset="1" stop-color="#090909" stop-opacity="0" />
+            </linearGradient>
+            <clipPath id="clip0_175_2">
+              <rect width="1080" height="1080" fill="white" />
+            </clipPath>
+          </defs>
+        </svg>
+      </div>
+      <div class="section">
+        <div class="input-group">
+        <input
+          type="text"
+          id="sheetUrl"
+            placeholder="Paste your Google Sheet URL here to fetch data automatically"
+          />
+          <button class="refresh-button" id="refreshBtn" title="Refresh data">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="table-preview" id="tablePreview">
+          <table class="preview-table" id="previewTable">
+            <tbody>
+              <tr class="message" id="messageRow">
+                <td>Data will be previewed here</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="button-container" id="buttonContainer">
+          <button id="fetchData">Sync with Selected Layers</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="infoModal" class="modal">
+      <div class="modal-content">
+        <h3 class="modal-title">How to use QuickData</h3>
+        <ol class="modal-list">
+          <li>
+            Prepare your Google Sheet:
+            <ul style="margin-top: 8px">
+              <li>
+                Make your sheet public (File → Share → Anyone with the link)
+          </li>
+              <li>Ensure your first row contains column headers</li>
+              <li>For best results, freeze the header row in your sheet</li>
+            </ul>
+          </li>
+          <li>
+            In the plugin:
+            <ul style="margin-top: 8px">
+              <li>Paste your Google Sheet URL in the input field</li>
+              <li>Preview your data in the table below</li>
+              <li>Use the refresh button to update data if needed</li>
+            </ul>
+          </li>
+          <li>
+            Prepare your Figma layers:
+            <ul style="margin-top: 8px">
+              <li>Name your layers with # followed by the column name</li>
+              <li>Example: For "Name" column → Layer "#Name"</li>
+              <li>For "Product Price" column → Layer "#ProductPrice"</li>
+              <li>Spaces and special characters are removed automatically</li>
+            </ul>
+          </li>
+          <li>
+            Sync your data:
+            <ul style="margin-top: 8px">
+              <li>Select the layers you want to update</li>
+              <li>Click the "Sync" button</li>
+              <li>Text layers: Both name and content update</li>
+              <li>Other layers: Names update only</li>
+              <li>Multiple layers can use the same column</li>
+            </ul>
+          </li>
+        </ol>
+        <div style="margin-top: 16px; font-size: 13px; color: #666">
+          💡 Tip: The preview table shows the first few rows of your data to
+          help you verify the content before syncing.
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="tea-container">
+        Liked the plugin?&nbsp;<a
+          href="https://jdip19.github.io/support-jdip.html"
+          target="_blank"
+        >
+          <i>Buy me tea</i>
+          <div class="tea">
+            <div class="steam"></div>
+            <div class="steam"></div>
+            <div class="steam"></div>
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 30 44"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M15 5.62793C23.2843 5.62793 30 4.36873 30 2.81543C30 1.26213 23.2843 0.00292969 15 0.00292969C6.71573 0.00292969 0 1.26213 0 2.81543C0 4.36873 6.71573 5.62793 15 5.62793Z"
+                fill="#B8D0FF"
+              />
+              <path
+                d="M29.1309 3.75C29.6841 3.45656 30 3.14156 30 2.8125C30 1.25625 23.2875 0 15 0C6.7125 0 0 1.25906 0 2.8125C0 3.14156 0.315938 3.45656 0.869063 3.75C2.93156 2.65687 8.46281 1.875 15 1.875C21.5372 1.875 27.0722 2.65969 29.1309 3.75Z"
+                fill="#CAD9FF"
+              />
+              <path
+                d="M15 5.625C23.2875 5.625 30 4.36875 30 2.8125L29.3625 11.2678L29.0625 11.25C29.0625 9.69375 22.7625 8.4375 15 8.4375C7.2375 8.4375 0.9375 9.69563 0.9375 11.25L0.6375 11.2688L0 2.8125C0 4.37156 6.7125 5.625 15 5.625Z"
+                fill="#CDE2FF"
+              />
+              <path
+                d="M25.3125 13.1644C23.7593 13.4847 22.1874 13.707 20.6062 13.83C18.8906 13.98 16.9875 14.0644 15 14.0644C13.0125 14.0644 11.1094 13.98 9.39375 13.83C7.8126 13.707 6.24074 13.4847 4.6875 13.1644C2.3625 12.6562 0.9375 11.9925 0.9375 11.25C0.9375 9.69375 7.2375 8.4375 15 8.4375C22.7625 8.4375 29.0625 9.69375 29.0625 11.25C29.0625 11.9925 27.6375 12.6562 25.3125 13.1644Z"
+                fill="#FFC7A1"
+              />
+              <path
+                d="M23.4375 38.5884C25.7531 38.0822 27.1875 37.3603 27.1875 36.5634L27.4687 36.5822L27.1875 40.3125C27.1875 41.8687 21.7313 43.125 15 43.125C8.26875 43.125 2.8125 41.8697 2.8125 40.3125L2.53125 36.5813L2.8125 36.5625C2.8125 37.3594 4.24688 38.0812 6.5625 38.5875C7.79688 38.8524 9.04598 39.0434 10.3031 39.1594C11.7469 39.3 13.3313 39.375 15 39.375C16.6688 39.375 18.2531 39.3 19.6969 39.1594C20.954 39.0437 22.2031 38.853 23.4375 38.5884Z"
+                fill="#B8D0FF"
+              />
+              <path
+                d="M29.3625 11.2707L27.4687 36.5832L27.1875 36.5625C27.1875 37.3594 25.7531 38.0813 23.4375 38.5875L25.3125 13.1635C27.6375 12.6572 29.0625 11.9916 29.0625 11.251L29.3625 11.2707Z"
+                fill="#E9AA70"
+              />
+              <path
+                d="M25.3125 13.1646L23.4375 38.5886C22.2031 38.8535 20.954 39.0445 19.6969 39.1605L20.625 14.0627L20.6063 13.8283C22.1874 13.7059 23.7592 13.4842 25.3125 13.1646Z"
+                fill="#D99C64"
+              />
+              <path
+                d="M20.6062 13.8301L20.625 14.0626L19.6969 39.1585C18.2531 39.2991 16.6687 39.3741 15 39.3741V14.0626C16.9875 14.0626 18.8906 13.9801 20.6062 13.8301Z"
+                fill="#E9AA70"
+              />
+              <path
+                d="M15 14.0625V39.375C13.3313 39.375 11.7469 39.3 10.3031 39.1594L9.375 14.0625L9.39375 13.8281C11.1094 13.98 13.0125 14.0625 15 14.0625Z"
+                fill="#D99C64"
+              />
+              <path
+                d="M9.375 14.0627L10.3031 39.1586C9.04602 39.0432 7.79692 38.8529 6.5625 38.5886L4.6875 13.1646C6.24074 13.4849 7.8126 13.7072 9.39375 13.8302L9.375 14.0627Z"
+                fill="#E9AA70"
+              />
+              <path
+                d="M4.68745 13.1644L6.56245 38.5884C4.24683 38.0822 2.81245 37.3603 2.81245 36.5634L2.5312 36.5822L0.637451 11.2697L0.937451 11.25C0.937451 11.9925 2.36245 12.6562 4.68745 13.1644Z"
+                fill="#D99C64"
+              />
+              <path
+                d="M15 43.125C21.7312 43.125 27.1875 41.8687 27.1875 40.3125L27.3281 38.4469L27.1875 38.4375C27.1875 39.2344 25.7531 39.9562 23.4375 40.4625C22.2031 40.7274 20.954 40.9184 19.6969 41.0344C18.2531 41.175 16.6687 41.25 15 41.25C13.3313 41.25 11.7469 41.175 10.3031 41.0344C9.04598 40.9184 7.79688 40.7274 6.5625 40.4625C4.24688 39.9562 2.8125 39.2344 2.8125 38.4375L2.67188 38.4469L2.8125 40.3125C2.8125 41.8687 8.26875 43.125 15 43.125Z"
+                fill="#7FA5EF"
+              />
+              <path
+                d="M29.9437 3.06002C29.9437 3.06846 29.9344 3.07596 29.9306 3.08346C29.475 4.02096 26.5556 4.82908 22.4006 5.26783L22.1953 5.28939C19.8042 5.52573 17.4027 5.64119 15 5.63533C14.5584 5.63533 14.1206 5.63533 13.6875 5.62502C13.3331 5.61939 12.9853 5.60908 12.6375 5.59877C12.5353 5.59877 12.4322 5.59408 12.3309 5.59033C11.9946 5.57863 11.6584 5.56488 11.3222 5.54908L11.0428 5.53127C10.6989 5.51393 10.3552 5.49393 10.0116 5.47127L9.86062 5.46096C5.27625 5.14783 1.74938 4.42971 0.5025 3.53346C0.411055 3.4703 0.325967 3.3984 0.248437 3.31877C0.226763 3.29622 0.206417 3.27243 0.1875 3.24752C0.142213 3.197 0.102601 3.14167 0.069375 3.08252C0.0281917 3.00753 0.00447676 2.92421 0 2.83877C0 2.83877 0 2.82939 0 2.82471L0.171562 5.10096C0.366107 5.32499 0.604432 5.50684 0.871875 5.63533C2.87531 6.69658 8.16844 7.46439 14.4591 7.51033H15C16.9751 7.51329 18.9495 7.43698 20.9184 7.28158C24.735 6.97315 27.7312 6.37502 29.1281 5.63533C29.3956 5.50684 29.6339 5.32499 29.8284 5.10096L30 2.82471C29.9977 2.90619 29.9786 2.98632 29.9437 3.06002Z"
+                fill="#E6F1FF"
+              />
+              <path
+                d="M26.0727 12.0225C26.3748 11.7205 26.2789 11.1349 25.8586 10.7146C25.4383 10.2943 24.8527 10.1984 24.5507 10.5005C24.2486 10.8025 24.3445 11.3881 24.7648 11.8084C25.1851 12.2287 25.7707 12.3246 26.0727 12.0225Z"
+                fill="#F6FAFD"
+              />
+              <path
+                d="M23.0798 12.7622C23.681 12.161 23.4898 10.9952 22.6529 10.1582C21.8159 9.32129 20.6501 9.13016 20.049 9.73132C19.4478 10.3325 19.6389 11.4983 20.4759 12.3352C21.3128 13.1722 22.4786 13.3633 23.0798 12.7622Z"
+                fill="#F6FAFD"
+              />
+            </svg>
+          </div>
+        </a>
+      </div>
+      <div>
+        <button id="infoBtn" class="info-btn" title="How to use">ℹ️</button>
+      </div>
+    </footer>
+
+    <script>
+      let currentCallback = null;
+      let debounceTimer;
+      let currentSheetData = null;
+
+      // Debounce function
+      function debounce(func, wait) {
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(debounceTimer);
+            func(...args);
+          };
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(later, wait);
+        };
+      }
+
+      window.onmessage = (event) => {
+        const msg = event.data.pluginMessage;
+        if (!msg) return;
+
+        if (msg.type === "selection-info") {
+          selectedLayers = msg.names || [];
+          selectionTypes = msg.types || [];
+          validateUI();
+        } else if (msg.type === "load-url") {
+          document.getElementById("sheetUrl").value = msg.url;
+          validateUI();
+        }
+      };
+
+      function extractSheetInfo(url) {
+        // Check if URL is a valid Google Sheets URL
+        if (!url.includes("docs.google.com/spreadsheets")) {
+          return { id: null, gid: null };
+        }
+
+        const idMatch = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        const gidMatch = url.match(/gid=([0-9]+)/);
+        return {
+          id: idMatch ? idMatch[1] : null,
+          gid: gidMatch ? gidMatch[1] : "0",
+        };
+      }
+
+      window.google = {
+        visualization: {
+          Query: {
+            setResponse: function (response) {
+              if (currentCallback) {
+                currentCallback(response);
+              }
+            },
+          },
+        },
+      };
+
+      // Filter out empty columns
+      function filterEmptyColumns(data) {
+        if (!data || data.length < 2) return data;
+
+        const headers = data[0];
+        const nonEmptyColumnIndexes = [];
+
+        // Check each column
+        for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+          let hasValue = false;
+          // Check values in each row for this column
+          for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+            const value = data[rowIndex][colIndex];
+            if (value !== null && value !== undefined && value !== "") {
+              hasValue = true;
+              break;
+            }
+          }
+          if (hasValue) {
+            nonEmptyColumnIndexes.push(colIndex);
+          }
+        }
+
+        // Filter the data to keep only non-empty columns
+        return data.map((row) =>
+          nonEmptyColumnIndexes.map((colIndex) => row[colIndex])
+        );
+      }
+
+      // Display data in table
+      function displayTablePreview(data) {
+        const tablePreview = document.getElementById("tablePreview");
+        const previewTable = document.getElementById("previewTable");
+        const buttonContainer = document.getElementById("buttonContainer");
+        const messageRow = document.getElementById("messageRow");
+
+        console.log("Display data - headers:", data[0]);
+        console.log("Display data - first row:", data[1]);
+
+        if (!data || data.length < 2) {
+          if (messageRow) {
+            messageRow.className = "message";
+            messageRow.querySelector("td").textContent =
+              "Data will be previewed here";
+          } else {
+            previewTable.innerHTML =
+              '<tbody><tr class="message" id="messageRow"><td>Data will be previewed here</td></tr></tbody>';
+          }
+          buttonContainer.classList.remove("visible");
+          return;
+        }
+
+        // Create new table content
+        let tableHTML = "<thead><tr>";
+
+        // Add headers (always use first row as headers after normalization)
+        data[0].forEach((header) => {
+          tableHTML += `<th>${header || ""}</th>`;
+        });
+        tableHTML += "</tr></thead><tbody>";
+
+        // Add data rows
+        for (let i = 1; i < Math.min(data.length, 4); i++) {
+          tableHTML += "<tr>";
+          data[i].forEach((cell) => {
+            tableHTML += `<td>${cell || ""}</td>`;
+          });
+          tableHTML += "</tr>";
+        }
+
+        // Add hidden message row at the end of tbody
+        tableHTML +=
+          '<tr class="message" id="messageRow" style="display: none"><td colspan="' +
+          data[0].length +
+          '"></td></tr></tbody>';
+
+        // Update table content
+        previewTable.innerHTML = tableHTML;
+
+        tablePreview.classList.add("visible");
+        buttonContainer.classList.add("visible");
+      }
+
+      async function fetchSheetData(sheetId, gid) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          const callbackName = "google.visualization.Query.setResponse";
+
+          currentCallback = (response) => {
+            document.body.removeChild(script);
+            if (response.status === "error") {
+              reject(new Error(response.errors[0].message));
+              return;
+            }
+
+            const table = response.table;
+            const headers = table.cols.map((col) => col.label);
+            const rows = table.rows.map((row) =>
+              row.c.map((cell) =>
+                cell && cell.v !== null && cell.v !== undefined ? cell.v : ""
+              )
+            );
+
+            // Normalize the data structure
+            const normalizedData = normalizeSheetData([headers, ...rows]);
+            resolve(normalizedData);
+          };
+
+          script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
+          script.onerror = () => reject(new Error("Failed to load sheet data"));
+          document.body.appendChild(script);
+        });
+      }
+
+      // Function to normalize sheet data
+      function normalizeSheetData(data) {
+        if (!data || data.length < 2) return data;
+
+        // Check if first row is empty or has empty values
+        const firstRowEmpty = data[0].every(
+          (cell) => !cell || cell.trim() === ""
+        );
+        const secondRowHasHeaders =
+          data[1] && data[1].some((cell) => cell && cell.trim() !== "");
+
+        // If first row is empty and second row has content, remove the first row
+        if (firstRowEmpty && secondRowHasHeaders) {
+          console.log("Normalizing data: Removing empty first row");
+          return data.slice(1);
+        }
+
+        return data;
+      }
+
+      // Handle URL input with debounce
+      const handleUrlInput = debounce(async (event) => {
+        const url = event.target.value.trim();
+        if (url) {
+        await fetchAndDisplayData();
+        }
+      }, 1000);
+
+      // Handle immediate URL validation
+      function validateUrl(url) {
+        const messageRow = document.getElementById("messageRow");
+        const previewTable = document.getElementById("previewTable");
+        const buttonContainer = document.getElementById("buttonContainer");
+
+        if (!messageRow || !previewTable || !buttonContainer) return;
+
+        // Reset UI to initial state if URL is empty
+        if (!url) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message";
+          messageRow.querySelector("td").textContent =
+            "Data will be previewed here";
+          buttonContainer.classList.remove("visible");
+          // Clear the table
+          previewTable.innerHTML =
+            '<tbody><tr class="message" id="messageRow"><td>Data will be previewed here</td></tr></tbody>';
+          return;
+        }
+
+        // Show error if not a Google Sheets URL
+        if (!url.includes("docs.google.com/spreadsheets")) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message error";
+          messageRow.querySelector("td").textContent =
+            "Please enter a valid Google Sheet URL";
+          buttonContainer.classList.remove("visible");
+          return;
+        }
+      }
+
+      async function fetchAndDisplayData() {
+        const sheetUrl = document.getElementById("sheetUrl").value.trim();
+        const messageRow =
+          document.getElementById("messageRow") || createMessageRow();
+        const refreshBtn = document.getElementById("refreshBtn");
+        const buttonContainer = document.getElementById("buttonContainer");
+        const previewTable = document.getElementById("previewTable");
+
+        // Check if elements exist
+        if (!refreshBtn || !buttonContainer || !previewTable) {
+          console.error("Required elements not found");
+          return;
+        }
+
+        // Reset UI to initial state if URL is empty
+        if (!sheetUrl) {
+          messageRow.style.display = "table-row";
+        messageRow.className = "message";
+          messageRow.querySelector("td").textContent =
+            "Data will be previewed here";
+        buttonContainer.classList.remove("visible");
+          return;
+        }
+
+        const { id: sheetId, gid } = extractSheetInfo(sheetUrl);
+
+        // Validate if URL contains a sheet ID
+        if (!sheetId) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message error";
+          messageRow.querySelector("td").textContent =
+            "Invalid Google Sheet URL. Make sure you copied the entire URL";
+          buttonContainer.classList.remove("visible");
+          return;
+        }
+
+        // Show loading state only if URL is valid
+        messageRow.style.display = "table-row";
+          messageRow.className = "message loading";
+        messageRow.querySelector("td").textContent = "";
+          refreshBtn.classList.add("spinning");
+        buttonContainer.classList.remove("visible");
+          
+        try {
+          const data = await fetchSheetData(sheetId, gid);
+          currentSheetData = filterEmptyColumns(data);
+
+          if (!currentSheetData || currentSheetData.length < 2) {
+            messageRow.style.display = "table-row";
+            messageRow.className = "message error";
+            messageRow.querySelector("td").textContent =
+              "No data found in the sheet";
+            return;
+          }
+
+          displayTablePreview(currentSheetData);
+          validateUI();
+        } catch (error) {
+          messageRow.style.display = "table-row";
+          messageRow.className = "message error";
+          messageRow.querySelector("td").textContent =
+            "Error loading sheet data: " + error.message;
+          buttonContainer.classList.remove("visible");
+        } finally {
+          refreshBtn.classList.remove("spinning");
+        }
+      }
+
+      // Helper function to create message row if it doesn't exist
+      function createMessageRow() {
+        const previewTable = document.getElementById("previewTable");
+        const tbody =
+          previewTable.querySelector("tbody") ||
+          previewTable.appendChild(document.createElement("tbody"));
+        const messageRow = document.createElement("tr");
+        messageRow.id = "messageRow";
+        messageRow.className = "message";
+        const td = document.createElement("td");
+        messageRow.appendChild(td);
+        tbody.appendChild(messageRow);
+        return messageRow;
+      }
+
+      document
+        .getElementById("sheetUrl")
+        .addEventListener("input", function (event) {
+          const url = event.target.value.trim();
+          validateUrl(url);
+          handleUrlInput(event);
+        });
+
+      document
+        .getElementById("refreshBtn")
+        .addEventListener("click", async () => {
+          await fetchAndDisplayData();
+        });
+
+      document.getElementById("fetchData").onclick = async () => {
+        if (!currentSheetData) {
+          const sheetUrl = document.getElementById("sheetUrl").value.trim();
+          const { id: sheetId, gid } = extractSheetInfo(sheetUrl);
+
+          if (!sheetId) {
+            document.getElementById("errorMessage").textContent =
+              "Please enter a valid Google Sheet URL";
+            document.getElementById("errorMessage").classList.add("visible");
+            return;
+          }
+
+          try {
+            document.getElementById("loading").classList.add("visible");
+            const data = await fetchSheetData(sheetId, gid);
+            currentSheetData = filterEmptyColumns(data);
+          } catch (error) {
+            document.getElementById("errorMessage").textContent =
+              "Error loading sheet data: " + error.message;
+            document.getElementById("errorMessage").classList.add("visible");
+            document.getElementById("loading").classList.remove("visible");
+            return;
+          }
+          }
+
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "update-layers",
+              data: currentSheetData,
+              sheetUrl: document.getElementById("sheetUrl").value.trim(),
+              },
+            },
+            "*"
+          );
+      };
+
+      function validateUI() {
+        const fetchButton = document.getElementById("fetchData");
+        const sheetUrl = document.getElementById("sheetUrl").value.trim();
+        const hasValidUrl = sheetUrl && extractSheetInfo(sheetUrl).id;
+        const hasData = currentSheetData && currentSheetData.length > 1;
+        const layerCount = selectedLayers ? selectedLayers.length : 0;
+
+        fetchButton.disabled = !hasValidUrl || layerCount === 0;
+
+        if (!hasValidUrl) {
+          fetchButton.textContent = "Enter valid sheet URL";
+          } else if (layerCount === 0) {
+            fetchButton.textContent = "Select layers to sync";
+        } else {
+          fetchButton.textContent = `Sync (${layerCount} layer${
+            layerCount > 1 ? "s" : ""
+          })`;
+        }
+      }
+
+      let selectedLayers = [];
+      let selectionTypes = [];
+
+      document.getElementById("infoBtn").addEventListener("click", () => {
+        document.getElementById("infoModal").style.display = "flex";
+      });
+
+      document.getElementById("infoModal").addEventListener("click", (e) => {
+        if (e.target.id === "infoModal") {
+          document.getElementById("infoModal").style.display = "none";
+        }
+      });
+
+      validateUI();
+    </script>
+  </body>
+</html>

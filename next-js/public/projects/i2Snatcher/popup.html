@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Image Downloader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --vh: 100vh;
+        --font-1: "Encode Sans", sans-serif;
+        --font-2: headingfont;
+        --font-3: bodyfont;
+        --box-shadow: rgba(50, 50, 93, 0.25) 6px -4px 6px -1px;
+        --primary-color: #698f78;
+        --secondary-color: #45a049;
+        --foreground-color: #0c0c0c;
+        --foreground-color-light: #ffffff;
+      }
+      .blink {
+        color: var(--primary-color) !important;
+        text-decoration: underline;
+        animation: blink 1s infinite;
+      }
+
+      @keyframes blink {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      textarea {
+        width: 100%;
+      }
+
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      input#svgSize {
+        border: 0;
+        background: 0;
+        color: #fff;
+        font-size: 32px;
+        width: fit-content;
+        max-width: 4ch;
+      }
+
+      #iconContent .row {
+        justify-content: center;
+      }
+
+      #iconContent span {
+        font-size: 16px;
+      }
+
+      button {
+        padding: 16px;
+        width: 48%;
+        border: none;
+        background-color: var(--primary-color);
+        /* Default background color */
+        color: white;
+        /* Text color */
+        transition: transform 0.1s ease, background-color 0.1s ease;
+        /* Smooth transition for scale and color */
+        cursor: pointer;
+        /* Change cursor to pointer */
+        border-radius: 4px;
+        /* Optional: Rounded corners */
+      }
+
+      button:active {
+        transform: scale(0.95);
+        /* Scale down the button when clicked */
+        background-color: var(--primary-color);
+      }
+
+      body {
+        font-family: "Space Grotesk", sans-serif;
+        background: radial-gradient(
+          109.9% 197.13% at -9.9% 91.64%,
+          #ffd2b1 7.43%,
+          #ffb784 45%,
+          #ffd2b1 76.46%,
+          #ffb784 100%
+        );
+        padding: 24px 24px 0 24px;
+      }
+      .row.footer {
+        padding: 12px 0px;
+        justify-content: space-between;
+      }
+      .row.footer a {
+        color: var(--primary-color);
+        margin-left: 4px;
+      }
+      .row.footer div + div a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      #container {
+        width: 300px;
+        margin: 0 auto;
+      }
+
+      .row {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+      }
+      #iconContent .row,
+      #imageContent div {
+        padding: 8px 12px;
+      }
+
+      #iconContent h3 {
+        margin: 0;
+      }
+
+      #tabs {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .tab {
+        cursor: pointer;
+        color: var(--foreground-color);
+        padding: 10px;
+        width: -webkit-fill-available;
+        text-align: center;
+        /* border-bottom: 1px solid #fff; */
+      }
+
+      .tab.active {
+        background-color: transparent;
+        border: none;
+        background-color: var(--primary-color);
+        color: var(--foreground-color-light);
+        box-shadow: var(--box-shadow);
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+        box-shadow: var(--box-shadow);
+        background: var(--primary-color);
+        color: var(--foreground-color-light);
+      }
+
+      #iconContent,
+      #imageContent {
+        padding: 8px;
+        background-color: var(--primary-color);
+        color: var(--foreground-color-light);
+      }
+
+      #imageContent .row {
+        justify-content: space-between;
+      }
+
+      #imageList {
+        list-style-type: none;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+      }
+
+      #imageList li {
+        position: relative;
+        text-align: center;
+      }
+
+      #imageList img {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      #imageList button {
+        display: inline-block;
+        margin-top: 5px;
+        cursor: pointer;
+        background-color: #4caf50;
+        /* Green */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 5px 10px;
+        font-size: 14px;
+      }
+
+      #imageList button:hover {
+        background-color: #45a049;
+      }
+
+      .filter {
+        padding: 12px;
+        border: 1px solid #ddd;
+        margin-top: 24px;
+      }
+
+      .filter div {
+        display: flex;
+        align-items: flex-end;
+      }
+
+      div#message {
+        display: flex;
+        color: red;
+        width: 100%;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      /* Toggle Switch Styles */
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 26px;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.3);
+        transition: 0.3s;
+        border-radius: 26px;
+      }
+
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background-color: var(--foreground-color-light);
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+
+      .toggle-switch input:checked + .toggle-slider {
+        background-color: #4caf50;
+      }
+
+      .toggle-switch input:checked + .toggle-slider:before {
+        transform: translateX(14px);
+      }
+
+      .toggle-switch input:focus + .toggle-slider {
+        box-shadow: 0 0 1px #4caf50;
+      }
+
+      /* Shortcut Nudge Styles */
+      .shortcut-nudge {
+        background: var(--foreground-color-light);
+        color: var(--foreground-color);
+        padding: 10px 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .shortcut-nudge-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .shortcut-btn {
+        background: var(--primary-color);
+        color: var(--foreground-color-light);
+        border: none;
+        padding: 6px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+        white-space: nowrap;
+      }
+
+      .shortcut-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .shortcut-btn:active {
+        transform: translateY(0);
+      }
+
+      /* User status styles */
+      .user-status {
+        font-size: 11px;
+        opacity: 0.8;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="container">
+      <div id="tabs">
+        <div id="iconTab" class="tab active">Icon</div>
+        <div id="imageTab" class="tab">Images</div>
+        <div id="settingsTab" class="tab">Settings</div>
+      </div>
+
+      <!-- Icon Tab Content -->
+      <div id="iconContent" class="tab-content active">
+        <!-- Shortcut Nudge Banner -->
+        <div id="shortcutNudge" class="shortcut-nudge" style="display: none">
+          <div class="shortcut-nudge-content">
+            <span>Set up keyboard shortcuts for faster access</span>
+            <button id="setupShortcutsBtn" class="shortcut-btn">Set Up</button>
+          </div>
+        </div>
+        <div class="row">
+          <input type="number" id="svgSize" min="1" />
+          <span>px</span>
+        </div>
+        <div class="row">
+          <h3><span id="svgCount"></span> Icons snatched &#128293;</h3>
+        </div>
+        <div class="row">
+          <div id="colorMapping"></div>
+        </div>
+      </div>
+
+      <!-- Settings Tab Content -->
+      <div id="settingsContent" class="tab-content">
+        <div class="row" style="justify-content: space-between; padding: 12px">
+          <div>
+            <h3 style="margin: 0; font-size: 16px">Auto-close popup</h3>
+            <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.9">
+              Automatically close detail popup after copying SVG
+            </p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoCloseToggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div
+          class="row"
+          style="
+            padding: 0 12px 12px 12px;
+            flex-direction: column;
+            align-items: flex-start;
+          "
+        >
+          <span style="font-size: 12px; opacity: 0.9">Client ID:</span>
+          <code
+            id="clientIdDisplay"
+            style="font-size: 11px; word-break: break-all"
+          ></code>
+          <span id="userStatusDisplay" class="user-status"></span>
+        </div>
+      </div>
+
+      <!-- Image Tab Content -->
+      <div id="imageContent" class="tab-content">
+        <!-- <textarea id="imageUrls" rows="5" placeholder="Paste image URLs here, one per line"></textarea><br><br>
+            <input type="text" id="folderImageName" placeholder="Optional: Enter folder name"><br><br>
+            <div class="row">
+                <button id="downloadBtn">Download Images</button>
+            </div> -->
+        <div>
+          <div class="row filter">
+            <!-- Radio buttons for filtering image types -->
+            <div>
+              <input
+                type="radio"
+                id="filterJpeg"
+                name="imageFilter"
+                value="jpeg"
+                checked
+              />
+              <label for="filterJpeg">JPEG/JPG</label>
+            </div>
+
+            <div>
+              <input
+                type="radio"
+                id="filterPng"
+                name="imageFilter"
+                value="png"
+              />
+              <label for="filterPng">PNG</label>
+            </div>
+            <div>
+              <input
+                type="radio"
+                id="filterPng"
+                name="imageFilter"
+                value="webp"
+              />
+              <label for="filterPng">WebP</label>
+            </div>
+          </div>
+          <div>
+            <div id="message">No images found for the selected filter.</div>
+            <ul id="imageList"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="row footer">
+        <div>
+          Feedback?
+          <a
+            href="https://jdip19.github.io/index.html#s-footer"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Let's connect</a
+          >
+        </div>
+        <div>
+          <a
+            id="version"
+            href="https://jdip19.github.io/index.html#resources"
+            target="_blank"
+            rel="noopener noreferrer"
+          ></a>
+        </div>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>PDF(using table)</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" href="asset/CSS/bootstrap.css">
+    <link rel="stylesheet" href="asset/CSS/style.css"> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.debug.js"></script>
+
+    <style>
+        @font-face {
+            font-family: 'Courier';
+            src: url('Font/cour.ttf') format('truetype');
+        }
+
+        body {
+            font-family: Courier, monospace;
+            font-size: 16px;
+            text-transform: uppercase;
+            margin: 64px 64px;
+        }
+
+        .heading {
+            font-size: 20px;
+        }
+
+        div {
+            display: flex;
+        }
+
+        .tbl-head {
+            border-top: 1px solid;
+            border-bottom: 1px solid;
+        }
+
+        .tbl-head div {
+            width: 6%;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .tbl-head :nth-child(1),
+        .tbl-head :nth-child(2) {
+            width: 2%;
+        }
+
+        .tbl-head :nth-child(3) {
+            width: 15%;
+        }
+
+        .main.row {
+            margin-top: 8px;
+        }
+
+        .tbl-row div {
+            width: 6%;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .tbl-row div {
+            width: 6%;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .tbl-row :nth-child(3) {
+            width: 15%;
+        }
+
+        .tbl-row :nth-child(1),
+        .tbl-row :nth-child(2) {
+            width: 2%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="my-element" class="container flex-column">
+
+        <div class="flex-column align-items-center flex-fill">
+            <div class="heading"><a href="TBLPDF.html">Raj Services</a></div>
+            <div>204-205, BUSINESS BAY, ROYAL PARK STREET NO.-6,KALAVAD ROAD
+                RAJKOT-360005</div>
+        </div>
+
+        <div class="justify-content-between">
+            <div>CODE : 1642105</div>
+            <div class="flex-column">
+                <div>MONTH : JUN-2023 </div>
+                <div>Page no. : 1 </div>
+            </div>
+        </div>
+
+        <div class="mx-auto">
+            <div>
+                <h5>GROUP WAGE SUMMARY</h5>
+            </div>
+        </div>
+
+        <div class="flex-row justify-content-between tbl-head">
+            <div>SR NO</div>
+            <div>GR NO</div>
+            <div>GROUP NAME</div>
+            <div>CITY</div>
+            <div>TOTAL EMP.</div>
+            <div>TOTAL PRES.</div>
+            <div>BASIC+DA GROSS</div>
+            <div>O.T. GROSS</div>
+            <div>ALL. GROSS</div>
+            <div>TOTAL GROSS</div>
+            <div>DED. GROSS</div>
+            <div>NET AMT PAYABLE</div>
+        </div>
+
+        <div id="outputContainer" class="main row">
+
+        </div>
+
+    </div>
+
+    <script src="asset/JS/custom.js"></script>
+    <script src="asset/JS/bootstrap.bundle.js"></script>
+    <script>
+        generateAndAppendRow();
+
+    </script>
+
+</body>
+
+</html>

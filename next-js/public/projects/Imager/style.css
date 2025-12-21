@@ -1,0 +1,66 @@
+:root{
+  --primary-color:#fdfdfd;
+  --secondary-color:#F959B3;
+  --accent-color:#0055CF;
+}
+
+body{
+  background-color: var(--primary-color);
+  font-family: "Red Rose", serif !important;
+  font-optical-sizing: auto;
+}
+
+.conatiner{
+  
+}
+
+
+
+.drop-zone {
+  border: 2px dashed var(--accent-color);
+  border-radius: 10px;
+  padding: 50px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 18px;
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+
+.drop-zone.dragover {
+  background-color: #f0f8ff;
+}
+
+.header{
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+}
+.header p{
+  margin: 0;
+}
+.imgV{
+  display: flex ;
+  justify-content: center;
+}
+.imgV div img{
+  border-radius: 6px;
+  margin: 4px;
+  height: 100px;
+}
+div#previewContainer{
+  display: flex;
+  gap:16px;
+}
+.fileBox {
+  text-align: center;
+}
+.actionbar{
+  display: flex;
+  justify-content: center;
+}
+#resizeButton{
+  flex-grow: 1;
+  padding: 16px 0;
+  background-color: var(--accent-color);
+}

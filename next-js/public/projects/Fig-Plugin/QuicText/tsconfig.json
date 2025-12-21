@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "lib": ["es2016","DOM"],
+    "module": "es2015",
+    "strict": true,
+    "skipLibCheck": true,
+    "typeRoots": [
+      "node_modules/@figma/plugin-typings",
+      "node_modules/@figma"
+    ]
+  }
+  ,
+  "exclude": ["oldcode.ts"]
+}

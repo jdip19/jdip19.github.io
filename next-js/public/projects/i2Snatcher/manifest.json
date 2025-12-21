@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "i2Snatcher",
+  "version": "2.6",
+  "description": "A browser extension to copy or download icons with keyboard shortcuts and context menu. Fast and lightweight icon snatcher for Flaticon.",
+  "permissions": [
+    "downloads",
+    "activeTab",
+    "contextMenus",
+    "cookies",
+    "scripting",
+    "storage",
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    { 
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "contentScript.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "copy_svg": {
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Copy SVG to clipboard"
+    },
+    "download_svg": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Download SVG file"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "i2snatcher16.png",
+    "48": "i2snatcher48.png",
+    "128": "i2snatcher128.png"
+  }
+}
