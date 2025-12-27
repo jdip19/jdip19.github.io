@@ -172,7 +172,8 @@
   <!-- Settings / Dashboard header -->
   <div id="header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
     <div id="logo" style="font-weight:700;display:flex;align-items:center;gap:8px;">
-      <img src="./quiktext-128.png" alt="" style="width:28px;height:28px;border-radius:6px;background:#eee;"> QuicText by Quickverse
+      <img src="quiktext-128.png" alt="" style="width:28px;height:28px;border-radius:6px;background:#eee;"> QuicText
+      by Quickverse
     </div>
     <div id="header-actions" style="display:flex;gap:8px;align-items:center;">
       <button id="settingsBtn" title="Settings"
@@ -254,12 +255,10 @@
     // Configuration
     const CONFIG = {
       dodopayments: {
-        checkoutUrl: "https://checkout.dodopayments.com/buy/pdt_SEP94Xh88Gqpram39DT5X?quantity=1&redirect_url=https://jdip.vercel.app%2Fpayment-success&showDiscounts=false",
-        productId: "pdt_kacwOHATQ7klbZXszV8bP",
-        amount: 2,
-        currency: "USD"
+        checkoutUrl: "https://checkout.dodopayments.com/buy/pdt_SEP94Xh88Gqpram39DT5X"
       }
     };
+
 
     let currentMode = null;
     let remainingCount = 0;
@@ -288,22 +287,18 @@
       }
     }
 
-    // Generate unique checkout session ID
-    function generateSessionId() {
-      return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
 
     // Format checkout URL with session tracking
     function getCheckoutUrl() {
-      const sessionId = generateSessionId();
       const params = new URLSearchParams({
         quantity: "1",
-        showDiscounts: "false",
-        sessionId: sessionId,
-        email: "" // User can enter email at checkout
+        redirect_url: "https://jdip.vercel.app/payment",
+        showDiscounts: "false"
       });
+
       return `${CONFIG.dodopayments.checkoutUrl}?${params.toString()}`;
     }
+
 
     // Utility: mask license key for display
     function maskKey(key) {
@@ -321,7 +316,7 @@
       if (!date) return String(d);
       return date.toLocaleString();
     }
-// 
+    // 
     window.onmessage = (event) => {
       try {
         const msg = event.data?.pluginMessage;
@@ -434,7 +429,8 @@
         buyLink.href = getCheckoutUrl();
         buyLink.addEventListener("click", (e) => {
           e.preventDefault();
-          window.open(checkoutUrl, 'dodo_checkout', 'width=600,height=800');
+          const url = getCheckoutUrl();
+          window.open(url, 'dodo_checkout', 'width=600,height=800');
         });
 
       }
@@ -499,7 +495,7 @@
       if (supportBtn) {
         supportBtn.addEventListener('click', () => {
           // Open support page — replace with real support URL if available
-          window.open('https://support.example.com', '_blank', 'noopener');
+          window.open('jdip19.github.io', '_blank', 'noopener');
         });
       }
 
