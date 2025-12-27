@@ -115,7 +115,7 @@ export async function verifyLicenseKey(licenseKey: string): Promise<SupabaseResp
         },
         body: JSON.stringify(requestBody)
       });
-      console.log("📥 Response received");
+      console.log("✅ Response received");
 
       // Check if response object exists (Figma WebAssembly compatibility issue)
       if (!response) {

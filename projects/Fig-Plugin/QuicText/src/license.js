@@ -14,8 +14,8 @@ import { getDeviceId, getUsageData } from './storage';
  * Check if user has valid license
  */
 export function hasLicense() {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
         try {
             // First try the new consolidated storage format
             const licenseData = yield figma.clientStorage.getAsync("licenseData");
@@ -52,8 +52,8 @@ export function hasLicense() {
  * Verify license key with Supabase
  */
 export function verifyLicenseKey(licenseKey) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
         if (!licenseKey || typeof licenseKey !== 'string' || licenseKey.trim().length === 0) {
             console.warn("Invalid license key format");
             return null;
@@ -115,7 +115,7 @@ export function verifyLicenseKey(licenseKey) {
                     },
                     body: JSON.stringify(requestBody)
                 });
-                console.log("📥 Response received");
+                console.log("✅ Response received");
                 // Check if response object exists (Figma WebAssembly compatibility issue)
                 if (!response) {
                     console.error("❌ Response object is null/undefined - this is a Figma WebAssembly environment issue");
@@ -246,8 +246,8 @@ export function canUsePlugin() {
  * Activate license (called from UI after payment)
  */
 export function activateLicense(licenseKey) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
         if (!licenseKey || typeof licenseKey !== 'string' || licenseKey.trim().length === 0) {
             console.error("Invalid license key format");
             return false;
