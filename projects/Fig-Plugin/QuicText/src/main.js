@@ -8,8 +8,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { verifyLicenseKey, hasLicense, activateLicense } from './license';
-import { getDeviceId, getUsageData, incrementUsage, saveDefaultValue, getLicenseData, clearLicenseData } from './storage';
+import { verifyLicenseKey, activateLicense } from './license';
+import { getDeviceId, getUsageData, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData } from './storage';
 import { collectTextNodes, processAllTextNodes, applyQuickCommand } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
 // Main plugin logic
@@ -21,7 +21,7 @@ function main() {
                 yield showAccountUI();
                 return;
             }
-            // Quick dynamic commands (prefix/suffix/between) — handled centrally
+            // 2️⃣ Quick commands (no monetization check)
             const dynamicCommands = ['addprefix', 'addsuffix', 'addbetween'];
             if (dynamicCommands.includes(figma.command || '')) {
                 yield applyQuickCommand(figma.command);
@@ -29,15 +29,15 @@ function main() {
                 figma.closePlugin();
                 return;
             }
-            // 2️⃣ Other commands → check license
+            // 3️⃣ Usage gate (THIS is the only gate)
             if (ENABLE_MONETIZATION) {
-                const licensed = yield hasLicense();
-                if (!licensed) {
+                const usage = yield canUsePlugin();
+                if (!usage.allowed) {
                     yield showAccountUI();
                     return;
                 }
             }
-            // 3️⃣ Run command
+            // 4️⃣ Run command
             yield processTextCommand();
             figma.closePlugin();
         }
@@ -63,8 +63,8 @@ function processTextCommand() {
             figma.closePlugin();
             return;
         }
-        // Track usage
-        if (ENABLE_MONETIZATION) {
+        const licenseData = yield getLicenseData();
+        if (ENABLE_MONETIZATION && !licenseData) {
             yield incrementUsage();
         }
         yield processAllTextNodes(textNodes);

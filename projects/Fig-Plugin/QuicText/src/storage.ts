@@ -2,6 +2,7 @@
 
 import { UsageData, LicenseData } from './types';
 import { getTodayDate, generateUUID } from './utils';
+import { DEFAULT_VALUES } from './config';
 
 /**
  * Get current usage data

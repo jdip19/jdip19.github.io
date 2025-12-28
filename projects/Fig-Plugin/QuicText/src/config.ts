@@ -1,5 +1,7 @@
 // ==================== CONFIGURATION ====================
 
+import { DynamicCommand } from './types';
+
 // Monetization settings
 export const ENABLE_MONETIZATION = true;
 export const FREE_DAILY_LIMIT = 10;

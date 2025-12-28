@@ -1,7 +1,7 @@
 // ==================== MAIN PLUGIN FILE ====================
 
 import { verifyLicenseKey, hasLicense, activateLicense } from './license';
-import { getDeviceId, getUsageData, incrementUsage, saveDefaultValue, getLicenseData, clearLicenseData } from './storage';
+import { getDeviceId, getUsageData, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData } from './storage';
 import { collectTextNodes, processAllTextNodes, applyQuickCommand } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
 
@@ -14,7 +14,7 @@ async function main() {
       return;
     }
 
-    // Quick dynamic commands (prefix/suffix/between) — handled centrally
+    // 2️⃣ Quick commands (no monetization check)
     const dynamicCommands = ['addprefix', 'addsuffix', 'addbetween'];
     if (dynamicCommands.includes(figma.command || '')) {
       await applyQuickCommand(figma.command as string);
@@ -23,16 +23,18 @@ async function main() {
       return;
     }
 
-    // 2️⃣ Other commands → check license
+    // 3️⃣ Usage gate (THIS is the only gate)
     if (ENABLE_MONETIZATION) {
-      const licensed = await hasLicense();
-      if (!licensed) {
+      const usage = await canUsePlugin();
+
+      if (!usage.allowed) {
         await showAccountUI();
         return;
       }
+
     }
 
-    // 3️⃣ Run command
+    // 4️⃣ Run command
     await processTextCommand();
     figma.closePlugin();
 
@@ -42,6 +44,7 @@ async function main() {
     figma.closePlugin();
   }
 }
+
 
 
 
@@ -62,12 +65,17 @@ async function processTextCommand() {
     return;
   }
 
-  // Track usage
-  if (ENABLE_MONETIZATION) {
-    await incrementUsage();
-  }
+  const licenseData = await getLicenseData();
 
   await processAllTextNodes(textNodes);
+
+  // Increment only after success
+  if (ENABLE_MONETIZATION) {
+    const licenseData = await getLicenseData();
+    if (!licenseData) {
+      await incrementUsage();
+    }
+  }
 }
 
 // Handle UI messages

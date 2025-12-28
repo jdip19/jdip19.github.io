@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { getTodayDate, generateUUID } from './utils';
+import { DEFAULT_VALUES } from './config';
 /**
  * Get current usage data
  */

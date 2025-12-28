@@ -8,6 +8,7 @@ const outputFile = path.join(__dirname, 'code.ts');
 
 // Files to bundle in order (dependencies first)
 const files = [
+  'version.ts',
   'types.ts',
   'config.ts',
   'utils.ts',
@@ -24,8 +25,9 @@ files.forEach(file => {
   if (fs.existsSync(filePath)) {
     let content = fs.readFileSync(filePath, 'utf8');
 
-    // Remove import statements
+    // Remove import statements (handle multi-line imports)
     content = content.replace(/^import\s+.*from\s+['"`].*['"`];?$/gm, '');
+    content = content.replace(/^import\s+{[\s\S]*?}\s+from\s+['"`].*['"`];?$/gm, '');
     content = content.replace(/^import\s+['"`].*['"`];?$/gm, '');
 
     // Remove export statements but keep the declarations

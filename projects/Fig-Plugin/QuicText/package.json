@@ -1,7 +1,7 @@
 {
   "name": "QuicText",
-  "version": "1.0.0",
-  "description": "Formatting text effcientlyT",
+  "version": "9.0.0",
+  "description": "Formatting text efficiently",
   "main": "code.js",
   "scripts": {
     "bundle": "node bundle.js",

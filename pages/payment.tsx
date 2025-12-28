@@ -14,7 +14,7 @@ export default function PaymentResult() {
       router.query.payment_status ||
       router.query.state
 
-    if (s === "success" || s === "paid" || s === "succeeded") {
+    if (s === "succeeded" || s === "paid" || s === "success") {
       setStatus("success")
     } else if (s === "failed" || s === "cancelled") {
       setStatus("failed")
