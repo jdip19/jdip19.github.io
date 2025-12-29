@@ -1,8 +1,12 @@
 // ==================== TEXT PROCESSING ====================
 
-import { getKeywordList, loadAllFontsForNode } from './utils';
-import { getStoredIndex, saveStoredIndex, getEffectiveDefault } from './storage';
-import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS } from './config';
+import { getKeywordList, loadAllFontsForNode } from "./utils";
+import {
+  getStoredIndex,
+  saveStoredIndex,
+  getEffectiveDefault,
+} from "./storage";
+import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS } from "./config";
 
 /**
  * Apply formatting to keywords in text nodes
@@ -20,7 +24,7 @@ export async function applyFormattingToKeywords(
     try {
       await figma.loadFontAsync(node.fontName as FontName);
     } catch (err) {
-      console.warn('Could not load font for node:', err);
+      console.warn("Could not load font for node:", err);
     }
     const text = node.characters;
     keywordList.forEach((word: string) => {
@@ -35,7 +39,10 @@ export async function applyFormattingToKeywords(
           try {
             applyRange(node, index, endIndex);
           } catch (err) {
-            console.warn(`Could not apply formatting at range ${index}-${endIndex}:`, err);
+            console.warn(
+              `Could not apply formatting at range ${index}-${endIndex}:`,
+              err
+            );
           }
         }
         index = text.indexOf(word, index + word.length);
@@ -52,17 +59,21 @@ export async function processAllTextNodes(textNodes: TextNode[]) {
   for (const node of textNodes) {
     // Warn if the node has mixed fills
     if (node.fills === figma.mixed) {
-      figma.notify('Warning: Some text nodes have mixed color styles. These may be lost after processing.');
+      figma.notify(
+        "Warning: Some text nodes have mixed color styles. These may be lost after processing."
+      );
     }
     try {
       await handleTextCase(node);
     } catch (err) {
       skippedCount++;
-      console.error('Error processing node:', node, err);
+      console.error("Error processing node:", node, err);
     }
   }
   if (skippedCount > 0) {
-    figma.notify(`Skipped ${skippedCount} text node(s) due to processing errors.`);
+    figma.notify(
+      `Skipped ${skippedCount} text node(s) due to processing errors.`
+    );
   }
 }
 
@@ -70,7 +81,7 @@ export async function processAllTextNodes(textNodes: TextNode[]) {
  * Get all text nodes from current page
  */
 const getAllTextNodes = (): TextNode[] => {
-  return figma.root.findAll(n => n.type === "TEXT") as TextNode[];
+  return figma.root.findAll((n) => n.type === "TEXT") as TextNode[];
 };
 
 /**
@@ -81,14 +92,14 @@ export function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   const visited = new Set<string>();
 
   const traverse = (node: SceneNode) => {
-    if (node.type === 'TEXT') {
+    if (node.type === "TEXT") {
       if (!visited.has(node.id)) {
         result.push(node as TextNode);
         visited.add(node.id);
       }
     }
 
-    if ('children' in node) {
+    if ("children" in node) {
       for (const child of node.children as readonly SceneNode[]) {
         traverse(child);
       }
@@ -102,10 +113,15 @@ export function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
 /**
  * Apply a simple dynamic format (prefix/suffix/between) to current selection
  */
-export async function applyDynamicFormat(value: string, mode: 'prefix' | 'suffix' | 'between') {
-  const nodes = figma.currentPage.selection.filter(n => n.type === 'TEXT') as TextNode[];
+export async function applyDynamicFormat(
+  value: string,
+  mode: "prefix" | "suffix" | "between"
+) {
+  const nodes = figma.currentPage.selection.filter(
+    (n) => n.type === "TEXT"
+  ) as TextNode[];
   if (nodes.length === 0) {
-    figma.notify('Please select at least one text layer');
+    figma.notify("Please select at least one text layer");
     return;
   }
 
@@ -113,15 +129,15 @@ export async function applyDynamicFormat(value: string, mode: 'prefix' | 'suffix
     try {
       await figma.loadFontAsync(node.fontName as FontName);
     } catch (err) {
-      console.warn('Font load failed for node:', node, err);
+      console.warn("Font load failed for node:", node, err);
     }
 
     let text = node.characters;
-    if (mode === 'prefix') {
+    if (mode === "prefix") {
       text = value + text;
-    } else if (mode === 'suffix') {
+    } else if (mode === "suffix") {
       text = text + value;
-    } else if (mode === 'between') {
+    } else if (mode === "between") {
       const parts = text.split(/\s+/);
       text = parts.join(value);
     }
@@ -129,7 +145,7 @@ export async function applyDynamicFormat(value: string, mode: 'prefix' | 'suffix
     try {
       node.characters = text;
     } catch (err) {
-      console.error('Failed to apply dynamic format to node:', err);
+      console.error("Failed to apply dynamic format to node:", err);
     }
   }
 }
@@ -138,15 +154,15 @@ export async function applyDynamicFormat(value: string, mode: 'prefix' | 'suffix
  * Apply a quick command (addprefix/addsuffix/addbetween) using stored defaults
  */
 export async function applyQuickCommand(command: string) {
-  const map: Record<string, { mode: 'prefix' | 'between' | 'suffix' }> = {
-    addprefix: { mode: 'prefix' },
-    addbetween: { mode: 'between' },
-    addsuffix: { mode: 'suffix' }
+  const map: Record<string, { mode: "prefix" | "between" | "suffix" }> = {
+    addprefix: { mode: "prefix" },
+    addbetween: { mode: "between" },
+    addsuffix: { mode: "suffix" },
   };
 
   const entry = map[command];
   if (!entry) {
-    console.error('Unsupported quick command:', command);
+    console.error("Unsupported quick command:", command);
     return;
   }
 
@@ -154,9 +170,6 @@ export async function applyQuickCommand(command: string) {
 
   await applyDynamicFormat(value, entry.mode);
 }
-
-
-
 
 /**
  * Handle text case transformation
@@ -166,7 +179,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
   try {
     await loadAllFontsForNode(node);
   } catch (fontError) {
-    console.warn('Failed to load fonts for node:', fontError);
+    console.warn("Failed to load fonts for node:", fontError);
     // Continue processing even if font loading fails
   }
 
@@ -199,8 +212,8 @@ async function handleTextCase(node: TextNode): Promise<void> {
     containerName: string
   ): void => {
     const filteredSegments = segments
-      .map(segment => segment.trim())
-      .filter(segment => segment.length > 0);
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0);
 
     if (filteredSegments.length === 0) {
       figma.notify(emptyMessage);
@@ -208,8 +221,8 @@ async function handleTextCase(node: TextNode): Promise<void> {
     }
 
     const parent = node.parent;
-    if (!parent || !('appendChild' in parent)) {
-      figma.notify('Unable to split this text because it has no valid parent.');
+    if (!parent || !("appendChild" in parent)) {
+      figma.notify("Unable to split this text because it has no valid parent.");
       return;
     }
 
@@ -233,9 +246,9 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
     const autoLayoutFrame = figma.createFrame();
     autoLayoutFrame.name = containerName;
-    autoLayoutFrame.layoutMode = 'VERTICAL';
-    autoLayoutFrame.primaryAxisSizingMode = 'AUTO';
-    autoLayoutFrame.counterAxisSizingMode = 'AUTO';
+    autoLayoutFrame.layoutMode = "VERTICAL";
+    autoLayoutFrame.primaryAxisSizingMode = "AUTO";
+    autoLayoutFrame.counterAxisSizingMode = "AUTO";
     autoLayoutFrame.itemSpacing = 8;
     autoLayoutFrame.paddingTop = 0;
     autoLayoutFrame.paddingBottom = 0;
@@ -247,7 +260,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
     autoLayoutFrame.y = node.y;
 
     parent.appendChild(autoLayoutFrame);
-    newLayers.forEach(layer => autoLayoutFrame.appendChild(layer));
+    newLayers.forEach((layer) => autoLayoutFrame.appendChild(layer));
 
     node.remove();
     figma.currentPage.selection = newLayers;
@@ -255,8 +268,25 @@ async function handleTextCase(node: TextNode): Promise<void> {
   };
 
   switch (figma.command) {
-    case 'titlecase':
-      const conjunctions = ['for', 'as', 'an', 'a', 'in', 'on', 'of', 'am', 'are', 'and', 'to', 'is', 'at', 'also', 'with', 'or'];
+    case "titlecase":
+      const conjunctions = [
+        "for",
+        "as",
+        "an",
+        "a",
+        "in",
+        "on",
+        "of",
+        "am",
+        "are",
+        "and",
+        "to",
+        "is",
+        "at",
+        "also",
+        "with",
+        "or",
+      ];
 
       // Step 1: Convert all text to lowercase
       newText = newText.toLowerCase();
@@ -268,89 +298,86 @@ async function handleTextCase(node: TextNode): Promise<void> {
           return word;
         } else if (word.includes("'") || word.includes("’")) {
           // Handle words with straight or curly apostrophes
-          const apostropheIndex = word.indexOf("'") !== -1 ? word.indexOf("'") : word.indexOf("’");
+          const apostropheIndex =
+            word.indexOf("'") !== -1 ? word.indexOf("'") : word.indexOf("’");
           const beforeApostrophe = word.slice(0, apostropheIndex + 1); // Part before and including the apostrophe
           const afterApostrophe = word.slice(apostropheIndex + 1); // Part after the apostrophe
 
           // Capitalize the first letter of the word, and keep the rest lowercase
-          return beforeApostrophe.charAt(0).toUpperCase() + beforeApostrophe.slice(1) + afterApostrophe.toLowerCase();
+          return (
+            beforeApostrophe.charAt(0).toUpperCase() +
+            beforeApostrophe.slice(1) +
+            afterApostrophe.toLowerCase()
+          );
         } else {
           // Capitalize the first letter of standard words
           return match.charAt(0).toUpperCase() + match.slice(1);
         }
       });
 
-      figma.notify('Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅');
+      figma.notify(
+        "Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅"
+      );
       break;
 
-    case 'sentencecase':
-      const allUppercase = newText.split(' ').every(word => word.toUpperCase() === word);
+    case "sentencecase":
+      const sentenceRegex = /(^|[.!?]\s+)(\w+)/g;
 
-      let titleCaseCount = 0;
-      newText.split(' ').every(word => {
-        const firstLetter = word.charAt(0);
-        const restOfWord = word.slice(1);
-        if (firstLetter.toUpperCase() === firstLetter && restOfWord.toLowerCase() === restOfWord) {
-          titleCaseCount++;
-          return true;
-        } else {
-          return false;
-        }
-      });
-
-      if (allUppercase) {
-        newText = newText.toLowerCase().charAt(0).toUpperCase() + newText.slice(1).toLowerCase();
-      } else if (titleCaseCount >= 2) {
-        newText = newText.toLowerCase().replace(/(^|[.!?]\s+)(\w+)/g, firstLetter => firstLetter.charAt(0).toUpperCase() + firstLetter.slice(1).toLocaleLowerCase());
-      } else {
-        const sentenceRegex = /(^|[.!?]\s+)(\w+)/g;
-        newText = newText.replace(sentenceRegex, (match, boundary, word) => {
+      newText = newText
+        .toLowerCase()
+        .replace(sentenceRegex, (match, boundary, word) => {
           const isAcronym = word.length > 1 && word.toUpperCase() === word;
-          if (isAcronym) {
-            return boundary + word;
-          } else {
-            return boundary + word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-          }
+          return (
+            boundary +
+            (isAcronym ? word : word.charAt(0).toUpperCase() + word.slice(1))
+          );
         });
-      }
 
-      figma.notify('Tadaannn... 🥁 Your Text case changed to Sentencecase.');
+      figma.notify("Tadaannn... 🥁 Your Text case changed to Sentencecase.");
       break;
 
-    case 'uppercase':
+    case "uppercase":
       newText = newText.toUpperCase();
-      figma.notify('Tadaannn... 🥁 Your Text case changed to UPPERCASE. 🐘');
+      figma.notify("Tadaannn... 🥁 Your Text case changed to UPPERCASE. 🐘");
       break;
 
-    case 'lowercase':
+    case "lowercase":
       newText = newText.toLowerCase();
-      figma.notify('Tadaannn... 🥁 Your Text case changed to lowercase. 😚');
+      figma.notify("Tadaannn... 🥁 Your Text case changed to lowercase. 😚");
       break;
 
-    case 'addbreakline':
-      newText = newText.replace(/\. ?([a-z]|[A-Z])/g, '.\n$1');
-      newText = newText.replace(/(^\w|\. ?\w)/gm, (match) => match.toUpperCase());
-      figma.notify('Tadaannn... 🥁 Your Text now has line breaks after Fullstop.');
+    case "addbreakline":
+      newText = newText.replace(/\. ?([a-z]|[A-Z])/g, ".\n$1");
+      newText = newText.replace(/(^\w|\. ?\w)/gm, (match) =>
+        match.toUpperCase()
+      );
+      figma.notify(
+        "Tadaannn... 🥁 Your Text now has line breaks after Fullstop."
+      );
       break;
 
     case "copycta":
-      await cycleCopyText(node, CTA_TEXTS, 'ctaIndex');
-      figma.notify('Tadaannn... 🥁 Button Text Added');
+      await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
+      figma.notify("Tadaannn... 🥁 Button Text Added");
       return;
 
     case "copyhero":
-      await cycleCopyText(node, HERO_TEXTS, 'heroIndex');
-      figma.notify('Tadaannn... 🥁 Hero Text Added');
+      await cycleCopyText(node, HERO_TEXTS, "heroIndex");
+      figma.notify("Tadaannn... 🥁 Hero Text Added");
       return;
 
     case "copyerror":
-      await cycleCopyText(node, ERROR_TEXTS, 'errorIndex');
-      figma.notify('Tadaannn... 🥁 Error Text Added');
+      await cycleCopyText(node, ERROR_TEXTS, "errorIndex");
+      figma.notify("Tadaannn... 🥁 Error Text Added");
       return;
 
-    case 'rmvspace':
-      newText = newText.replace(/\s+/g, ' ');
-      figma.notify('Tadaannn... 🥁 Your Text is now unwanted space free. 🤧');
+    case "rmvspace":
+      newText = newText
+        .split("\n") // handle each line separately
+        .map((line) => line.trim()) // remove starting & ending spaces
+        .join("\n") // keep line breaks
+        .replace(/[ \t]+/g, " ");
+      figma.notify("Tadaannn... 🥁 Your Text is now unwanted space free. 💅");
       break;
 
     case "removesymbols":
@@ -358,53 +385,53 @@ async function handleTextCase(node: TextNode): Promise<void> {
       figma.notify("Removed punctuation & symbols ✔");
       break;
 
-    case 'slug':
+    case "slug":
       newText = originalCharacters
         .trim()
         .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      figma.notify('Tadaannn... 🥁 Converted to slug format.');
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      figma.notify("Tadaannn... 🥁 Converted to slug format.");
       break;
 
-    case 'splitindividually': {
+    case "splitindividually": {
       const lines = originalCharacters.split(/\r\n|\r|\n/);
 
       if (lines.length <= 1) {
-        figma.notify('No line breaks found.');
+        figma.notify("No line breaks found.");
         return;
       }
 
       splitTextIntoLayers(
         lines,
         (index) => `${node.name} - Line ${index + 1}`,
-        'No text lines found to split.',
+        "No text lines found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} individual text layers!`,
         `${node.name} - Split Lines`
       );
       return;
     }
 
-    case 'splitwords': {
+    case "splitwords": {
       const words = originalCharacters.split(/\s+/);
       splitTextIntoLayers(
         words,
         (index) => `${node.name} - Word ${index + 1}`,
-        'No words found to split.',
+        "No words found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} word layers!`,
         `${node.name} - Split Words`
       );
       return;
     }
 
-    case 'splitletters': {
+    case "splitletters": {
       const letters = Array.from(originalCharacters);
       splitTextIntoLayers(
-        letters.filter(letter => /\S/.test(letter)),
+        letters.filter((letter) => /\S/.test(letter)),
         (index, letter) => `${node.name} - Letter ${index + 1}: ${letter}`,
-        'No letters found to split.',
+        "No letters found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} letter layers!`,
         `${node.name} - Split Letters`
       );
@@ -412,7 +439,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
     }
 
     default:
-      console.error('Unknown command:', figma.command);
+      console.error("Unknown command:", figma.command);
       return;
   }
 
@@ -420,7 +447,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
   try {
     node.characters = newText;
   } catch (error) {
-    console.error('Error updating text characters:', error);
+    console.error("Error updating text characters:", error);
     return; // Exit early if we can't update the text
   }
 
@@ -429,35 +456,43 @@ async function handleTextCase(node: TextNode): Promise<void> {
     try {
       node.fillStyleId = uniformFillStyleId;
     } catch (error) {
-      console.error('Error applying fill style ID:', error);
+      console.error("Error applying fill style ID:", error);
     }
   } else if (hadUniformFill && uniformFill) {
     try {
       node.fills = uniformFill;
     } catch (error) {
-      console.error('Error applying uniform fill:', error);
+      console.error("Error applying uniform fill:", error);
     }
   } else {
     // Reapply the original fills to the corresponding character ranges
     try {
       for (let i = 0; i < Math.min(newText.length, originalFills.length); i++) {
-        if (i < node.characters.length && originalFills[i] !== null && originalFills[i] !== undefined) {
+        if (
+          i < node.characters.length &&
+          originalFills[i] !== null &&
+          originalFills[i] !== undefined
+        ) {
           try {
-            node.setRangeFills(i, Math.min(i + 1, node.characters.length), originalFills[i] as Paint[]);
+            node.setRangeFills(
+              i,
+              Math.min(i + 1, node.characters.length),
+              originalFills[i] as Paint[]
+            );
           } catch (rangeError) {
             console.warn(`Could not apply fill at index ${i}:`, rangeError);
           }
         }
       }
     } catch (error) {
-      console.error('Error applying range fills:', error);
+      console.error("Error applying range fills:", error);
     }
   }
 
   // Apply the text style after the transformation is done
   if (currentTextStyleId && currentTextStyleId !== figma.mixed) {
-    node.setTextStyleIdAsync(currentTextStyleId as string).catch(error => {
-      console.error('Error applying text style:', error);
+    node.setTextStyleIdAsync(currentTextStyleId as string).catch((error) => {
+      console.error("Error applying text style:", error);
     });
   }
 }
@@ -465,7 +500,11 @@ async function handleTextCase(node: TextNode): Promise<void> {
 /**
  * Cycle through copy text options
  */
-async function cycleCopyText(node: TextNode, texts: string[], storageKey: string): Promise<void> {
+async function cycleCopyText(
+  node: TextNode,
+  texts: string[],
+  storageKey: string
+): Promise<void> {
   const index = await getStoredIndex(storageKey);
   const text = texts[index];
 
@@ -476,4 +515,3 @@ async function cycleCopyText(node: TextNode, texts: string[], storageKey: string
   const nextIndex = (index + 1) % texts.length;
   await saveStoredIndex(storageKey, nextIndex);
 }
-

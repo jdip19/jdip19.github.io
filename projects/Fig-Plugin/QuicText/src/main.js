@@ -64,10 +64,14 @@ function processTextCommand() {
             return;
         }
         const licenseData = yield getLicenseData();
-        if (ENABLE_MONETIZATION && !licenseData) {
-            yield incrementUsage();
-        }
         yield processAllTextNodes(textNodes);
+        // Increment only after success
+        if (ENABLE_MONETIZATION) {
+            const licenseData = yield getLicenseData();
+            if (!licenseData) {
+                yield incrementUsage();
+            }
+        }
     });
 }
 // Handle UI messages
