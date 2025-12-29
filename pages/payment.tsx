@@ -28,7 +28,7 @@ export default function PaymentResult() {
       <main style={{ padding: 40 }}>
         <h2>🎉 Payment received</h2>
         <p>Your license key has been sent to your email.</p>
-        <p>You can now return to the QuickText plugin.</p>
+        <p>You can now return to the QuicText plugin.</p>
       </main>
     )
   }
