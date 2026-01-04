@@ -51,7 +51,7 @@ type FontReference = FontName | typeof figma.mixed;
 // Monetization settings
 const ENABLE_MONETIZATION = true;
 const FREE_DAILY_LIMIT = 10;
-const LICENSE_PRICE = 9; // $5 lifetime
+const LICENSE_PRICE = 5; // $5 lifetime
 
 // API endpoints
 const VERIFY_LICENSE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/verify-license";
@@ -1347,7 +1347,7 @@ async function showAccountUI() {
   const isPro = Boolean(licenseData);
 
   figma.showUI(__html__, {
-    width: 500,
+    width: 300,
     height: isPro ? 420 : 520
   });
 

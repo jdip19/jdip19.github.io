@@ -155,7 +155,7 @@ function showAccountUI() {
         const licenseData = yield getLicenseData();
         const isPro = Boolean(licenseData);
         figma.showUI(__html__, {
-            width: 500,
+            width: 300,
             height: isPro ? 420 : 520
         });
         figma.ui.postMessage({
