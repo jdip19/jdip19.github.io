@@ -275,7 +275,16 @@ function formatDate(format: string, date = new Date()): string {
   const yyyy = String(date.getFullYear());
   const yy = yyyy.slice(-2);
 
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
   return format
+    .replace(/dddd/g, dayNames[date.getDay()])
+    .replace(/ddd/g, shortDayNames[date.getDay()])
+    .replace(/MMMM/g, monthNames[date.getMonth()])
+    .replace(/MMM/g, shortMonthNames[date.getMonth()])
     .replace(/dd/g, dd)
     .replace(/mm/g, mm)
     .replace(/yyyy/g, yyyy)
@@ -511,7 +520,7 @@ async function clearLicenseData(): Promise<void> {
 }
 
 async function getDateFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
+  return (await figma.clientStorage.getAsync("dateFormat")) || "mm-dd-yyyy";
 }
 
 async function setDateFormat(value: string) {
@@ -1303,11 +1312,12 @@ figma.ui.onmessage = async (msg) => {
   try {
     switch (msg.type) {
       case 'save-defaults':
-        // msg.defaults = { prefix, between, suffix }
+        // msg.defaults = { prefix, between, suffix, dateFormat }
         if (msg.defaults) {
           if (msg.defaults.prefix !== undefined) await saveDefaultValue('default_prefix', msg.defaults.prefix || '');
           if (msg.defaults.between !== undefined) await saveDefaultValue('default_between', msg.defaults.between || '');
           if (msg.defaults.suffix !== undefined) await saveDefaultValue('default_suffix', msg.defaults.suffix || '');
+          if (msg.defaults.dateFormat !== undefined) await setDateFormat(msg.defaults.dateFormat);
         }
         figma.ui.postMessage({ type: 'defaults-saved', success: true });
         break;
@@ -1317,7 +1327,9 @@ figma.ui.onmessage = async (msg) => {
           const prefix = await getDefaultValue('default_prefix');
           const between = await getDefaultValue('default_between');
           const suffix = await getDefaultValue('default_suffix')
+          const dateFormat = await getDateFormat();
           figma.ui.postMessage({ type: 'current-defaults', defaults: { prefix, between, suffix } });
+          figma.ui.postMessage({ type: 'date-format', value: dateFormat });
         }
         break;
       case 'verify-license':
