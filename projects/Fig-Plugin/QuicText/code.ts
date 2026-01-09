@@ -51,7 +51,7 @@ type FontReference = FontName | typeof figma.mixed;
 // Monetization settings
 const ENABLE_MONETIZATION = true;
 const FREE_DAILY_LIMIT = 10;
-const LICENSE_PRICE = 9; // $5 lifetime
+const LICENSE_PRICE = 5; // $5 lifetime
 
 // API endpoints
 const VERIFY_LICENSE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/verify-license";
@@ -269,6 +269,20 @@ function generateUUID(): string {
   });
 }
 
+function formatDate(format: string, date = new Date()): string {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(date.getFullYear());
+  const yy = yyyy.slice(-2);
+
+  return format
+    .replace(/dd/g, dd)
+    .replace(/mm/g, mm)
+    .replace(/yyyy/g, yyyy)
+    .replace(/yy/g, yy);
+}
+
+
 // ==================== STORAGE.TS ====================
 
 // ==================== STORAGE UTILITIES ====================
@@ -281,7 +295,7 @@ function generateUUID(): string {
  * Get current usage data
  */
 async function getUsageData(): Promise<UsageData> {
-  const stored = await figma.clientStorage.getAsync('usageData');
+  const stored = await figma.clientStorage.getAsync("usageData");
   const today = getTodayDate();
 
   if (!stored) {
@@ -304,7 +318,7 @@ async function getUsageData(): Promise<UsageData> {
 async function incrementUsage(): Promise<void> {
   const usage = await getUsageData();
   usage.count++;
-  await figma.clientStorage.setAsync('usageData', usage);
+  await figma.clientStorage.setAsync("usageData", usage);
 }
 
 /**
@@ -350,7 +364,10 @@ async function getStoredIndex(key: string): Promise<number> {
 /**
  * Save index for cycling text
  */
-async function saveStoredIndex(key: string, index: number): Promise<void> {
+async function saveStoredIndex(
+  key: string,
+  index: number
+): Promise<void> {
   await figma.clientStorage.setAsync(key, index);
 }
 
@@ -403,18 +420,17 @@ async function saveLicenseData(licenseData: LicenseData): Promise<void> {
 }
 
 async function getEffectiveDefault(
-  key: 'prefix' | 'between' | 'suffix'
+  key: "prefix" | "between" | "suffix"
 ): Promise<string> {
   const storageKey = `default_${key}`;
   const stored = await getDefaultValue(storageKey);
 
-  if (stored !== null && stored !== undefined && stored !== '') {
+  if (stored !== null && stored !== undefined && stored !== "") {
     return stored;
   }
 
   return DEFAULT_VALUES[key];
 }
-
 
 /**
  * Get a stored default value for dynamic commands (prefix/suffix/between)
@@ -424,7 +440,7 @@ async function getDefaultValue(key: string): Promise<string | null> {
     const v = await figma.clientStorage.getAsync(key);
     return v !== undefined ? (v as string) : null;
   } catch (err) {
-    console.warn('Error reading default value:', key, err);
+    console.warn("Error reading default value:", key, err);
     return null;
   }
 }
@@ -432,11 +448,14 @@ async function getDefaultValue(key: string): Promise<string | null> {
 /**
  * Save a default value for dynamic commands
  */
-async function saveDefaultValue(key: string, value: string): Promise<void> {
+async function saveDefaultValue(
+  key: string,
+  value: string
+): Promise<void> {
   try {
     await figma.clientStorage.setAsync(key, value);
   } catch (err) {
-    console.warn('Error saving default value:', key, err);
+    console.warn("Error saving default value:", key, err);
   }
 }
 
@@ -445,17 +464,19 @@ async function saveDefaultValue(key: string, value: string): Promise<void> {
  */
 async function getLicenseData(): Promise<LicenseData | null> {
   try {
-    const stored = await figma.clientStorage.getAsync('licenseData');
+    const stored = await figma.clientStorage.getAsync("licenseData");
     if (stored) return stored as LicenseData;
 
     // Fallback to older individual keys
-    const key = await figma.clientStorage.getAsync('licenseKey');
+    const key = await figma.clientStorage.getAsync("licenseKey");
     if (!key) return null;
-    const unlimited = Boolean(await figma.clientStorage.getAsync('unlimited'));
-    const email = (await figma.clientStorage.getAsync('licenseEmail')) || '';
-    const plan = (await figma.clientStorage.getAsync('licensePlan')) || '';
-    const version = (await figma.clientStorage.getAsync('licenseVersion')) || '';
-    const activatedAt = (await figma.clientStorage.getAsync('licenseActivatedAt')) || '';
+    const unlimited = Boolean(await figma.clientStorage.getAsync("unlimited"));
+    const email = (await figma.clientStorage.getAsync("licenseEmail")) || "";
+    const plan = (await figma.clientStorage.getAsync("licensePlan")) || "";
+    const version =
+      (await figma.clientStorage.getAsync("licenseVersion")) || "";
+    const activatedAt =
+      (await figma.clientStorage.getAsync("licenseActivatedAt")) || "";
 
     return {
       key: key as string,
@@ -463,10 +484,10 @@ async function getLicenseData(): Promise<LicenseData | null> {
       email: email as string,
       plan: plan as string,
       version: version as string,
-      activatedAt: activatedAt as string
+      activatedAt: activatedAt as string,
     } as LicenseData;
   } catch (err) {
-    console.warn('Error reading license data:', err);
+    console.warn("Error reading license data:", err);
     return null;
   }
 }
@@ -476,18 +497,27 @@ async function getLicenseData(): Promise<LicenseData | null> {
  */
 async function clearLicenseData(): Promise<void> {
   try {
-    await figma.clientStorage.deleteAsync('licenseData');
-    await figma.clientStorage.deleteAsync('licenseKey');
-    await figma.clientStorage.deleteAsync('unlimited');
-    await figma.clientStorage.deleteAsync('licenseEmail');
-    await figma.clientStorage.deleteAsync('licensePlan');
-    await figma.clientStorage.deleteAsync('licenseVersion');
-    await figma.clientStorage.deleteAsync('licenseActivatedAt');
-    console.log('Cleared license data from storage');
+    await figma.clientStorage.deleteAsync("licenseData");
+    await figma.clientStorage.deleteAsync("licenseKey");
+    await figma.clientStorage.deleteAsync("unlimited");
+    await figma.clientStorage.deleteAsync("licenseEmail");
+    await figma.clientStorage.deleteAsync("licensePlan");
+    await figma.clientStorage.deleteAsync("licenseVersion");
+    await figma.clientStorage.deleteAsync("licenseActivatedAt");
+    console.log("Cleared license data from storage");
   } catch (err) {
-    console.warn('Error clearing license data:', err);
+    console.warn("Error clearing license data:", err);
   }
 }
+
+async function getDateFormat(): Promise<string> {
+  return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
+}
+
+async function setDateFormat(value: string) {
+  await figma.clientStorage.setAsync("dateFormat", value);
+}
+
 
 // ==================== LICENSE.TS ====================
 
@@ -1017,7 +1047,14 @@ async function handleTextCase(node: TextNode): Promise<void> {
         "Tadaannn... 🥁 Your Text now has line breaks after Fullstop."
       );
       break;
+    case "addcdate": {
+      const format = await getDateFormat();
+      const dateText = formatDate(format);
 
+      newText = dateText;
+      figma.notify(`📅 Date added (${format})`);
+      break;
+    }
     case "copycta":
       await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
       figma.notify("Tadaannn... 🥁 Button Text Added");
@@ -1347,7 +1384,7 @@ async function showAccountUI() {
   const isPro = Boolean(licenseData);
 
   figma.showUI(__html__, {
-    width: 500,
+    width: 300,
     height: isPro ? 420 : 520
   });
 

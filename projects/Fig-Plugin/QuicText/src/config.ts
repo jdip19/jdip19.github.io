@@ -5,7 +5,7 @@ import { DynamicCommand } from './types';
 // Monetization settings
 export const ENABLE_MONETIZATION = true;
 export const FREE_DAILY_LIMIT = 10;
-export const LICENSE_PRICE = 9; // $5 lifetime
+export const LICENSE_PRICE = 5; // $5 lifetime
 
 // API endpoints
 export const VERIFY_LICENSE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/verify-license";

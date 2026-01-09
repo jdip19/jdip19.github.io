@@ -1,10 +1,11 @@
 // ==================== TEXT PROCESSING ====================
 
-import { getKeywordList, loadAllFontsForNode } from "./utils";
+import { getKeywordList, loadAllFontsForNode, formatDate } from "./utils";
 import {
   getStoredIndex,
   saveStoredIndex,
   getEffectiveDefault,
+  getDateFormat,
 } from "./storage";
 import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS } from "./config";
 
@@ -355,7 +356,14 @@ async function handleTextCase(node: TextNode): Promise<void> {
         "Tadaannn... 🥁 Your Text now has line breaks after Fullstop."
       );
       break;
+    case "addcdate": {
+      const format = await getDateFormat();
+      const dateText = formatDate(format);
 
+      newText = dateText;
+      figma.notify(`📅 Date added (${format})`);
+      break;
+    }
     case "copycta":
       await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
       figma.notify("Tadaannn... 🥁 Button Text Added");
