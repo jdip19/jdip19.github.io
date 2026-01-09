@@ -8,14 +8,16 @@ import {
 
 let firebaseConfig = {};
 let ALLOWED_DB_PATHS = {};
-let RATE_LIMIT = {};  // from firebase-setup.json
+let RATE_LIMIT = {}; // from firebase-setup.json
 let database = null;
 let firebaseReady = false;
 
 // Remote config loader
 async function loadRemoteConfig() {
   try {
-    const response = await fetch("https://jdip19.github.io/js/firebase-setup.json");
+    const response = await fetch(
+      "https://jdip19.github.io/js/firebase-setup.json"
+    );
     const config = await response.json();
 
     firebaseConfig = config.firebaseConfig;
@@ -75,21 +77,19 @@ function runPostFirebaseInit() {
   const versionRef = ref(database, ALLOWED_DB_PATHS.VERSION);
 
   get(versionRef).then((snapshot) => {
-  if (snapshot.exists()) {
-    const remoteVersion = snapshot.val();
+    if (snapshot.exists()) {
+      const remoteVersion = snapshot.val();
 
-    // Store remote version and comparison result
-    chrome.storage.local.set({
-      remoteVersion,
-      updateAvailable: remoteVersion > localVersion,
-    });
-  }
-
-});
+      // Store remote version and comparison result
+      chrome.storage.local.set({
+        remoteVersion,
+        updateAvailable: remoteVersion > localVersion,
+      });
+    }
+  });
 }
 
 const localVersion = chrome.runtime.getManifest().version;
-
 
 // Per-user licensing / access control
 let clientId = null;
@@ -176,7 +176,6 @@ async function refreshUserStatus() {
   }
 }
 
-
 // Async helper that prefers stored status (survives worker unloads).
 // If status is unknown it will attempt a fresh refresh before deciding.
 function isUserAllowedAsync() {
@@ -250,7 +249,9 @@ function validateDbPath(path) {
 function checkRateLimit() {
   const now = Date.now();
   const maxPerMinute = RATE_LIMIT?.MAX_UPDATES_PER_MINUTE || 60;
-  requestHistory = requestHistory.filter((timestamp) => now - timestamp < 60000);
+  requestHistory = requestHistory.filter(
+    (timestamp) => now - timestamp < 60000
+  );
   if (requestHistory.length >= maxPerMinute) return false;
   requestHistory.push(now);
   return true;
@@ -280,10 +281,7 @@ async function syncPendingUpdatesToFirebase() {
   const maxBatchSize = RATE_LIMIT?.MAX_BATCH_SIZE || 100;
   if (totalPending > maxBatchSize) {
     console.error("Batch size exceeds limit. Truncating to prevent abuse.");
-    pendingUpdates.copied = Math.min(
-      pendingUpdates.copied,
-      maxBatchSize
-    );
+    pendingUpdates.copied = Math.min(pendingUpdates.copied, maxBatchSize);
     pendingUpdates.downloaded = Math.min(
       pendingUpdates.downloaded,
       maxBatchSize
@@ -369,8 +367,6 @@ function scheduleSync() {
     syncTimer = null;
   }, SYNC_DELAY);
 }
-
-
 
 // Hydrate runtime status from storage on worker start so checks are fast
 chrome.storage.local.get(
@@ -582,6 +578,24 @@ function processSvg(detailLink, action) {
 
 // Extract SVG and handle copy/download
 function extractSvg(action) {
+  function normalizeForFigma(svg) {
+    // Remove clipPaths
+    svg.querySelectorAll("clipPath").forEach((el) => el.remove());
+
+    // Remove masks
+    svg.querySelectorAll("mask").forEach((el) => el.remove());
+
+    // Remove clip-path references
+    svg
+      .querySelectorAll("[clip-path]")
+      .forEach((el) => el.removeAttribute("clip-path"));
+
+    // Remove mask references
+    svg.querySelectorAll("[mask]").forEach((el) => el.removeAttribute("mask"));
+
+    return svg;
+  }
+
   const editButton = document.querySelector("#detail_edit_icon");
 
   if (editButton) {
@@ -641,9 +655,12 @@ function extractSvg(action) {
           svgElement.setAttribute("width", size);
           svgElement.setAttribute("height", size);
           svgElement.setAttribute("id", iconName);
+
           if (action === "copy") {
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgElement);
+            const svgClone = svgElement.cloneNode(true);
+            normalizeForFigma(svgClone);
+
+            const svgString = new XMLSerializer().serializeToString(svgClone);
 
             const textarea = document.createElement("textarea");
             textarea.value = svgString;
@@ -700,6 +717,7 @@ function extractSvg(action) {
     console.error("Edit button not found.");
   }
 }
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "incrementSvgCounter") {
     const action = message.action; // "copied" or "downloaded"

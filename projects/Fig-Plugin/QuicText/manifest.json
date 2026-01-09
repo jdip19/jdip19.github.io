@@ -39,6 +39,10 @@
       "command": "lowercase"
     },
     {
+      "name": "add current Date",
+      "command": "addcdate"
+    },
+    {
       "name": "add Breaklines",
       "command": "addbreakline"
     },

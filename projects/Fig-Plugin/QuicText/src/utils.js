@@ -1,53 +1,42 @@
 // ==================== UTILITY FUNCTIONS ====================
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 /**
  * Get all font ranges in a text node
  */
-export function loadAllFontsForNode(node) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const fontPromises = [];
-        let failed = false;
-        const charLength = Math.max(0, node.characters.length);
-        for (let i = 0; i < charLength;) {
-            try {
-                const endIdx = Math.min(i + 1, charLength);
-                if (endIdx <= i)
-                    break; // Safety check
-                const font = node.getRangeFontName(i, endIdx);
-                let j = i + 1;
-                // Find the next range where the font changes
-                while (j < charLength) {
-                    const nextEndIdx = Math.min(j + 1, charLength);
-                    const nextFont = node.getRangeFontName(j, nextEndIdx);
-                    if (!fontsEqual(nextFont, font)) {
-                        break;
-                    }
-                    j++;
+export async function loadAllFontsForNode(node) {
+    const fontPromises = [];
+    let failed = false;
+    const charLength = Math.max(0, node.characters.length);
+    for (let i = 0; i < charLength;) {
+        try {
+            const endIdx = Math.min(i + 1, charLength);
+            if (endIdx <= i)
+                break; // Safety check
+            const font = node.getRangeFontName(i, endIdx);
+            let j = i + 1;
+            // Find the next range where the font changes
+            while (j < charLength) {
+                const nextEndIdx = Math.min(j + 1, charLength);
+                const nextFont = node.getRangeFontName(j, nextEndIdx);
+                if (!fontsEqual(nextFont, font)) {
+                    break;
                 }
-                if (font !== figma.mixed) {
-                    fontPromises.push(figma.loadFontAsync(font).catch(err => {
-                        console.error('Error loading font:', font, err);
-                        failed = true;
-                    }));
-                }
-                i = j;
+                j++;
             }
-            catch (err) {
-                console.error('Error in loadAllFontsForNode:', err);
-                i++;
+            if (font !== figma.mixed) {
+                fontPromises.push(figma.loadFontAsync(font).catch(err => {
+                    console.error('Error loading font:', font, err);
+                    failed = true;
+                }));
             }
+            i = j;
         }
-        yield Promise.all(fontPromises);
-        return !failed;
-    });
+        catch (err) {
+            console.error('Error in loadAllFontsForNode:', err);
+            i++;
+        }
+    }
+    await Promise.all(fontPromises);
+    return !failed;
 }
 /**
  * Get all unique fonts from text nodes
@@ -95,21 +84,19 @@ export function getAllUniqueFonts(textNodes) {
 /**
  * Load all fonts
  */
-export function loadAllFonts(fonts) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const loadResults = yield Promise.all(fonts.map((font) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                console.log('Loading font:', font);
-                yield figma.loadFontAsync(font);
-                return true;
-            }
-            catch (err) {
-                console.error('Error loading font:', font, err);
-                return false;
-            }
-        })));
-        return loadResults.every(Boolean);
-    });
+export async function loadAllFonts(fonts) {
+    const loadResults = await Promise.all(fonts.map(async (font) => {
+        try {
+            console.log('Loading font:', font);
+            await figma.loadFontAsync(font);
+            return true;
+        }
+        catch (err) {
+            console.error('Error loading font:', font, err);
+            return false;
+        }
+    }));
+    return loadResults.every(Boolean);
 }
 /**
  * Check if fonts are equal
@@ -163,4 +150,15 @@ export function generateUUID() {
         const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
+}
+export function formatDate(format, date = new Date()) {
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = String(date.getFullYear());
+    const yy = yyyy.slice(-2);
+    return format
+        .replace(/dd/g, dd)
+        .replace(/mm/g, mm)
+        .replace(/yyyy/g, yyyy)
+        .replace(/yy/g, yy);
 }

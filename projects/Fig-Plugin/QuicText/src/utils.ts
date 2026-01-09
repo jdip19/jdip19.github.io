@@ -168,3 +168,16 @@ export function generateUUID(): string {
     return v.toString(16);
   });
 }
+
+export function formatDate(format: string, date = new Date()): string {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(date.getFullYear());
+  const yy = yyyy.slice(-2);
+
+  return format
+    .replace(/dd/g, dd)
+    .replace(/mm/g, mm)
+    .replace(/yyyy/g, yyyy)
+    .replace(/yy/g, yy);
+}
