@@ -386,7 +386,7 @@ function loadScript(url) {
             }
         }
 
-        const triggers = document.querySelectorAll('.smoothscroll');
+        const triggers = document.querySelectorAll('.s-intro .smoothscroll');
 
         const moveTo = new MoveTo({
             tolerance: 0,

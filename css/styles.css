@@ -3609,9 +3609,10 @@ section#resources {
 		justify-content: space-between;
 	}
 
-	a.smoothscroll.cbtn {
+	.s-intro .s-intro__scroll-down a.smoothscroll.cbtn {
 		width: 44%;
 	}
+	
 
 	.s-header__menu-links {
 		margin: 0;
