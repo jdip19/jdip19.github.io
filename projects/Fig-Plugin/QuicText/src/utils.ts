@@ -175,7 +175,16 @@ export function formatDate(format: string, date = new Date()): string {
   const yyyy = String(date.getFullYear());
   const yy = yyyy.slice(-2);
 
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
   return format
+    .replace(/dddd/g, dayNames[date.getDay()])
+    .replace(/ddd/g, shortDayNames[date.getDay()])
+    .replace(/MMMM/g, monthNames[date.getMonth()])
+    .replace(/MMM/g, shortMonthNames[date.getMonth()])
     .replace(/dd/g, dd)
     .replace(/mm/g, mm)
     .replace(/yyyy/g, yyyy)

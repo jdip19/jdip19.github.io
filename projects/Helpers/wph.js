@@ -27,8 +27,8 @@ const log = (msg) => console.log(`[${new Date().toLocaleTimeString()}] ${msg}`);
   // CONFIG
   // ==============================
   const SOURCE_CHAT = "You"; // or your own number / chat name
-  const TARGET_CHAT = "Mount Abu";
-  //  const TARGET_CHAT = "Sista";
+  const TARGET_CHAT = "Mount";
+  //const TARGET_CHAT = "Sista";
 
   // ==============================
   // STEP 1: Open source chat

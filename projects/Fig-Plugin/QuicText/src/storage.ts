@@ -224,7 +224,7 @@ export async function clearLicenseData(): Promise<void> {
 }
 
 export async function getDateFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
+  return (await figma.clientStorage.getAsync("dateFormat")) || "mm-dd-yyyy";
 }
 
 export async function setDateFormat(value: string) {
