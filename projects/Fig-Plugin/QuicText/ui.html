@@ -8,6 +8,26 @@
     content="default-src data: blob:; connect-src https://kmkjuuytbgpozrigspgw.supabase.co https://*.supabase.co https://test.checkout.dodopayments.com https://api.dodopayments.com https://*.dodopayments.com; script-src 'unsafe-inline' 'unsafe-eval' data: blob:; style-src 'unsafe-inline' data: blob:; frame-src https://test.checkout.dodopayments.com https://*.dodopayments.com;" />
   <title>QuicText Pro</title>
   <style>
+    html {
+      --primary-color: #FD371F;
+      --secondary-color: #FF844B;
+      --gradient-primary: linear-gradient(135deg,
+          var(--primary-color),
+          var(--secondary-color));
+      --gap4: 4px;
+      --gap8: 8px;
+      --gap12: 12px;
+      --gap16: 16px;
+      --gap24: 24px;
+      --gap32: 32px;
+
+      --black: #1a1a1a;
+      --darkblack: #333333;
+      --gray: #666666;
+      --white: #ffffff;
+
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -21,15 +41,37 @@
       background: #ffffff;
     }
 
+    ::selection {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .secondary-btn {
+      cursor: pointer;
+      padding: 12px;
+      border-radius: 6px;
+      border: 0;
+    }
+
+    .secondary-btn:hover {
+      background: darkgray;
+    }
+
     .hidden {
       display: none !important;
     }
 
     /* License UI Styles */
-    #licenseBox {
+    #freeView {
       display: flex;
       flex-direction: column;
       gap: 20px;
+    }
+
+    div#header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: var(--gap24);
     }
 
     .remain {
@@ -40,6 +82,77 @@
     #logo {
       display: flex;
       justify-content: center;
+      height: 1.8rem;
+      position: relative;
+      overflow: hidden;
+      width: fit-content;
+    }
+
+    #logo::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -150%;
+      width: 50%;
+      height: 200%;
+      background: linear-gradient(120deg,
+          transparent,
+          rgba(255, 255, 255, 0.35),
+          transparent);
+      animation: shine 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes shine {
+      0% {
+        left: -150%;
+      }
+
+      60% {
+        left: 150%;
+      }
+
+      100% {
+        left: 150%;
+      }
+    }
+
+    .battery-col {
+      display: flex;
+      align-items: center;
+    }
+
+    .battery {
+      width: 32px;
+      height: 100%;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      position: relative;
+      padding: 2px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: flex-end;
+      /* fill from bottom */
+    }
+
+    /* Battery tip (top) */
+    .battery::after {
+      content: "";
+      position: absolute;
+      top: -6px;
+      left: 37%;
+      width: 8px;
+      height: 4px;
+      background: #ccc;
+      border-radius: 1px;
+    }
+
+    .battery-level {
+      width: 100%;
+      height: 0%;
+      background: #4caf50;
+      border-radius: 2px;
+      transition: height 0.4s ease, background-color 0.3s ease;
     }
 
     .license-header {
@@ -49,7 +162,7 @@
     .license-header h2 {
       font-size: 24px;
       font-weight: 700;
-      color: #1a1a1a;
+      color: var(--black);
     }
 
     .license-header p {
@@ -57,17 +170,23 @@
       color: #666;
     }
 
+    button#upgradeBtn {
+      background: var(--gradient-primary);
+      padding: 12px;
+    }
+
     .usage-info {
       display: flex;
       background: #f5f5f5;
-      padding: 16px;
+      padding: 20px;
       border-radius: 8px;
+      justify-content: space-between;
     }
 
     .usage-info .remaining {
       font-size: 32px;
       font-weight: 700;
-      color: #ff6b6b;
+      color: #1a1a1a;
     }
 
     .usage-info .limit-text {
@@ -76,9 +195,9 @@
     }
 
     .pricing-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--gradient-primary);
       color: white;
-      padding: 24px;
+      padding: 20px;
       border-radius: 12px;
       text-align: center;
     }
@@ -107,12 +226,24 @@
 
     .features li:before {
       content: "✓ ";
-      color: #4caf50;
+      color: var(--white);
       font-weight: bold;
       margin-right: 8px;
     }
 
-    .license-input {
+    .input-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap4);
+      margin-bottom: var(--gap12);
+    }
+
+    .list {
+      margin-bottom: var(--gap16);
+    }
+
+    input,
+    select {
       padding: 12px;
       border: 2px solid #e0e0e0;
       border-radius: 6px;
@@ -121,14 +252,87 @@
       font-family: monospace;
     }
 
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      /* Disable the default arrow */
+      -webkit-appearance: none;
+      /* For WebKit-based browsers */
+      -moz-appearance: none;
+      /* For Firefox */
+      background-image: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 18px;
+    }
+
+    select option {
+      color: var(--black);
+      padding: 8px;
+    }
+
+    select option:hover {
+      background-color: var(--primary-color);
+      color: var(--white);
+    }
+
+    select option:checked {
+      background-color: var(--primary-color);
+      color: var(--white)
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--black);
+      margin-bottom: 4px;
+    }
+
+    .view-title {
+      font-size: 20px;
+      font-weight: 600;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: var(--gap8);
+      margin-bottom: var(--gap16);
+      color: var(--black);
+    }
+
+    .license-input {
+      margin-bottom: var(--gap16);
+    }
+
     .license-input:focus {
       outline: none;
-      border-color: #18a0fb;
+      border-color: var(--primary-color);
+    }
+
+    .action-container {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button#settingsBtn {
+      background: transparent;
+      border: 0;
+      font-size: 20px;
+      cursor: pointer;
+      transition: rotate 0.2s ease;
+    }
+
+    button#settingsBtn:hover {
+      rotate: 30deg;
     }
 
     .activate-btn {
       padding: 12px 24px;
-      background: #18a0fb;
+      background: var(--black);
       color: white;
       border: none;
       border-radius: 6px;
@@ -139,7 +343,7 @@
     }
 
     .activate-btn:hover {
-      background: #1592e6;
+      background: var(--darkblack);
     }
 
     .activate-btn:disabled {
@@ -151,7 +355,7 @@
       display: block;
       text-align: center;
       margin-top: 16px;
-      color: #18a0fb;
+      color: var(--primary-color);
       text-decoration: none;
       font-size: 14px;
     }
@@ -176,8 +380,10 @@
 <body>
   <!-- Settings / Dashboard header -->
   <div id="header">
-    <div id="logo">
-      <svg width="40%" height="10%" viewBox="0 0 1063 244" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+    <a id="logo" href="https://www.figma.com/community/plugin/1365014672422582628/quictext" target="_blank"
+      rel="noopener noreferrer">
+      <svg viewBox="0 0 1063 244" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g clip-path="url(#clip0_346_54)">
           <path
             d="M0 19.9184C0 8.91776 8.91776 0 19.9184 0H224.082C235.082 0 244 8.91776 244 19.9184V224.082C244 235.082 235.082 244 224.082 244H19.9184C8.91776 244 0 235.082 0 224.082V19.9184Z"
@@ -222,88 +428,78 @@
           </clipPath>
         </defs>
       </svg>
-    </div>
-    <div id="header-actions" style="display: flex; gap: 8px; align-items: center">
-      <button id="settingsBtn" title="Settings" style="
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-          ">
+    </a>
+    <div id="header-actions">
+      <button id="settingsBtn" title="Settings">
         ⚙️
       </button>
     </div>
   </div>
 
+  <!-- Settings Box -->
   <div id="settingsBox" class="hidden">
-    <div>
-      <div>
-        <h3>Defaults (applied automatically)</h3>
-      </div>
 
-      <div>
-        <label>Prefix</label>
-        <input id="defaultPrefix" />
+    <div class="view-header">
+      <h3 class="view-title">Settings</h3>
+    </div>
+    <div class="container">
+      <div class="list">
+        <div class="input-row">
+          <label>Prefix</label>
+          <input id="defaultPrefix" />
+        </div>
+        <div class="input-row">
+          <label>Between (used to join words)</label>
+          <input id="defaultBetween" />
+        </div>
+        <div class="input-row">
+          <label>Suffix</label>
+          <input id="defaultSuffix" />
+        </div>
+        <div class="input-row">
+          <label>Date Format</label>
+          <select id="defaultDateFormat">
+            <option value="mm-dd-yyyy">01-09-2026</option>
+            <option value="dd-mm-yyyy">09-01-2026</option>
+            <option value="yyyy-mm-dd">2026-01-09</option>
+            <option value="dd MMMM yyyy">09 January 2026</option>
+            <option value="dd MMM yyyy">09 Jan 2026</option>
+            <option value="dddd, dd MMMM yyyy">Thursday, 09 January 2026</option>
+          </select>
+        </div>
       </div>
-
-      <div>
-        <label>Between (used to join words)</label>
-        <input id="defaultBetween" />
-      </div>
-
-      <div>
-        <label>Suffix</label>
-        <input id="defaultSuffix" />
-      </div>
-
-      <div>
-        <label>Date Formate</label>
-        <select id="defaultDateFormat">
-          <option value="mm-dd-yyyy">01-09-2026</option>
-          <option value="dd-mm-yyyy">09-01-2026</option>
-          <option value="yyyy-mm-dd">2026-01-09</option>
-          <option value="dd MMMM yyyy">09 January 2026</option>
-          <option value="dd MMM yyyy">09 Jan 2026</option>
-          <option value="dddd, dd MMMM yyyy">Thursday, 09 January 2026</option>
-        </select>
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-top: 12px">
+      <div class="action-container">
         <button id="saveDefaults" class="activate-btn">Save defaults</button>
-        <button id="cancelDefaults" style="
-              padding: 12px 18px;
-              border-radius: 6px;
-              border: 1px solid #e0e0e0;
-              background: #fff;
-              cursor: pointer;
-            ">
-          Cancel
-        </button>
+        <button id="cancelDefaults" class="secondary-btn">Cancel</button>
       </div>
-      <p id="settingsHint" style="
-        font-size: 12px;
-        color: #888;
-        margin-top: 8px;
-        ">
+      <p id="settingsHint" style="font-size: 12px; color: #888; margin-top: 8px;">
         Changes are preview only. Upgrade to save defaults.
       </p>
-      <div id="defaultsSavedMsg" style="display: none; margin-top: 8px; color: #18a0fb">
+      <div id="defaultsSavedMsg" style="display: none; margin-top: 8px; color: var(--primary-color)">
         Defaults saved
       </div>
     </div>
+  </div>
 
-    <!-- Purchase prompt for non-pro users -->
-    <div id="purchasePrompt" class="hidden" style="text-align: center; padding: 20px;">
-      <h3 style="color: #ff6b6b; margin-bottom: 12px;">Pro Feature</h3>
-      <p style="margin-bottom: 16px;">Saving custom defaults is a Pro feature. Upgrade to unlock unlimited
-        customization!</p>
-      <button id="upgradeBtn" class="activate-btn" style="padding: 12px 24px; font-size: 16px;">Upgrade to Pro - $<span
-          id="upgradePrice">--</span>
+  <!-- Upgrade Prompt View (Now Independent) -->
+  <div id="purchasePrompt" class="hidden" style="text-align: center; padding: 20px;">
+    <h3 class="view-title">Pro Feature</h3>
+    <p style="margin-bottom: 16px;">Saving custom defaults is a Pro feature. Upgrade to unlock unlimited
+      customization!</p>
+    <button id="upgradeBtn" class="activate-btn" style="padding: 12px 24px; font-size: 16px;">
+      Upgrade to Pro - $<span id="upgradePrice">--</span>
+    </button>
+    <div class="row">
+      <button id="upgradeBackBtn" class="secondary-btn" style="margin-top: 12px; width: 100%;">
+        Back to Settings
+      </button>
+      <button id="upgradeHomeBtn" class="secondary-btn" style="margin-top: 12px; width: 100%;">
+        Back to Dashboard
       </button>
     </div>
   </div>
 
-  <!-- Pro Dashboard (visible when user has valid license) -->
+  <!-- Pro Dashboard -->
   <div id="proDashboard" class="hidden">
     <h2>Pro Dashboard</h2>
     <div style="margin-top: 12px">
@@ -311,14 +507,8 @@
       <div><strong>Plan:</strong> <span id="proPlan">—</span></div>
       <div>
         <strong>License key:</strong>
-        <input id="proKey" disabled style="
-              width: 100%;
-              margin-top: 6px;
-              padding: 8px;
-              border-radius: 6px;
-              border: 1px solid #e0e0e0;
-              font-family: monospace;
-            " />
+        <input id="proKey" disabled
+          style="width: 100%; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; font-family: monospace;" />
       </div>
       <div style="margin-top: 8px">
         <strong>Activated:</strong> <span id="proActivated">—</span>
@@ -326,34 +516,33 @@
       <div style="margin-top: 12px">
         <strong>Usage:</strong> <span id="proUsage">Unlimited</span>
       </div>
-
       <div style="display: flex; gap: 8px; margin-top: 16px">
-        <button id="supportBtn" class="activate-btn" style="background: #6c63ff">
-          Support
-        </button>
-        <button id="logoutBtn" style="
-              padding: 12px 18px;
-              border-radius: 6px;
-              border: 1px solid #e0e0e0;
-              background: #fff;
-              cursor: pointer;
-            ">
-          Logout
-        </button>
+        <button id="supportBtn" class="activate-btn" style="background: #6c63ff">Support</button>
+        <button id="logoutBtn" class="secondary-btn">Logout</button>
       </div>
     </div>
   </div>
 
-  <div id="licenseBox" class="">
+  <!-- FreeView -->
+  <div id="freeView" class="">
     <div class="usage-info">
       <div class="col">
         <div class="remain">
-          <div class="remaining" id="remainingCount">0</div>
-          /10
+          <div class="remaining" id="remainingCount">0</div>/10
         </div>
         <div class="limit-text">Reset in every 24 hours</div>
       </div>
-      <div class="col"><button id="upgradeBtn" class="">Upgrade</button></div>
+      <div class="col battery-col">
+        <div class="battery">
+          <div class="battery-level" id="batteryLevel"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coomand-counter">
+      <div class="col">
+       254,000+ commands generated so far 
+      </div>
     </div>
 
     <div class="pricing-card">
@@ -371,393 +560,629 @@
       <input type="text" id="licenseKeyInput" class="license-input" placeholder="Enter your license key"
         autocomplete="off" />
       <div class="error-message" id="errorMessage"></div>
-      <button id="activateLicense" class="activate-btn">
-        Activate License
-      </button>
+      <button id="activateLicense" class="activate-btn">Activate License</button>
       <a href="#" id="buyLink" class="buy-link" target="_blank">Don't have a key? Purchase here →</a>
     </div>
   </div>
 
   <script>
 
-    const UI_STATE = {
-      isPro: false,
-      price: null,
-    };
-    // Configuration
+    // ============================================================================
+    // CONFIGURATION
+    // ============================================================================
     const CONFIG = {
       dodopayments: {
-        checkoutUrl:
-          "https://checkout.dodopayments.com/buy/pdt_SEP94Xh88Gqpram39DT5X",
+        checkoutUrl: "https://checkout.dodopayments.com/buy/pdt_SEP94Xh88Gqpram39DT5X",
+      },
+      views: {
+        FREEVIEW: "freeView",
+        SETTINGS: "settingsBox",
+        PRO_DASHBOARD: "proDashboard",
+        UPGRADE_PROMPT: "purchasePrompt",
       },
     };
 
-    let remainingCount = 0;
-    let isProcessing = false;
+    // ============================================================================
+    // FUNCTIONS
+    // ============================================================================
+    function updateBattery(remaining, max = 10) {
+      const levelEl = document.getElementById("batteryLevel");
+      if (!levelEl) return;
 
-    function updateSettingsHint() {
-      const hint = getElement("settingsHint");
-      if (!hint) return;
+      const percent = Math.max(0, Math.min(100, (remaining / max) * 100));
+      levelEl.style.height = percent + "%";
 
-      hint.style.display = UI_STATE.isPro ? "none" : "block";
-    }
-
-
-    // Helper function to safely get element
-    function getElement(id) {
-      const el = document.getElementById(id);
-      if (!el) {
-        console.warn(`Element not found: ${id}`);
+      if (remaining >= 7) {
+        levelEl.style.background = "#FD371F"; // green
+      } else if (remaining >= 4) {
+        levelEl.style.background = "#ff9800"; // orange
+      } else {
+        levelEl.style.background = "#f44336"; // red
       }
-      return el;
     }
 
-    // Helper function to post message safely
-    function postMessage(message) {
-      parent.postMessage({ pluginMessage: message }, "*");
+
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+    class AppState {
+      constructor() {
+        this.state = {
+          isPro: false,
+          price: null,
+          remaining: 0,
+          currentView: CONFIG.views.FREEVIEW,
+          licenseData: null,
+          defaults: {
+            prefix: "",
+            between: "",
+            suffix: "",
+            dateFormat: "mm-dd-yyyy",
+          },
+          isProcessing: false,
+        };
+        this.listeners = [];
+      }
+
+      get(key) {
+        return key ? this.state[key] : this.state;
+      }
+
+      set(updates) {
+        this.state = { ...this.state, ...updates };
+        this.notify();
+      }
+
+      subscribe(listener) {
+        this.listeners.push(listener);
+        return () => {
+          this.listeners = this.listeners.filter(l => l !== listener);
+        };
+      }
+
+      notify() {
+        this.listeners.forEach(listener => listener(this.state));
+      }
     }
 
-    // Format checkout URL with session tracking
-    function getCheckoutUrl() {
-      const params = new URLSearchParams({
-        quantity: "1",
-        redirect_url: "https://jdip.vercel.app/payment",
-        showDiscounts: "false",
-      });
+    const appState = new AppState();
 
-      return `${CONFIG.dodopayments.checkoutUrl}?${params.toString()}`;
+    // ============================================================================
+    // DOM UTILITIES
+    // ============================================================================
+    class DOMHelper {
+      static getElement(id) {
+        const el = document.getElementById(id);
+        if (!el) console.warn(`Element not found: ${id}`);
+        return el;
+      }
+
+      static show(id) {
+        const el = this.getElement(id);
+        if (el) el.classList.remove("hidden");
+      }
+
+      static hide(id) {
+        const el = this.getElement(id);
+        if (el) el.classList.add("hidden");
+      }
+
+      static toggle(id, show) {
+        show ? this.show(id) : this.hide(id);
+      }
+
+      static setText(id, text) {
+        const el = this.getElement(id);
+        if (el) el.textContent = text;
+      }
+
+      static setValue(id, value) {
+        const el = this.getElement(id);
+        if (el) el.value = value;
+      }
+
+      static getValue(id) {
+        const el = this.getElement(id);
+        return el ? el.value : "";
+      }
+
+      static hideAll(ids) {
+        ids.forEach(id => this.hide(id));
+      }
     }
 
-    // Utility: mask license key for display
-    function maskKey(key) {
-      if (!key) return "";
-      if (key.length <= 8) return key.replace(/.(?=.{4})/g, "*");
-      const first = key.slice(0, 4);
-      const last = key.slice(-4);
-      return `${first}****${last}`;
+    // ============================================================================
+    // MESSAGE SERVICE
+    // ============================================================================
+    class MessageService {
+      static post(message) {
+        parent.postMessage({ pluginMessage: message }, "*");
+      }
+
+      static activateLicense(licenseKey) {
+        this.post({ type: "activate-license", licenseKey });
+      }
+
+      static saveDefaults(defaults) {
+        this.post({ type: "save-defaults", defaults });
+      }
+
+      static requestDefaults() {
+        this.post({ type: "request-defaults" });
+      }
+
+      static logout() {
+        this.post({ type: "logout" });
+      }
     }
 
-    // Utility: format ISO date or timestamp
-    function formatDate(d) {
-      if (!d) return "—";
-      const date =
-        typeof d === "number" || !isNaN(Date.parse(d)) ? new Date(d) : null;
-      if (!date) return String(d);
-      return date.toLocaleString();
+    // ============================================================================
+    // UTILITY FUNCTIONS
+    // ============================================================================
+    class Utils {
+      static maskKey(key) {
+        if (!key) return "";
+        if (key.length <= 8) return key.replace(/.(?=.{4})/g, "*");
+        const first = key.slice(0, 4);
+        const last = key.slice(-4);
+        return `${first}****${last}`;
+      }
+
+      static formatDate(d) {
+        if (!d) return "—";
+        const date = typeof d === "number" || !isNaN(Date.parse(d)) ? new Date(d) : null;
+        if (!date) return String(d);
+        return date.toLocaleString();
+      }
+
+      static getCheckoutUrl() {
+        const params = new URLSearchParams({
+          quantity: "1",
+          redirect_url: "https://jdip.vercel.app/payment",
+          showDiscounts: "false",
+        });
+        return `${CONFIG.dodopayments.checkoutUrl}?${params.toString()}`;
+      }
+
+      static openCheckout() {
+        window.open(this.getCheckoutUrl(), "dodo_checkout", "width=600,height=800");
+      }
     }
-    //
-    window.onmessage = (event) => {
-      try {
-        const msg = event.data?.pluginMessage;
-        if (!msg || typeof msg !== "object") {
+
+    // ============================================================================
+    // VIEW MANAGERS
+    // ============================================================================
+    class BaseView {
+      constructor(viewId) {
+        this.viewId = viewId;
+      }
+
+      show() {
+        DOMHelper.show(this.viewId);
+      }
+
+      hide() {
+        DOMHelper.hide(this.viewId);
+      }
+
+      render(data) {
+        // Override in subclasses
+      }
+    }
+
+    class LicenseView extends BaseView {
+      constructor() {
+        super(CONFIG.views.FREEVIEW);
+      }
+
+      render(data) {
+        const { remaining = 0, price = "--" } = data;
+
+        DOMHelper.setText("remainingCount", remaining);
+        DOMHelper.setText("price", price);
+        DOMHelper.setText("upgradePrice", price);
+
+        updateBattery(remaining, 10);
+
+        const msgEl = DOMHelper.getElement("limitMessage");
+        if (msgEl) {
+          msgEl.textContent = remaining > 0
+            ? `You have ${remaining} free commands left today`
+            : `You've reached your daily limit`;
+        }
+      }
+
+      setupEventListeners() {
+        // Activate License Button
+        const activateBtn = DOMHelper.getElement("activateLicense");
+        if (activateBtn) {
+          activateBtn.addEventListener("click", () => this.handleActivate());
+        }
+
+        // License Key Input - Enter to submit
+        const keyInput = DOMHelper.getElement("licenseKeyInput");
+        if (keyInput) {
+          keyInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") this.handleActivate();
+          });
+
+          keyInput.addEventListener("input", () => {
+            DOMHelper.hide("errorMessage");
+          });
+        }
+
+        // Buy Link
+        const buyLink = DOMHelper.getElement("buyLink");
+        if (buyLink) {
+          buyLink.href = Utils.getCheckoutUrl();
+          buyLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            Utils.openCheckout();
+          });
+        }
+
+        // Upgrade Button
+        const upgradeBtn = DOMHelper.getElement("upgradeBtn");
+        if (upgradeBtn) {
+          upgradeBtn.addEventListener("click", () => Utils.openCheckout());
+        }
+      }
+
+      handleActivate() {
+        const licenseKey = DOMHelper.getValue("licenseKeyInput").trim();
+        const state = appState.get();
+
+        if (!licenseKey) {
+          this.showError("Please enter a license key");
           return;
         }
 
-        // dynamic UI removed — plugin will always apply stored defaults
-
-        if (msg.type === "show-license") {
-          UI_STATE.isPro = msg.isPro;
-          UI_STATE.price = msg.price;
-
-          if (msg.isPro && msg.licenseData) {
-            renderProView(msg.licenseData);
-          } else {
-            renderFreeView({
-              remaining: msg.remaining,
-              price: msg.price,
-            });
-          }
-
-          updateSettingsHint();
+        if (state.isProcessing) {
+          console.warn("Already processing");
+          return;
         }
 
-        if (msg.type === "license-activated") {
-          const errorEl = getElement("errorMessage");
-          const input = getElement("licenseKeyInput");
-          if (errorEl) errorEl.classList.remove("show");
-          if (input) input.value = "";
-          isProcessing = false;
-
-          // Update button state
-          const btn = getElement("activateLicense");
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = "Activate License";
-          }
-        }
-
-        if (msg.type === "license-error") {
-          const errorEl = getElement("errorMessage");
-          if (errorEl) {
-            errorEl.textContent = msg.message || "Invalid license key";
-            errorEl.classList.add("show");
-          }
-          isProcessing = false;
-
-          // Update button state
-          const btn = getElement("activateLicense");
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = "Activate License";
-          }
-        }
-
-        if (msg.type === "usage-info") {
-          console.log("Usage info received:", msg);
-        }
-
-        if (msg.type === "current-defaults") {
-          const defaults = msg.defaults || {};
-          const dp = getElement("defaultPrefix");
-          const db = getElement("defaultBetween");
-          const ds = getElement("defaultSuffix");
-          if (dp && defaults.prefix !== undefined) dp.value = defaults.prefix;
-          if (db && defaults.between !== undefined)
-            db.value = defaults.between;
-          if (ds && defaults.suffix !== undefined) ds.value = defaults.suffix;
-        }
-        if (msg?.type === "date-format") {
-          document.getElementById("defaultDateFormat").value = msg.value;
-        }
-      } catch (err) {
-        console.error("Error in onmessage handler:", err);
+        appState.set({ isProcessing: true });
+        this.updateButtonState(true);
+        MessageService.activateLicense(licenseKey);
       }
-    };
 
+      showError(message) {
+        const errorEl = DOMHelper.getElement("errorMessage");
+        if (errorEl) {
+          errorEl.textContent = message;
+          errorEl.classList.add("show");
+        }
+      }
+
+      updateButtonState(processing) {
+        const btn = DOMHelper.getElement("activateLicense");
+        if (btn) {
+          btn.disabled = processing;
+          btn.textContent = processing ? "Validating..." : "Activate License";
+        }
+      }
+
+      resetForm() {
+        DOMHelper.setValue("licenseKeyInput", "");
+        const errorEl = DOMHelper.getElement("errorMessage");
+        if (errorEl) errorEl.classList.remove("show");
+      }
+    }
+
+    class SettingsView extends BaseView {
+      constructor() {
+        super(CONFIG.views.SETTINGS);
+      }
+
+      render(data) {
+        const defaults = data?.defaults || appState.get("defaults");
+
+        DOMHelper.setValue("defaultPrefix", defaults.prefix || "");
+        DOMHelper.setValue("defaultBetween", defaults.between || "");
+        DOMHelper.setValue("defaultSuffix", defaults.suffix || "");
+        DOMHelper.setValue("defaultDateFormat", defaults.dateFormat || "mm-dd-yyyy");
+
+        this.updateHint();
+      }
+
+      updateHint() {
+        const isPro = appState.get("isPro");
+        const hint = DOMHelper.getElement("settingsHint");
+        if (hint) {
+          hint.style.display = isPro ? "none" : "block";
+        }
+      }
+
+      setupEventListeners() {
+        // Save Defaults
+        const saveBtn = DOMHelper.getElement("saveDefaults");
+        if (saveBtn) {
+          saveBtn.addEventListener("click", () => this.handleSave());
+        }
+
+        // Cancel
+        const cancelBtn = DOMHelper.getElement("cancelDefaults");
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", () => {
+            ViewManager.switchView(CONFIG.views.FREEVIEW);
+          });
+        }
+
+        // Upgrade button in purchase prompt
+        const upgradeBtn = DOMHelper.getElement("upgradeBtn");
+        if (upgradeBtn) {
+          upgradeBtn.addEventListener("click", () => Utils.openCheckout());
+        }
+      }
+
+      handleSave() {
+        const isPro = appState.get("isPro");
+
+        if (!isPro) {
+          // Switch to upgrade prompt view instead of showing inline
+          ViewManager.switchView(CONFIG.views.UPGRADE_PROMPT);
+          return;
+        }
+
+        const defaults = {
+          prefix: DOMHelper.getValue("defaultPrefix"),
+          between: DOMHelper.getValue("defaultBetween"),
+          suffix: DOMHelper.getValue("defaultSuffix"),
+          dateFormat: DOMHelper.getValue("defaultDateFormat"),
+        };
+
+        appState.set({ defaults });
+        MessageService.saveDefaults(defaults);
+        this.showSavedMessage();
+      }
+
+      showSavedMessage() {
+        const msg = DOMHelper.getElement("defaultsSavedMsg");
+        if (msg) {
+          msg.style.display = "block";
+          setTimeout(() => {
+            msg.style.display = "none";
+          }, 1800);
+        }
+      }
+    }
+
+    class ProDashboardView extends BaseView {
+      constructor() {
+        super(CONFIG.views.PRO_DASHBOARD);
+      }
+
+      render(licenseData) {
+        if (!licenseData) return;
+
+        DOMHelper.setText("proEmail", licenseData.email || "—");
+        DOMHelper.setText("proPlan", licenseData.plan || "Pro");
+        DOMHelper.setValue("proKey", Utils.maskKey(licenseData.key || ""));
+        DOMHelper.setText("proActivated", Utils.formatDate(licenseData.activatedAt));
+        DOMHelper.setText("proUsage", licenseData.unlimited ? "Unlimited" : "—");
+      }
+
+      setupEventListeners() {
+        // Support Button
+        const supportBtn = DOMHelper.getElement("supportBtn");
+        if (supportBtn) {
+          supportBtn.addEventListener("click", () => {
+            window.open("https://jdip19.github.io", "_blank", "noopener");
+          });
+        }
+
+        // Logout Button
+        const logoutBtn = DOMHelper.getElement("logoutBtn");
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", () => this.handleLogout());
+        }
+      }
+
+      handleLogout() {
+        MessageService.logout();
+        appState.set({
+          isPro: false,
+          licenseData: null,
+        });
+        ViewManager.switchView(CONFIG.views.FREEVIEW);
+      }
+    }
+
+    class UpgradePromptView extends BaseView {
+      constructor() {
+        super(CONFIG.views.UPGRADE_PROMPT);
+      }
+
+      render(data) {
+        const price = data?.price || appState.get("price") || "--";
+        DOMHelper.setText("upgradePrice", price);
+      }
+
+      setupEventListeners() {
+        // Upgrade button
+        const upgradeBtn = DOMHelper.getElement("upgradeBtn");
+        if (upgradeBtn) {
+          upgradeBtn.addEventListener("click", () => Utils.openCheckout());
+        }
+
+        // Back button (if you want to add one)
+        const backBtn = DOMHelper.getElement("upgradeBackBtn");
+        const homeBtn = DOMHelper.getElement("upgradeHomeBtn");
+        if (backBtn) {
+          backBtn.addEventListener("click", () => {
+            ViewManager.switchView(CONFIG.views.SETTINGS);
+          });
+        }
+        if (homeBtn) {
+          homeBtn.addEventListener("click", () => {
+            ViewManager.switchView(CONFIG.views.FREEVIEW);
+          });
+        }
+      }
+    }
+
+    // ============================================================================
+    // VIEW MANAGER
+    // ============================================================================
+    class ViewManager {
+      static views = {
+        [CONFIG.views.FREEVIEW]: new LicenseView(),
+        [CONFIG.views.SETTINGS]: new SettingsView(),
+        [CONFIG.views.PRO_DASHBOARD]: new ProDashboardView(),
+        [CONFIG.views.UPGRADE_PROMPT]: new UpgradePromptView(),
+      };
+
+      static init() {
+        Object.values(this.views).forEach(view => {
+          if (view.setupEventListeners) {
+            view.setupEventListeners();
+          }
+        });
+
+        this.setupGlobalListeners();
+      }
+
+      static switchView(viewId, data = null) {
+        // Hide all views
+        Object.keys(this.views).forEach(id => {
+          DOMHelper.hide(id);
+        });
+
+        // Show and render target view
+        const view = this.views[viewId];
+        if (view) {
+          view.show();
+          if (data && view.render) {
+            view.render(data);
+          }
+          appState.set({ currentView: viewId });
+        }
+      }
+
+      static setupGlobalListeners() {
+        // Settings Button
+        const settingsBtn = DOMHelper.getElement("settingsBtn");
+        if (settingsBtn) {
+          settingsBtn.addEventListener("click", () => {
+            MessageService.requestDefaults();
+            this.switchView(CONFIG.views.SETTINGS);
+          });
+        }
+      }
+
+      static handleMessage(msg) {
+        if (!msg || typeof msg !== "object") return;
+
+        switch (msg.type) {
+          case "show-license":
+            this.handleShowLicense(msg);
+            break;
+
+          case "license-activated":
+            this.handleLicenseActivated();
+            break;
+
+          case "license-error":
+            this.handleLicenseError(msg);
+            break;
+
+          case "current-defaults":
+            this.handleCurrentDefaults(msg);
+            break;
+
+          case "date-format":
+            DOMHelper.setValue("defaultDateFormat", msg.value);
+            break;
+
+          case "defaults-saved":
+            this.views[CONFIG.views.SETTINGS].showSavedMessage();
+            break;
+
+          case "usage-info":
+            // console.log("Usage info:", msg);
+            break;
+        }
+      }
+
+      static handleShowLicense(msg) {
+        appState.set({
+          isPro: msg.isPro,
+          price: msg.price,
+          remaining: msg.remaining,
+          licenseData: msg.licenseData,
+        });
+
+        if (msg.isPro && msg.licenseData) {
+          this.switchView(CONFIG.views.PRO_DASHBOARD, msg.licenseData);
+        } else {
+          this.switchView(CONFIG.views.FREEVIEW, {
+            remaining: msg.remaining,
+            price: msg.price,
+          });
+        }
+      }
+
+      static handleLicenseActivated() {
+        const licenseView = this.views[CONFIG.views.FREEVIEW];
+        licenseView.resetForm();
+        licenseView.updateButtonState(false);
+        appState.set({ isProcessing: false });
+      }
+
+      static handleLicenseError(msg) {
+        const licenseView = this.views[CONFIG.views.FREEVIEW];
+        licenseView.showError(msg.message || "Invalid license key");
+        licenseView.updateButtonState(false);
+        appState.set({ isProcessing: false });
+      }
+
+      static handleCurrentDefaults(msg) {
+        const defaults = msg.defaults || {};
+        appState.set({ defaults });
+        this.views[CONFIG.views.SETTINGS].render({ defaults });
+      }
+    }
+
+    // ============================================================================
+    // APPLICATION INITIALIZATION
+    // ============================================================================
+    class App {
+      static init() {
+        // Initialize view manager
+        ViewManager.init();
+
+        // Subscribe to state changes
+        appState.subscribe((state) => {
+          console.log("State updated:", state);
+        });
+
+        // Setup message handler
+        window.onmessage = (event) => {
+          try {
+            const msg = event.data?.pluginMessage;
+            ViewManager.handleMessage(msg);
+          } catch (err) {
+            console.error("Error in onmessage handler:", err);
+          }
+        };
+
+        // Initial focus
+        window.addEventListener("load", () => {
+          const input = DOMHelper.getElement("licenseKeyInput");
+          if (input && !input.classList.contains("hidden")) {
+            setTimeout(() => input.focus(), 100);
+          }
+        });
+      }
+    }
+
+    // ============================================================================
+    // START APPLICATION
+    // ============================================================================
     document.addEventListener("DOMContentLoaded", () => {
-      // Apply Dynamic Button
-      // dynamic input removed — no apply button
-
-      // Activate License Button
-      const licenseBtn = getElement("activateLicense");
-      if (licenseBtn) {
-        licenseBtn.addEventListener("click", () => {
-          const input = getElement("licenseKeyInput");
-          const licenseKey = input ? input.value.trim() : "";
-
-          if (!licenseKey) {
-            const errorEl = getElement("errorMessage");
-            if (errorEl) {
-              errorEl.textContent = "Please enter a license key";
-              errorEl.classList.add("show");
-            }
-            return;
-          }
-
-          if (isProcessing) {
-            console.warn("Already processing");
-            return;
-          }
-
-          isProcessing = true;
-          licenseBtn.disabled = true;
-          licenseBtn.textContent = "Validating...";
-
-          postMessage({
-            type: "activate-license",
-            licenseKey: licenseKey,
-          });
-        });
-      }
-
-      // Buy License Link
-      const buyLink = getElement("buyLink");
-      if (buyLink) {
-        buyLink.href = getCheckoutUrl();
-        buyLink.addEventListener("click", (e) => {
-          e.preventDefault();
-          const url = getCheckoutUrl();
-          window.open(url, "dodo_checkout", "width=600,height=800");
-        });
-      }
-
-      // License Key Input - Allow Enter to submit
-      const keyInput = getElement("licenseKeyInput");
-      if (keyInput) {
-        keyInput.addEventListener("keypress", (e) => {
-          if (e.key === "Enter" && licenseBtn) {
-            licenseBtn.click();
-          }
-        });
-
-        // Clear error when user starts typing
-        keyInput.addEventListener("input", () => {
-          const errorEl = getElement("errorMessage");
-          if (errorEl) {
-            errorEl.classList.remove("show");
-          }
-        });
-      }
-
-      // dynamic input removed
-
-      // Settings button
-      const settingsBtn = getElement("settingsBtn");
-      if (settingsBtn) {
-        settingsBtn.addEventListener("click", () => {
-          const license = getElement("licenseBox");
-          const settings = getElement("settingsBox");
-          const dynamic = getElement("dynamicBox");
-          if (license) license.classList.add("hidden");
-          if (dynamic) dynamic.classList.add("hidden");
-          if (settings) {
-            settings.classList.remove("hidden");
-            // Reset to show form, hide purchase prompt
-            const form = settings.querySelector('div');
-            const purchasePrompt = getElement("purchasePrompt");
-            if (form) form.style.display = 'block';
-            if (purchasePrompt) purchasePrompt.classList.add("hidden");
-          }
-          // Request current defaults from plugin
-          postMessage({ type: "request-defaults" });
-        });
-      }
-
-      const saveDefaultsBtn = getElement("saveDefaults");
-      const dateFormatSelect = document.getElementById("defaultDateFormat");
-
-      if (saveDefaultsBtn) {
-        saveDefaultsBtn.addEventListener("click", () => {
-          if (!UI_STATE.isPro) {
-            const form = settingsBox.querySelector('div');
-            const purchasePrompt = getElement("purchasePrompt");
-            if (form) form.style.display = 'none';
-            if (purchasePrompt) purchasePrompt.classList.remove("hidden");
-            return;
-          }
-
-          const dp = getElement("defaultPrefix");
-          const db = getElement("defaultBetween");
-          const ds = getElement("defaultSuffix");
-          const dateFormat = dateFormatSelect
-            ? dateFormatSelect.value
-            : "mm-dd-yyyy"; // fallback default
-
-          // Send all defaults to plugin
-          postMessage({
-            type: "save-defaults",
-            defaults: {
-              prefix: dp ? dp.value : "",
-              between: db ? db.value : "",
-              suffix: ds ? ds.value : "",
-              dateFormat: dateFormat, // ✅ Save the selected date format
-            },
-          });
-        });
-      }
-
-      const upgradeBtn = getElement("upgradeBtn");
-      if (upgradeBtn) {
-        upgradeBtn.addEventListener("click", () => {
-          window.open(getCheckoutUrl(), "_blank");
-        });
-      }
-
-      const cancelDefaults = getElement("cancelDefaults");
-      if (cancelDefaults) {
-        cancelDefaults.addEventListener("click", () => {
-          const license = getElement("licenseBox");
-          const settings = getElement("settingsBox");
-          if (settings) settings.classList.add("hidden");
-          if (license) license.classList.remove("hidden");
-        });
-      }
-
-      // Pro Dashboard buttons
-      const supportBtn = getElement("supportBtn");
-      if (supportBtn) {
-        supportBtn.addEventListener("click", () => {
-          // Open support page — replace with real support URL if available
-          window.open("jdip19.github.io", "_blank", "noopener");
-        });
-      }
-
-      const logoutBtn = getElement("logoutBtn");
-      if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-          renderFreeView({ remaining: 0, price: licensePrice });
-          postMessage({ type: "logout" });
-        });
-      }
-
-      // Show confirmation when defaults saved
-      window.addEventListener("message", (ev) => {
-        try {
-          const msg = ev.data?.pluginMessage;
-          if (!msg) return;
-          if (msg.type === "defaults-saved") {
-            const m = getElement("defaultsSavedMsg");
-            if (m) {
-              m.style.display = "block";
-              setTimeout(() => {
-                m.style.display = "none";
-              }, 1800);
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
-      });
+      App.init();
     });
-
-    // Initial focus on load
-    window.addEventListener("load", () => {
-      const input = getElement("licenseKeyInput");
-      if (input && !input.classList.contains("hidden")) {
-        setTimeout(() => input.focus(), 100);
-      }
-    });
-    function hideAllViews() {
-      ["licenseBox", "proDashboard"].forEach((id) => {
-        const el = getElement(id);
-        if (el) el.classList.add("hidden");
-      });
-    }
-
-    function renderFreeView(data) {
-      hideAllViews();
-      const licenseBox = getElement("licenseBox");
-      if (licenseBox) licenseBox.classList.remove("hidden");
-
-      const remainingEl = getElement("remainingCount");
-      const priceEl = getElement("price");
-      const upgradePrice = getElement("upgradePrice")
-      const msgEl = getElement("limitMessage");
-      const remaining = data?.remaining ?? 0;
-      
-      if(remainingEl) remainingEl.textContent = remaining;
-      if (priceEl) priceEl.textContent = data?.price ?? "--";
-      if (upgradePrice) upgradePrice.textContent = data?.price ?? "--";
-      if (msgEl) {
-        msgEl.textContent =
-          remaining > 0
-            ? `You have ${remaining} free commands left today`
-            : `You've reached your daily limit`;
-      }
-      updateSettingsHint();
-    }
-
-    function renderProView(license) {
-      hideAllViews();
-      const proBox = getElement("proDashboard");
-      if (proBox) proBox.classList.remove("hidden");
-
-      const eEmail = getElement("proEmail");
-      const ePlan = getElement("proPlan");
-      const eKey = getElement("proKey");
-      const eActivated = getElement("proActivated");
-      const eUsage = getElement("proUsage");
-
-      if (eEmail) eEmail.textContent = license.email || "—";
-      if (ePlan) ePlan.textContent = license.plan || "Pro";
-      if (eKey) eKey.value = maskKey(license.key || "");
-      if (eActivated)
-        eActivated.textContent = formatDate(license.activatedAt);
-      if (eUsage) eUsage.textContent = license.unlimited ? "Unlimited" : "—";
-      updateSettingsHint();
-
-    }
-
   </script>
 </body>
 
