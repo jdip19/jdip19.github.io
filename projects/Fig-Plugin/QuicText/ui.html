@@ -623,7 +623,7 @@
       </div>
 
       <div class="coomand-counter">
-        <div class="col">254,000+ commands generated so far</div>
+        <div class="col" id="commandCounter">Loading...</div>
       </div>
 
       <div class="pricing-card">
@@ -870,11 +870,18 @@
         }
 
         render(data) {
-          const { remaining = 0, price = "--" } = data;
+          const { remaining = 0, price = "--", totalCommands = 0 } = data;
 
           DOMHelper.setText("remainingCount", remaining);
           DOMHelper.setText("price", price);
           DOMHelper.setText("upgradePrice", price);
+
+          // Update command counter
+          const counterText =
+            totalCommands > 0
+              ? `${totalCommands.toLocaleString()}+ commands generated so far`
+              : "Loading...";
+          DOMHelper.setText("commandCounter", counterText);
 
           updateBattery(remaining, 10);
 
@@ -993,7 +1000,6 @@
         }
 
         setupEventListeners() {
-          
           // Save Defaults
 
           const saveBtn = DOMHelper.getElement("saveDefaults");
@@ -1019,6 +1025,7 @@
         }
 
         handleSave() {
+          const isPro = appState.get("isPro");
           if (!isPro) {
             // Switch to upgrade prompt view instead of showing inline
             ViewManager.switchView(CONFIG.views.UPGRADE_PROMPT);
@@ -1115,9 +1122,7 @@
           const backBtn = DOMHelper.getElement("backBtn");
           if (backBtn) {
             backBtn.addEventListener("click", () => {
-              ViewManager.switchView(
-                isPro ? CONFIG.views.PRO_DASHBOARD : CONFIG.views.FREEVIEW
-              );
+              ViewManager.switchView(CONFIG.views.UPGRADE_PROMPT);
             });
           }
 
@@ -1227,6 +1232,7 @@
             this.switchView(CONFIG.views.FREEVIEW, {
               remaining: msg.remaining,
               price: msg.price,
+              totalCommands: msg.totalCommands,
             });
           }
         }
