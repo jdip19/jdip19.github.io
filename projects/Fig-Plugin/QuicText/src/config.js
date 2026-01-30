@@ -3,10 +3,14 @@
 export const ENABLE_MONETIZATION = true;
 export const FREE_DAILY_LIMIT = 10;
 export const LICENSE_PRICE = 5; // $5 lifetime
+
 // API endpoints
-export const VERIFY_LICENSE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/verify-license";
 export const SUPABASE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co";
 export const SUPABASE_ANON_KEY = "99721bbe20f7fedf28087bc968479e65a32a340cb5fc72121b06e94b9484354d"; // Replace with your actual key
+export const DATABASEURL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/";
+export const VERIFY_LICENSE_URL = `${DATABASEURL}verify-license`;
+export const TRACK_COMMANDS_URL = `${DATABASEURL}track-commands`;
+
 // Demo mode for testing
 export const DEMO_MODE = false; // Set to false to test real Supabase responses
 // Dynamic command types

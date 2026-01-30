@@ -549,14 +549,7 @@
       </button>
       <div class="row">
         <button
-          id="upgradeBackBtn"
-          class="secondary-btn"
-          style="margin-top: 12px; width: 100%"
-        >
-          Back to Settings
-        </button>
-        <button
-          id="upgradeHomeBtn"
+          id="homeBtn"
           class="secondary-btn"
           style="margin-top: 12px; width: 100%"
         >
@@ -884,14 +877,6 @@
           DOMHelper.setText("commandCounter", counterText);
 
           updateBattery(remaining, 10);
-
-          const msgEl = DOMHelper.getElement("limitMessage");
-          if (msgEl) {
-            msgEl.textContent =
-              remaining > 0
-                ? `You have ${remaining} free commands left today`
-                : `You've reached your daily limit`;
-          }
         }
 
         setupEventListeners() {
