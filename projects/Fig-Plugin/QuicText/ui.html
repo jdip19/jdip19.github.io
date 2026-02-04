@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -37,8 +37,9 @@
       }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Oxygen, Ubuntu, sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          sans-serif;
         padding: 20px;
         background: #ffffff;
       }
@@ -156,7 +157,9 @@
         height: 0%;
         background: #4caf50;
         border-radius: 2px;
-        transition: height 0.4s ease, background-color 0.3s ease;
+        transition:
+          height 0.4s ease,
+          background-color 0.3s ease;
       }
 
       .license-header {
@@ -615,10 +618,6 @@
         </div>
       </div>
 
-      <div class="coomand-counter">
-        <div class="col" id="commandCounter">Loading...</div>
-      </div>
-
       <div class="pricing-card">
         <div class="price-label">Upgrade to Pro</div>
         <div class="price">$<span id="price"></span></div>
@@ -642,7 +641,7 @@
         <button id="activateLicense" class="activate-btn">
           Activate License
         </button>
-        <a href="#" id="buyLink" class="buy-link" target="_blank"
+        <a href="#" id="buyLink" class="buy-link"
           >Don't have a key? Purchase here →</a
         >
       </div>
@@ -801,6 +800,12 @@
       // ============================================================================
       // UTILITY FUNCTIONS
       // ============================================================================
+
+      // Keep a reference to the checkout window so repeated opens reuse it
+      let checkoutWindow = null;
+      // Simple debounce to avoid duplicate opens from accidental double-clicks
+      let lastCheckoutTimestamp = 0;
+
       class Utils {
         static maskKey(key) {
           if (!key) return "";
@@ -828,11 +833,29 @@
         }
 
         static openCheckout() {
-          window.open(
-            this.getCheckoutUrl(),
-            "dodo_checkout",
-            "width=600,height=800"
-          );
+          const url = this.getCheckoutUrl();
+          try {
+            const now = Date.now();
+            if (now - lastCheckoutTimestamp < 500) return; // debounce multiple quick calls
+            lastCheckoutTimestamp = now;
+
+            // Reuse the already opened checkout window if possible
+            if (checkoutWindow && !checkoutWindow.closed) {
+              try {
+                checkoutWindow.focus();
+                // update URL in case query params changed
+                checkoutWindow.location.href = url;
+              } catch (e) {
+                // If cross-origin access blocks us, open a new window but reuse the same name
+                checkoutWindow = window.open(url, "dodo_checkout", "width=600,height=800");
+              }
+            } else {
+              checkoutWindow = window.open(url, "dodo_checkout", "width=600,height=800");
+            }
+          } catch (err) {
+            // Fallback to a generic open if something goes wrong
+            window.open(url, "_blank");
+          }
         }
       }
 
@@ -863,18 +886,11 @@
         }
 
         render(data) {
-          const { remaining = 0, price = "--", totalCommands = 0 } = data;
+          const { remaining = 0, price = "--" } = data;
 
           DOMHelper.setText("remainingCount", remaining);
           DOMHelper.setText("price", price);
           DOMHelper.setText("upgradePrice", price);
-
-          // Update command counter
-          const counterText =
-            totalCommands > 0
-              ? `${totalCommands.toLocaleString()}+ commands generated so far`
-              : "Loading...";
-          DOMHelper.setText("commandCounter", counterText);
 
           updateBattery(remaining, 10);
         }
@@ -970,7 +986,7 @@
           DOMHelper.setValue("defaultSuffix", defaults.suffix || "");
           DOMHelper.setValue(
             "defaultDateFormat",
-            defaults.dateFormat || "mm-dd-yyyy"
+            defaults.dateFormat || "mm-dd-yyyy",
           );
 
           this.updateHint();
@@ -997,7 +1013,7 @@
             cancelBtn.addEventListener("click", () => {
               const isPro = appState.get("isPro");
               ViewManager.switchView(
-                isPro ? CONFIG.views.PRO_DASHBOARD : CONFIG.views.FREEVIEW
+                isPro ? CONFIG.views.PRO_DASHBOARD : CONFIG.views.FREEVIEW,
               );
             });
           }
@@ -1053,11 +1069,11 @@
           DOMHelper.setValue("proKey", Utils.maskKey(licenseData.key || ""));
           DOMHelper.setText(
             "proActivated",
-            Utils.formatDate(licenseData.activatedAt)
+            Utils.formatDate(licenseData.activatedAt),
           );
           DOMHelper.setText(
             "proUsage",
-            licenseData.unlimited ? "Unlimited" : "—"
+            licenseData.unlimited ? "Unlimited" : "—",
           );
         }
 
@@ -1102,13 +1118,6 @@
           const upgradeBtn = DOMHelper.getElement("upgradeBtn");
           if (upgradeBtn) {
             upgradeBtn.addEventListener("click", () => Utils.openCheckout());
-          }
-
-          const backBtn = DOMHelper.getElement("backBtn");
-          if (backBtn) {
-            backBtn.addEventListener("click", () => {
-              ViewManager.switchView(CONFIG.views.UPGRADE_PROMPT);
-            });
           }
 
           const homeBtn = DOMHelper.getElement("homeBtn");
@@ -1217,7 +1226,6 @@
             this.switchView(CONFIG.views.FREEVIEW, {
               remaining: msg.remaining,
               price: msg.price,
-              totalCommands: msg.totalCommands,
             });
           }
         }
@@ -1265,6 +1273,9 @@
               console.error("Error in onmessage handler:", err);
             }
           };
+
+          // Request current defaults from plugin on load so inputs show configured defaults
+          MessageService.requestDefaults();
 
           // Initial focus
           window.addEventListener("load", () => {

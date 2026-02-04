@@ -111,66 +111,7 @@ export function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   return result;
 }
 
-/**
- * Apply a simple dynamic format (prefix/suffix/between) to current selection
- */
-export async function applyDynamicFormat(
-  value: string,
-  mode: "prefix" | "suffix" | "between"
-) {
-  const nodes = figma.currentPage.selection.filter(
-    (n) => n.type === "TEXT"
-  ) as TextNode[];
-  if (nodes.length === 0) {
-    figma.notify("Please select at least one text layer");
-    return;
-  }
 
-  for (const node of nodes) {
-    try {
-      await figma.loadFontAsync(node.fontName as FontName);
-    } catch (err) {
-      console.warn("Font load failed for node:", node, err);
-    }
-
-    let text = node.characters;
-    if (mode === "prefix") {
-      text = value + text;
-    } else if (mode === "suffix") {
-      text = text + value;
-    } else if (mode === "between") {
-      const parts = text.split(/\s+/);
-      text = parts.join(value);
-    }
-
-    try {
-      node.characters = text;
-    } catch (err) {
-      console.error("Failed to apply dynamic format to node:", err);
-    }
-  }
-}
-
-/**
- * Apply a quick command (addprefix/addsuffix/addbetween) using stored defaults
- */
-export async function applyQuickCommand(command: string) {
-  const map: Record<string, { mode: "prefix" | "between" | "suffix" }> = {
-    addprefix: { mode: "prefix" },
-    addbetween: { mode: "between" },
-    addsuffix: { mode: "suffix" },
-  };
-
-  const entry = map[command];
-  if (!entry) {
-    console.error("Unsupported quick command:", command);
-    return;
-  }
-
-  const value = await getEffectiveDefault(entry.mode);
-
-  await applyDynamicFormat(value, entry.mode);
-}
 
 /**
  * Handle text case transformation
@@ -446,9 +387,32 @@ async function handleTextCase(node: TextNode): Promise<void> {
       return;
     }
 
+    case "addprefix": {
+      // Simplified: use stored default and treat like other commands
+      const value = await getEffectiveDefault('prefix');
+      newText = value + originalCharacters;
+      figma.notify('Tadaannn... 🥁 Prefix added');
+      break;
+    }
+
+    case "addbetween": {
+      const value = await getEffectiveDefault('between');
+      const parts = originalCharacters.split(/\s+/);
+      newText = parts.join(value);
+      figma.notify('Tadaannn... 🥁 In-between added');
+      break;
+    }
+
+    case "addsuffix": {
+      const value = await getEffectiveDefault('suffix');
+      newText = originalCharacters + value;
+      figma.notify('Tadaannn... 🥁 Suffix added');
+      break;
+    }
+
     default:
       console.error("Unknown command:", figma.command);
-      return;
+      return; 
   }
 
   // Update the node with the modified text
@@ -462,7 +426,8 @@ async function handleTextCase(node: TextNode): Promise<void> {
   // Reapply fill style if it was uniform
   if (hadUniformFillStyle && uniformFillStyleId) {
     try {
-      node.fillStyleId = uniformFillStyleId;
+      // Use async API for setting style to be compatible with dynamic-page document access
+      await node.setFillStyleIdAsync(uniformFillStyleId as string);
     } catch (error) {
       console.error("Error applying fill style ID:", error);
     }

@@ -29,6 +29,4 @@ export interface LicenseData {
   activatedAt: string;
 }
 
-export type DynamicCommand = 'addprefix' | 'addsuffix' | 'addbetween';
-
 export type FontReference = FontName | typeof figma.mixed;

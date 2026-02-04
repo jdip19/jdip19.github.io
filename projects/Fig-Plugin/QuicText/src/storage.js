@@ -121,7 +121,7 @@ export async function getEffectiveDefault(key) {
     return DEFAULT_VALUES[key];
 }
 /**
- * Get a stored default value for dynamic commands (prefix/suffix/between)
+ * Get a stored default value for prefix/between/suffix commands
  */
 export async function getDefaultValue(key) {
     try {
@@ -134,7 +134,7 @@ export async function getDefaultValue(key) {
     }
 }
 /**
- * Save a default value for dynamic commands
+ * Save a default value for prefix/between/suffix commands
  */
 export async function saveDefaultValue(key, value) {
     try {

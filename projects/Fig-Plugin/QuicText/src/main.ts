@@ -2,7 +2,7 @@
 
 import { verifyLicenseKey, hasLicense, activateLicense } from './license';
 import { getDeviceId, getUsageData, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat } from './storage';
-import { collectTextNodes, processAllTextNodes, applyQuickCommand } from './text-processing';
+import { collectTextNodes, processAllTextNodes } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
 
 // Main plugin logic
@@ -14,14 +14,6 @@ async function main() {
       return;
     }
 
-    // 2️⃣ Quick commands (no monetization check)
-    const dynamicCommands = ['addprefix', 'addsuffix', 'addbetween'];
-    if (dynamicCommands.includes(figma.command || '')) {
-      await applyQuickCommand(figma.command as string);
-      figma.notify('Applied successfully!');
-      figma.closePlugin();
-      return;
-    }
 
     // 3️⃣ Usage gate (THIS is the only gate)
     if (ENABLE_MONETIZATION) {
@@ -95,9 +87,10 @@ figma.ui.onmessage = async (msg) => {
 
       case 'request-defaults':
         {
-          const prefix = await getDefaultValue('default_prefix');
-          const between = await getDefaultValue('default_between');
-          const suffix = await getDefaultValue('default_suffix')
+          // Use effective defaults which fall back to config defaults when not set in storage
+          const prefix = await getEffectiveDefault('prefix');
+          const between = await getEffectiveDefault('between');
+          const suffix = await getEffectiveDefault('suffix');
           const dateFormat = await getDateFormat();
           figma.ui.postMessage({ type: 'current-defaults', defaults: { prefix, between, suffix } });
           figma.ui.postMessage({ type: 'date-format', value: dateFormat });
@@ -156,7 +149,6 @@ figma.ui.onmessage = async (msg) => {
 };
 
 async function showAccountUI() {
-  const deviceId = await getDeviceId();
   const usage = await getUsageData();
 
   const used = usage.count;
@@ -178,10 +170,9 @@ async function showAccountUI() {
     remaining,
     used,
     limit,
-    price: LICENSE_PRICE,
-    deviceId
+    price: LICENSE_PRICE
   });
-}
+} 
 
 // Run the plugin
 main();

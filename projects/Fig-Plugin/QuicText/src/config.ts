@@ -1,6 +1,5 @@
 // ==================== CONFIGURATION ====================
 
-import { DynamicCommand } from './types';
 
 // Monetization settings
 export const ENABLE_MONETIZATION = true;
@@ -15,7 +14,7 @@ export const SUPABASE_ANON_KEY = "99721bbe20f7fedf28087bc968479e65a32a340cb5fc72
 // Demo mode for testing
 export const DEMO_MODE = false; // Set to false to test real Supabase responses
 
-// Dynamic command types
+// Default values for prefix/between/suffix commands
 export const DEFAULT_VALUES = {
   prefix: '#',
   between: '-',
@@ -43,9 +42,3 @@ export const ERROR_TEXTS = [
   "We encountered an issue", "Please refresh and try again"
 ];
 
-// Dynamic command mappings
-export const dynamicCommandModes: Record<DynamicCommand, 'prefix' | 'suffix' | 'between'> = {
-  addprefix: 'prefix',
-  addsuffix: 'suffix',
-  addbetween: 'between',
-};

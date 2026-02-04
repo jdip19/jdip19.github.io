@@ -480,7 +480,8 @@ function handleTextCase(node) {
         // Reapply fill style if it was uniform
         if (hadUniformFillStyle && uniformFillStyleId) {
             try {
-                node.fillStyleId = uniformFillStyleId;
+                // Use async API for dynamic pages
+                await node.setFillStyleIdAsync(uniformFillStyleId);
             }
             catch (error) {
                 console.error('Error applying fill style ID:', error);
