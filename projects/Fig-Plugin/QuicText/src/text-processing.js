@@ -45,13 +45,16 @@ export async function applyFormattingToKeywords(keywords, applyRange) {
  */
 export async function processAllTextNodes(textNodes) {
     let skippedCount = 0;
+    let anyChanged = false;
     for (const node of textNodes) {
         // Warn if the node has mixed fills
         if (node.fills === figma.mixed) {
             figma.notify("Warning: Some text nodes have mixed color styles. These may be lost after processing.");
         }
         try {
-            await handleTextCase(node);
+            const changed = await handleTextCase(node);
+            if (changed)
+                anyChanged = true;
         }
         catch (err) {
             skippedCount++;
@@ -61,6 +64,7 @@ export async function processAllTextNodes(textNodes) {
     if (skippedCount > 0) {
         figma.notify(`Skipped ${skippedCount} text node(s) due to processing errors.`);
     }
+    return anyChanged;
 }
 /**
  * Get all text nodes from current page
@@ -246,15 +250,15 @@ async function handleTextCase(node) {
         case "copycta":
             await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
             figma.notify("Tadaannn... 🥁 Button Text Added");
-            return;
+            return true;
         case "copyhero":
             await cycleCopyText(node, HERO_TEXTS, "heroIndex");
             figma.notify("Tadaannn... 🥁 Hero Text Added");
-            return;
+            return true;
         case "copyerror":
             await cycleCopyText(node, ERROR_TEXTS, "errorIndex");
             figma.notify("Tadaannn... 🥁 Error Text Added");
-            return;
+            return true;
         case "rmvspace":
             newText = newText
                 .split("\n") // handle each line separately
@@ -264,7 +268,7 @@ async function handleTextCase(node) {
             figma.notify("Tadaannn... 🥁 Your Text is now unwanted space free. 💅");
             break;
         case "removesymbols":
-            newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, " ");
+            newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
             figma.notify("Removed punctuation & symbols ✔");
             break;
         case "slug":
@@ -281,20 +285,20 @@ async function handleTextCase(node) {
             const lines = originalCharacters.split(/\r\n|\r|\n/);
             if (lines.length <= 1) {
                 figma.notify("No line breaks found.");
-                return;
+                return false;
             }
             splitTextIntoLayers(lines, (index) => `${node.name} - Line ${index + 1}`, "No text lines found to split.", (count) => `Tadaannn... 🥁 Split into ${count} individual text layers!`, `${node.name} - Split Lines`);
-            return;
+            return true;
         }
         case "splitwords": {
             const words = originalCharacters.split(/\s+/);
             splitTextIntoLayers(words, (index) => `${node.name} - Word ${index + 1}`, "No words found to split.", (count) => `Tadaannn... 🥁 Split into ${count} word layers!`, `${node.name} - Split Words`);
-            return;
+            return true;
         }
         case "splitletters": {
             const letters = Array.from(originalCharacters);
             splitTextIntoLayers(letters.filter((letter) => /\S/.test(letter)), (index, letter) => `${node.name} - Letter ${index + 1}: ${letter}`, "No letters found to split.", (count) => `Tadaannn... 🥁 Split into ${count} letter layers!`, `${node.name} - Split Letters`);
-            return;
+            return true;
         }
         case "addprefix": {
             // Simplified: use stored default and treat like other commands
@@ -318,15 +322,19 @@ async function handleTextCase(node) {
         }
         default:
             console.error("Unknown command:", figma.command);
-            return;
+            return false;
     }
+    // If no change, skip updating and return false
+    const didChange = newText !== originalCharacters;
+    if (!didChange)
+        return false;
     // Update the node with the modified text
     try {
         node.characters = newText;
     }
     catch (error) {
         console.error("Error updating text characters:", error);
-        return; // Exit early if we can't update the text
+        return false; // Exit early if we can't update the text
     }
     // Reapply fill style if it was uniform
     if (hadUniformFillStyle && uniformFillStyleId) {
@@ -372,6 +380,7 @@ async function handleTextCase(node) {
             console.error("Error applying text style:", error);
         });
     }
+    return true;
 }
 /**
  * Cycle through copy text options

@@ -201,6 +201,28 @@
         color: #666;
       }
 
+      .universal-stats {
+        background: linear-gradient(135deg, #f5f5f5, #efefef);
+        border: 1px solid #e0e0e0;
+        padding: 16px;
+        border-radius: 8px;
+        text-align: center;
+        margin: 12px 0;
+      }
+
+      .universal-stats .stat-label {
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .universal-stats .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary-color);
+      }
+
       .pricing-card {
         background: var(--gradient-primary);
         color: white;
@@ -516,7 +538,7 @@
         </div>
         <div class="action-container">
           <button id="saveDefaults" class="activate-btn">Save defaults</button>
-          <button id="cancelDefaults" class="secondary-btn">Cancel</button>
+          <button id="cancelDefaults" class="secondary-btn">Back</button>
         </div>
         <p
           id="settingsHint"
@@ -589,6 +611,11 @@
         <div style="margin-top: 12px">
           <strong>Usage:</strong> <span id="proUsage">Unlimited</span>
         </div>
+        <div class="universal-stats">
+          <div class="stat-label">Community Impact</div>
+          <div class="stat-value" id="universalTotalPro">0</div>
+          <div class="stat-label" style="margin-top: 4px;">total commands created</div>
+        </div>
         <div style="display: flex; gap: 8px; margin-top: 16px">
           <button
             id="supportBtn"
@@ -617,6 +644,12 @@
             <div class="battery-level" id="batteryLevel"></div>
           </div>
         </div>
+      </div>
+
+      <div class="universal-stats">
+        <div class="stat-label">Community Impact</div>
+        <div class="stat-value" id="universalTotal">0</div>
+        <div class="stat-label" style="margin-top: 4px;">total commands created</div>
       </div>
 
       <div class="pricing-card">
@@ -887,11 +920,12 @@
         }
 
         render(data) {
-          const { remaining = 0, price = "--" } = data;
+          const { remaining = 0, price = "--", displayTotal = 0 } = data;
 
           DOMHelper.setText("remainingCount", remaining);
           DOMHelper.setText("price", price);
           DOMHelper.setText("upgradePrice", price);
+          DOMHelper.setText("universalTotal", displayTotal);
 
           updateBattery(remaining, 10);
         }
@@ -1062,9 +1096,9 @@
           super(CONFIG.views.PRO_DASHBOARD);
         }
 
-        render(licenseData) {
-          if (!licenseData) return;
-
+        render(data) {
+          const licenseData = data.licenseData || data;
+          
           DOMHelper.setText("proEmail", licenseData.email || "—");
           DOMHelper.setText("proPlan", licenseData.plan || "Pro");
           DOMHelper.setValue("proKey", Utils.maskKey(licenseData.key || ""));
@@ -1076,6 +1110,11 @@
             "proUsage",
             licenseData.unlimited ? "Unlimited" : "—",
           );
+
+          // Update the community impact total if displayTotal is provided
+          if (data.displayTotal !== undefined) {
+            DOMHelper.setText("universalTotalPro", data.displayTotal);
+          }
         }
 
         setupEventListeners() {
@@ -1207,6 +1246,10 @@
               this.views[CONFIG.views.SETTINGS].showSavedMessage();
               break;
 
+            case "usage-updated":
+              this.handleUsageUpdated(msg);
+              break;
+
             case "usage-info":
               // console.log("Usage info:", msg);
               break;
@@ -1219,14 +1262,19 @@
             price: msg.price,
             remaining: msg.remaining,
             licenseData: msg.licenseData,
+            displayTotal: msg.displayTotal,
           });
 
           if (msg.isPro && msg.licenseData) {
-            this.switchView(CONFIG.views.PRO_DASHBOARD, msg.licenseData);
+            this.switchView(CONFIG.views.PRO_DASHBOARD, {
+              licenseData: msg.licenseData,
+              displayTotal: msg.displayTotal,
+            });
           } else {
             this.switchView(CONFIG.views.FREEVIEW, {
               remaining: msg.remaining,
               price: msg.price,
+              displayTotal: msg.displayTotal,
             });
           }
         }
@@ -1249,6 +1297,21 @@
           const defaults = msg.defaults || {};
           appState.set({ defaults });
           this.views[CONFIG.views.SETTINGS].render({ defaults });
+        }
+
+        static handleUsageUpdated(msg) {
+          // Update the current app state with new usage total
+          if (msg.displayTotal !== undefined) {
+            appState.set({ displayTotal: msg.displayTotal });
+
+            // Update the visible view
+            const currentView = this.currentView;
+            if (currentView === CONFIG.views.FREEVIEW) {
+              DOMHelper.setText("universalTotal", msg.displayTotal);
+            } else if (currentView === CONFIG.views.PRO_DASHBOARD) {
+              DOMHelper.setText("universalTotalPro", msg.displayTotal);
+            }
+          }
         }
       }
 

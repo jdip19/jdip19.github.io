@@ -1,37 +1,124 @@
 // ==================== STORAGE UTILITIES ====================
 
 import { UsageData, LicenseData } from "./types";
-import { getTodayDate, generateUUID } from "./utils";
-import { DEFAULT_VALUES } from "./config";
+import { generateUUID } from "./utils";
+import { DEFAULT_VALUES, SYNC_USAGE_URL, SYNC_DELTA_THRESHOLD } from "./config";
 
 /**
- * Get current usage data
+ * Get current usage stats safely
  */
-export async function getUsageData(): Promise<UsageData> {
-  const stored = await figma.clientStorage.getAsync("usageData");
-  const today = getTodayDate();
+export async function getUsageStats(): Promise<UsageData> {
+  try {
+    const stored = await figma.clientStorage.getAsync("usageStats");
+    if (stored) {
+      return stored as UsageData;
+    }
 
-  if (!stored) {
-    return { count: 0, date: today };
+    // Initialize with defaults if not found
+    const defaults: UsageData = {
+      usageCount: 0,
+      syncedUsageCount: 0,
+      lastFetchedTotal: 0,
+    };
+    await figma.clientStorage.setAsync("usageStats", defaults);
+    return defaults;
+  } catch (err) {
+    console.error("Error reading usage stats:", err);
+    return {
+      usageCount: 0,
+      syncedUsageCount: 0,
+      lastFetchedTotal: 0,
+    };
   }
-
-  const usage = stored as UsageData;
-
-  // Reset if it's a new day
-  if (usage.date !== today) {
-    return { count: 0, date: today };
-  }
-
-  return usage;
 }
 
 /**
- * Increment usage count
+ * Save usage stats safely
+ */
+export async function saveUsageStats(stats: UsageData): Promise<void> {
+  try {
+    await figma.clientStorage.setAsync("usageStats", stats);
+  } catch (err) {
+    console.error("Error saving usage stats:", err);
+  }
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+export async function getUsageData(): Promise<UsageData> {
+  return getUsageStats();
+}
+
+/**
+ * Increment usage count and check if sync is needed
  */
 export async function incrementUsage(): Promise<void> {
-  const usage = await getUsageData();
-  usage.count++;
-  await figma.clientStorage.setAsync("usageData", usage);
+  const stats = await getUsageStats();
+  stats.usageCount++;
+  await saveUsageStats(stats);
+
+  // Check if we should sync (delta >= threshold)
+  await maybeSyncUsage();
+}
+
+/**
+ * Check delta and sync to backend if threshold is met
+ */
+export async function maybeSyncUsage(): Promise<void> {
+  const stats = await getUsageStats();
+  const delta = stats.usageCount - stats.syncedUsageCount;
+
+  if (delta >= SYNC_DELTA_THRESHOLD) {
+    await syncUsage(delta);
+  }
+}
+
+/**
+ * Sync usage to backend when delta threshold is met
+ */
+export async function syncUsage(delta: number): Promise<void> {
+  try {
+    console.log(`Syncing usage: delta=${delta}`);
+
+    const response = await fetch(SYNC_USAGE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        delta,
+        deviceId: await getDeviceId(),
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Sync failed with status ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+    console.log("Sync response:", data);
+
+    // Update stats with successful sync response
+    const stats = await getUsageStats();
+    stats.syncedUsageCount = stats.usageCount;
+    stats.lastFetchedTotal = data.total_commands || stats.lastFetchedTotal;
+    stats.lastSyncAt = new Date().toISOString();
+    await saveUsageStats(stats);
+
+    console.log("Usage stats synced successfully");
+  } catch (err) {
+    console.error("Error syncing usage:", err);
+  }
+}
+
+/**
+ * Get display total (local + remote)
+ */
+export async function getDisplayTotal(): Promise<number> {
+  const stats = await getUsageStats();
+  return stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
 }
 
 /**

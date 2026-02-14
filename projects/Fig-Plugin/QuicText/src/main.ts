@@ -1,7 +1,7 @@
 // ==================== MAIN PLUGIN FILE ====================
 
 import { verifyLicenseKey, hasLicense, activateLicense } from './license';
-import { getDeviceId, getUsageData, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat } from './storage';
+import { getDeviceId, getUsageStats, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat, getEffectiveDefault, getDisplayTotal } from './storage';
 import { collectTextNodes, processAllTextNodes } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
 
@@ -57,16 +57,20 @@ async function processTextCommand() {
     return;
   }
 
-  const licenseData = await getLicenseData();
+  // Process nodes and detect whether any actual text change happened
+  const didChange = await processAllTextNodes(textNodes);
 
-  await processAllTextNodes(textNodes);
+  // Track usage for all users (free AND pro)
+  if (ENABLE_MONETIZATION && didChange) {
+    await incrementUsage();
 
-  // Increment only after success
-  if (ENABLE_MONETIZATION) {
-    const licenseData = await getLicenseData();
-    if (!licenseData) {
-      await incrementUsage();
-    }
+    // Send usage update to UI
+    const stats = await getUsageStats();
+    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
+    figma.ui.postMessage({
+      type: 'usage-updated',
+      displayTotal,
+    });
   }
 }
 
@@ -149,9 +153,9 @@ figma.ui.onmessage = async (msg) => {
 };
 
 async function showAccountUI() {
-  const usage = await getUsageData();
+  const displayTotal = await getDisplayTotal();
 
-  const used = usage.count;
+  const used = displayTotal;
   const limit = 10;
   const remaining = Math.max(0, limit - used);
 
@@ -170,7 +174,8 @@ async function showAccountUI() {
     remaining,
     used,
     limit,
-    price: LICENSE_PRICE
+    price: LICENSE_PRICE,
+    displayTotal
   });
 } 
 

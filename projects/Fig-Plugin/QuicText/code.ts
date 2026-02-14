@@ -25,8 +25,10 @@ interface PaymentConfig {
 }
 
 interface UsageData {
-  count: number;
-  date: string; // YYYY-MM-DD format
+  usageCount: number;
+  syncedUsageCount: number;
+  lastFetchedTotal: number;
+  lastSyncAt?: string;
 }
 
 interface LicenseData {
@@ -52,11 +54,12 @@ const LICENSE_PRICE = 5; // $5 lifetime
 
 // API endpoints
 const VERIFY_LICENSE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/verify-license";
+const SYNC_USAGE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co/functions/v1/track-commands";
 const SUPABASE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co";
 const SUPABASE_ANON_KEY = "99721bbe20f7fedf28087bc968479e65a32a340cb5fc72121b06e94b9484354d"; // Replace with your actual key
 
-// Demo mode for testing
-const DEMO_MODE = false; // Set to false to test real Supabase responses
+// Sync settings
+const SYNC_DELTA_THRESHOLD = 4;
 
 // Default values for prefix/between/suffix commands
 const DEFAULT_VALUES = {
@@ -293,33 +296,120 @@ function formatDate(format: string, date = new Date()): string {
 
 
 /**
- * Get current usage data
+ * Get current usage stats safely
  */
-async function getUsageData(): Promise<UsageData> {
-  const stored = await figma.clientStorage.getAsync("usageData");
-  const today = getTodayDate();
+async function getUsageStats(): Promise<UsageData> {
+  try {
+    const stored = await figma.clientStorage.getAsync("usageStats");
+    if (stored) {
+      return stored as UsageData;
+    }
 
-  if (!stored) {
-    return { count: 0, date: today };
+    // Initialize with defaults if not found
+    const defaults: UsageData = {
+      usageCount: 0,
+      syncedUsageCount: 0,
+      lastFetchedTotal: 0,
+    };
+    await figma.clientStorage.setAsync("usageStats", defaults);
+    return defaults;
+  } catch (err) {
+    console.error("Error reading usage stats:", err);
+    return {
+      usageCount: 0,
+      syncedUsageCount: 0,
+      lastFetchedTotal: 0,
+    };
   }
-
-  const usage = stored as UsageData;
-
-  // Reset if it's a new day
-  if (usage.date !== today) {
-    return { count: 0, date: today };
-  }
-
-  return usage;
 }
 
 /**
- * Increment usage count
+ * Save usage stats safely
+ */
+async function saveUsageStats(stats: UsageData): Promise<void> {
+  try {
+    await figma.clientStorage.setAsync("usageStats", stats);
+  } catch (err) {
+    console.error("Error saving usage stats:", err);
+  }
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+async function getUsageData(): Promise<UsageData> {
+  return getUsageStats();
+}
+
+/**
+ * Increment usage count and check if sync is needed
  */
 async function incrementUsage(): Promise<void> {
-  const usage = await getUsageData();
-  usage.count++;
-  await figma.clientStorage.setAsync("usageData", usage);
+  const stats = await getUsageStats();
+  stats.usageCount++;
+  await saveUsageStats(stats);
+
+  // Check if we should sync (delta >= threshold)
+  await maybeSyncUsage();
+}
+
+/**
+ * Check delta and sync to backend if threshold is met
+ */
+async function maybeSyncUsage(): Promise<void> {
+  const stats = await getUsageStats();
+  const delta = stats.usageCount - stats.syncedUsageCount;
+
+  if (delta >= SYNC_DELTA_THRESHOLD) {
+    await syncUsage(delta);
+  }
+}
+
+/**
+ * Sync usage to backend when delta threshold is met
+ */
+async function syncUsage(delta: number): Promise<void> {
+  try {
+    console.log(`Syncing usage: delta=${delta}`);
+
+    const response = await fetch(SYNC_USAGE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        delta,
+        deviceId: await getDeviceId(),
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Sync failed with status ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+    console.log("Sync response:", data);
+
+    // Update stats with successful sync response
+    const stats = await getUsageStats();
+    stats.syncedUsageCount = stats.usageCount;
+    stats.lastFetchedTotal = data.total_commands || stats.lastFetchedTotal;
+    stats.lastSyncAt = new Date().toISOString();
+    await saveUsageStats(stats);
+
+    console.log("Usage stats synced successfully");
+  } catch (err) {
+    console.error("Error syncing usage:", err);
+  }
+}
+
+/**
+ * Get display total (local + remote)
+ */
+async function getDisplayTotal(): Promise<number> {
+  const stats = await getUsageStats();
+  return stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
 }
 
 /**
@@ -512,7 +602,7 @@ async function clearLicenseData(): Promise<void> {
 }
 
 async function getDateFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("dateFormat")) || "mm-dd-yyyy";
+  return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
 }
 
 async function setDateFormat(value: string) {
@@ -634,8 +724,9 @@ async function canUsePlugin(): Promise<{
     }
 
     // Free quota user
-    const usage = await getUsageData();
-    const remaining = FREE_DAILY_LIMIT - usage.count;
+    const stats = await getUsageStats();
+    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
+    const remaining = FREE_DAILY_LIMIT - displayTotal;
 
     if (remaining > 0) {
       return {
@@ -747,8 +838,11 @@ async function applyFormattingToKeywords(
 /**
  * Process all text nodes with a transformation function
  */
-async function processAllTextNodes(textNodes: TextNode[]) {
+async function processAllTextNodes(
+  textNodes: TextNode[]
+): Promise<boolean> {
   let skippedCount = 0;
+  let anyChanged = false;
   for (const node of textNodes) {
     // Warn if the node has mixed fills
     if (node.fills === figma.mixed) {
@@ -757,7 +851,8 @@ async function processAllTextNodes(textNodes: TextNode[]) {
       );
     }
     try {
-      await handleTextCase(node);
+      const changed = await handleTextCase(node);
+      if (changed) anyChanged = true;
     } catch (err) {
       skippedCount++;
       console.error("Error processing node:", node, err);
@@ -768,6 +863,8 @@ async function processAllTextNodes(textNodes: TextNode[]) {
       `Skipped ${skippedCount} text node(s) due to processing errors.`
     );
   }
+
+  return anyChanged;
 }
 
 /**
@@ -808,7 +905,7 @@ function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
 /**
  * Handle text case transformation
  */
-async function handleTextCase(node: TextNode): Promise<void> {
+async function handleTextCase(node: TextNode): Promise<boolean> {
   // Load all fonts for this node before processing
   try {
     await loadAllFontsForNode(node);
@@ -1000,17 +1097,17 @@ async function handleTextCase(node: TextNode): Promise<void> {
     case "copycta":
       await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
       figma.notify("Tadaannn... 🥁 Button Text Added");
-      return;
+      return true;
 
     case "copyhero":
       await cycleCopyText(node, HERO_TEXTS, "heroIndex");
       figma.notify("Tadaannn... 🥁 Hero Text Added");
-      return;
+      return true;
 
     case "copyerror":
       await cycleCopyText(node, ERROR_TEXTS, "errorIndex");
       figma.notify("Tadaannn... 🥁 Error Text Added");
-      return;
+      return true;
 
     case "rmvspace":
       newText = newText
@@ -1022,7 +1119,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
       break;
 
     case "removesymbols":
-      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, " ");
+      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
       figma.notify("Removed punctuation & symbols ✔");
       break;
 
@@ -1042,7 +1139,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
       if (lines.length <= 1) {
         figma.notify("No line breaks found.");
-        return;
+        return false;
       }
 
       splitTextIntoLayers(
@@ -1052,7 +1149,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
         (count) => `Tadaannn... 🥁 Split into ${count} individual text layers!`,
         `${node.name} - Split Lines`
       );
-      return;
+      return true;
     }
 
     case "splitwords": {
@@ -1064,7 +1161,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
         (count) => `Tadaannn... 🥁 Split into ${count} word layers!`,
         `${node.name} - Split Words`
       );
-      return;
+      return true;
     }
 
     case "splitletters": {
@@ -1076,7 +1173,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
         (count) => `Tadaannn... 🥁 Split into ${count} letter layers!`,
         `${node.name} - Split Letters`
       );
-      return;
+      return true;
     }
 
     case "addprefix": {
@@ -1104,15 +1201,19 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
     default:
       console.error("Unknown command:", figma.command);
-      return; 
+      return false; 
   }
+
+  // If no change, skip updating and return false
+  const didChange = newText !== originalCharacters;
+  if (!didChange) return false;
 
   // Update the node with the modified text
   try {
     node.characters = newText;
   } catch (error) {
     console.error("Error updating text characters:", error);
-    return; // Exit early if we can't update the text
+    return false; // Exit early if we can't update the text
   }
 
   // Reapply fill style if it was uniform
@@ -1160,6 +1261,8 @@ async function handleTextCase(node: TextNode): Promise<void> {
       console.error("Error applying text style:", error);
     });
   }
+
+  return true;
 }
 
 /**
@@ -1243,16 +1346,20 @@ async function processTextCommand() {
     return;
   }
 
-  const licenseData = await getLicenseData();
+  // Process nodes and detect whether any actual text change happened
+  const didChange = await processAllTextNodes(textNodes);
 
-  await processAllTextNodes(textNodes);
+  // Track usage for all users (free AND pro)
+  if (ENABLE_MONETIZATION && didChange) {
+    await incrementUsage();
 
-  // Increment only after success
-  if (ENABLE_MONETIZATION) {
-    const licenseData = await getLicenseData();
-    if (!licenseData) {
-      await incrementUsage();
-    }
+    // Send usage update to UI
+    const stats = await getUsageStats();
+    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
+    figma.ui.postMessage({
+      type: 'usage-updated',
+      displayTotal,
+    });
   }
 }
 
@@ -1335,9 +1442,9 @@ figma.ui.onmessage = async (msg) => {
 };
 
 async function showAccountUI() {
-  const usage = await getUsageData();
+  const displayTotal = await getDisplayTotal();
 
-  const used = usage.count;
+  const used = displayTotal;
   const limit = 10;
   const remaining = Math.max(0, limit - used);
 
@@ -1356,7 +1463,8 @@ async function showAccountUI() {
     remaining,
     used,
     limit,
-    price: LICENSE_PRICE
+    price: LICENSE_PRICE,
+    displayTotal
   });
 } 
 

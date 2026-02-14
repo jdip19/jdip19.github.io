@@ -6,7 +6,7 @@ import {
   ENABLE_MONETIZATION,
   FREE_DAILY_LIMIT,
 } from "./config";
-import { getDeviceId, getUsageData } from "./storage";
+import { getDeviceId, getUsageStats } from "./storage";
 import { PLUGIN_VERSION } from "./version";
 
 /**
@@ -114,8 +114,9 @@ export async function canUsePlugin(): Promise<{
     }
 
     // Free quota user
-    const usage = await getUsageData();
-    const remaining = FREE_DAILY_LIMIT - usage.count;
+    const stats = await getUsageStats();
+    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
+    const remaining = FREE_DAILY_LIMIT - displayTotal;
 
     if (remaining > 0) {
       return {

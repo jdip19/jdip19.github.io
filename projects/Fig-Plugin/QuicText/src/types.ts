@@ -16,8 +16,10 @@ export interface PaymentConfig {
 }
 
 export interface UsageData {
-  count: number;
-  date: string; // YYYY-MM-DD format
+  usageCount: number;
+  syncedUsageCount: number;
+  lastFetchedTotal: number;
+  lastSyncAt?: string;
 }
 
 export interface LicenseData {

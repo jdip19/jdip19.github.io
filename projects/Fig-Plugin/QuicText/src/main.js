@@ -1,6 +1,6 @@
 // ==================== MAIN PLUGIN FILE ====================
 import { verifyLicenseKey, activateLicense } from './license';
-import { getUsageData, incrementUsage, saveDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat } from './storage';
+import { getUsageStats, incrementUsage, saveDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat, getEffectiveDefault, getDisplayTotal } from './storage';
 import { collectTextNodes, processAllTextNodes } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
 // Main plugin logic
@@ -43,14 +43,18 @@ async function processTextCommand() {
         figma.closePlugin();
         return;
     }
-    const licenseData = await getLicenseData();
-    await processAllTextNodes(textNodes);
-    // Increment only after success
-    if (ENABLE_MONETIZATION) {
-        const licenseData = await getLicenseData();
-        if (!licenseData) {
-            await incrementUsage();
-        }
+    // Process nodes and detect whether any actual text change happened
+    const didChange = await processAllTextNodes(textNodes);
+    // Track usage for all users (free AND pro)
+    if (ENABLE_MONETIZATION && didChange) {
+        await incrementUsage();
+        // Send usage update to UI
+        const stats = await getUsageStats();
+        const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
+        figma.ui.postMessage({
+            type: 'usage-updated',
+            displayTotal,
+        });
     }
 }
 // Handle UI messages
@@ -130,8 +134,8 @@ figma.ui.onmessage = async (msg) => {
     }
 };
 async function showAccountUI() {
-    const usage = await getUsageData();
-    const used = usage.count;
+    const displayTotal = await getDisplayTotal();
+    const used = displayTotal;
     const limit = 10;
     const remaining = Math.max(0, limit - used);
     const licenseData = await getLicenseData();
@@ -147,7 +151,8 @@ async function showAccountUI() {
         remaining,
         used,
         limit,
-        price: LICENSE_PRICE
+        price: LICENSE_PRICE,
+        displayTotal
     });
 }
 // Run the plugin

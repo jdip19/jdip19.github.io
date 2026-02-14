@@ -55,8 +55,11 @@ export async function applyFormattingToKeywords(
 /**
  * Process all text nodes with a transformation function
  */
-export async function processAllTextNodes(textNodes: TextNode[]) {
+export async function processAllTextNodes(
+  textNodes: TextNode[]
+): Promise<boolean> {
   let skippedCount = 0;
+  let anyChanged = false;
   for (const node of textNodes) {
     // Warn if the node has mixed fills
     if (node.fills === figma.mixed) {
@@ -65,7 +68,8 @@ export async function processAllTextNodes(textNodes: TextNode[]) {
       );
     }
     try {
-      await handleTextCase(node);
+      const changed = await handleTextCase(node);
+      if (changed) anyChanged = true;
     } catch (err) {
       skippedCount++;
       console.error("Error processing node:", node, err);
@@ -76,6 +80,8 @@ export async function processAllTextNodes(textNodes: TextNode[]) {
       `Skipped ${skippedCount} text node(s) due to processing errors.`
     );
   }
+
+  return anyChanged;
 }
 
 /**
@@ -116,7 +122,7 @@ export function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
 /**
  * Handle text case transformation
  */
-async function handleTextCase(node: TextNode): Promise<void> {
+async function handleTextCase(node: TextNode): Promise<boolean> {
   // Load all fonts for this node before processing
   try {
     await loadAllFontsForNode(node);
@@ -308,17 +314,17 @@ async function handleTextCase(node: TextNode): Promise<void> {
     case "copycta":
       await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
       figma.notify("Tadaannn... 🥁 Button Text Added");
-      return;
+      return true;
 
     case "copyhero":
       await cycleCopyText(node, HERO_TEXTS, "heroIndex");
       figma.notify("Tadaannn... 🥁 Hero Text Added");
-      return;
+      return true;
 
     case "copyerror":
       await cycleCopyText(node, ERROR_TEXTS, "errorIndex");
       figma.notify("Tadaannn... 🥁 Error Text Added");
-      return;
+      return true;
 
     case "rmvspace":
       newText = newText
@@ -330,7 +336,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
       break;
 
     case "removesymbols":
-      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, " ");
+      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
       figma.notify("Removed punctuation & symbols ✔");
       break;
 
@@ -350,7 +356,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
       if (lines.length <= 1) {
         figma.notify("No line breaks found.");
-        return;
+        return false;
       }
 
       splitTextIntoLayers(
@@ -360,7 +366,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
         (count) => `Tadaannn... 🥁 Split into ${count} individual text layers!`,
         `${node.name} - Split Lines`
       );
-      return;
+      return true;
     }
 
     case "splitwords": {
@@ -372,7 +378,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
         (count) => `Tadaannn... 🥁 Split into ${count} word layers!`,
         `${node.name} - Split Words`
       );
-      return;
+      return true;
     }
 
     case "splitletters": {
@@ -384,7 +390,7 @@ async function handleTextCase(node: TextNode): Promise<void> {
         (count) => `Tadaannn... 🥁 Split into ${count} letter layers!`,
         `${node.name} - Split Letters`
       );
-      return;
+      return true;
     }
 
     case "addprefix": {
@@ -412,15 +418,19 @@ async function handleTextCase(node: TextNode): Promise<void> {
 
     default:
       console.error("Unknown command:", figma.command);
-      return; 
+      return false; 
   }
+
+  // If no change, skip updating and return false
+  const didChange = newText !== originalCharacters;
+  if (!didChange) return false;
 
   // Update the node with the modified text
   try {
     node.characters = newText;
   } catch (error) {
     console.error("Error updating text characters:", error);
-    return; // Exit early if we can't update the text
+    return false; // Exit early if we can't update the text
   }
 
   // Reapply fill style if it was uniform
@@ -468,6 +478,8 @@ async function handleTextCase(node: TextNode): Promise<void> {
       console.error("Error applying text style:", error);
     });
   }
+
+  return true;
 }
 
 /**
