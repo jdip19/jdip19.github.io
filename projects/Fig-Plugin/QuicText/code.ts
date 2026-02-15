@@ -59,7 +59,7 @@ const SUPABASE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co";
 const SUPABASE_ANON_KEY = "99721bbe20f7fedf28087bc968479e65a32a340cb5fc72121b06e94b9484354d"; // Replace with your actual key
 
 // Sync settings
-const SYNC_DELTA_THRESHOLD = 4;
+const SYNC_DELTA_THRESHOLD = 25;
 
 // Default values for prefix/between/suffix commands
 const DEFAULT_VALUES = {
