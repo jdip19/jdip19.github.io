@@ -3,8 +3,8 @@ export default function Hero() {
     <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Large orange orb */}
-        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-orange-100 to-orange-50 opacity-60 blur-3xl" />
+        {/* Large primary orb */}
+        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-primary-100 to-primary-50 opacity-60 blur-3xl" />
         {/* Small accent */}
         <div className="absolute bottom-20 -left-20 w-72 h-72 rounded-full bg-gradient-to-tr from-amber-100 to-transparent opacity-40 blur-2xl" />
         {/* Grid pattern */}
@@ -21,9 +21,9 @@ export default function Hero() {
         {/* Text content */}
         <div>
           {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full bg-orange-100 border border-orange-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-xs font-medium text-orange-700 tracking-wide uppercase">
+          <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full bg-primary-100 border border-primary-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+            <span className="text-xs font-medium text-primary-700 tracking-wide uppercase">
               Tools for Makers
             </span>
           </div>
@@ -31,7 +31,7 @@ export default function Hero() {
           {/* Headline */}
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-stone-900 leading-[1.05] mb-6">
             Build faster.{" "}
-            <span className="italic text-orange-500">Create</span>{" "}
+            <span className="italic text-primary-500">Create</span>{" "}
             better.
           </h1>
 
@@ -45,7 +45,7 @@ export default function Hero() {
           <div className="flex flex-col sm:flex-row gap-3">
             <a
               href="#products"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-stone-900 text-white font-medium hover:bg-orange-500 transition-all duration-200 shadow-md hover:shadow-orange-200 hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-stone-900 text-white font-medium hover:bg-primary-500 transition-all duration-200 shadow-md hover:shadow-primary-200 hover:-translate-y-0.5"
             >
               Explore Tools
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -96,7 +96,7 @@ export default function Hero() {
 
               {/* Mock content rows */}
               {[
-                { w: "w-full", color: "bg-orange-100", accent: true },
+                { w: "w-full", color: "bg-primary-100", accent: true },
                 { w: "w-4/5", color: "bg-stone-100", accent: false },
                 { w: "w-3/4", color: "bg-stone-100", accent: false },
                 { w: "w-5/6", color: "bg-stone-100", accent: false },
@@ -106,7 +106,7 @@ export default function Hero() {
                     className={`h-2.5 rounded-full ${row.w} ${row.color} ${row.accent ? "opacity-100" : "opacity-60"}`}
                   />
                   {row.accent && (
-                    <div className="shrink-0 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[9px] font-bold">
+                    <div className="shrink-0 px-2 py-0.5 rounded-full bg-primary-500 text-white text-[9px] font-bold">
                       AUTO
                     </div>
                   )}
@@ -114,7 +114,7 @@ export default function Hero() {
               ))}
 
               {/* Mock button */}
-              <div className="mt-6 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
+              <div className="mt-6 h-9 rounded-xl bg-primary-500 flex items-center justify-center">
                 <div className="w-20 h-2 rounded-full bg-white opacity-90" />
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function Hero() {
             {/* Floating badges */}
             <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-lg shadow-stone-200 px-4 py-2.5 border border-stone-100">
               <div className="text-[11px] text-stone-400 mb-0.5">Downloads</div>
-              <div className="text-lg font-display text-stone-900">4,000<span className="text-orange-500">+</span></div>
+              <div className="text-lg font-display text-stone-900">4,000<span className="text-primary-500">+</span></div>
             </div>
 
             <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg shadow-stone-200 px-4 py-2.5 border border-stone-100">

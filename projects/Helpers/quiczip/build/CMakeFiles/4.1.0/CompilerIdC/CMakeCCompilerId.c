@@ -284,11 +284,11 @@
   # define COMPILER_VERSION_MINOR DEC(__VERSION__ % 100)
 # define COMPILER_VERSION_INTERNAL DEC(__VERSION__)
 
-#elif defined(__ORANGEC__)
-# define COMPILER_ID "OrangeC"
-# define COMPILER_VERSION_MAJOR DEC(__ORANGEC_MAJOR__)
-# define COMPILER_VERSION_MINOR DEC(__ORANGEC_MINOR__)
-# define COMPILER_VERSION_PATCH DEC(__ORANGEC_PATCHLEVEL__)
+#elif defined(__primaryC__)
+# define COMPILER_ID "primaryC"
+# define COMPILER_VERSION_MAJOR DEC(__primaryC_MAJOR__)
+# define COMPILER_VERSION_MINOR DEC(__primaryC_MINOR__)
+# define COMPILER_VERSION_PATCH DEC(__primaryC_PATCHLEVEL__)
 
 #elif defined(__RENESAS__)
 # define COMPILER_ID "Renesas"

@@ -14,28 +14,16 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
           ? "bg-[#fefdf9]/90 backdrop-blur-md border-b border-stone-200/60 shadow-sm"
           : "bg-transparent"
-      }`}
+        }`}
     >
       <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-200">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path
-                d="M3 9L7.5 4.5L12 9L7.5 13.5L3 9Z"
-                fill="white"
-                fillOpacity="0.9"
-              />
-              <path d="M9 5L13.5 9L9 13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <span className="font-display text-xl text-stone-900 tracking-tight">
-            Quiclab
-          </span>
+        <img src="/quiclab.svg" alt="Quiclab Logo" className="h-8" />
+
         </Link>
 
         {/* Nav links */}
@@ -57,7 +45,7 @@ export default function Navbar() {
         {/* CTA */}
         <a
           href="#products"
-          className="hidden md:inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors duration-150 shadow-sm"
+          className="hidden md:inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full bg-primary-500 text-white hover:bg-primary-600 transition-colors duration-150 shadow-sm"
         >
           Explore Tools
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

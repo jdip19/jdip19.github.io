@@ -14,7 +14,7 @@ export default function Products() {
           </div>
           <h2 className="font-display text-4xl sm:text-5xl text-stone-900 mb-4 leading-tight">
             Tools you&apos;ll actually{" "}
-            <em className="text-orange-500 not-italic">use</em>
+            <em className="text-primary-500 not-italic">use</em>
           </h2>
           <p className="text-stone-500 text-lg leading-relaxed">
             No subscription bundles. No feature bloat. Each tool is built for

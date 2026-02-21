@@ -39,7 +39,7 @@ export default function Why() {
           </div>
           <h2 className="font-display text-4xl sm:text-5xl text-white mb-4 leading-tight">
             Opinionated by{" "}
-            <em className="text-orange-400 not-italic">design</em>
+            <em className="text-primary-400 not-italic">design</em>
           </h2>
           <p className="text-stone-400 text-lg leading-relaxed">
             We build tools the way we&apos;d want to use them ourselves — fast,
@@ -52,7 +52,7 @@ export default function Why() {
           {whyPoints.map((point, i) => (
             <div
               key={point.id}
-              className="relative bg-stone-800 rounded-3xl p-8 border border-stone-700 hover:border-orange-500/40 hover:bg-stone-800/80 transition-all duration-300 group"
+              className="relative bg-stone-800 rounded-3xl p-8 border border-stone-700 hover:border-primary-500/40 hover:bg-stone-800/80 transition-all duration-300 group"
             >
               {/* Number */}
               <div className="absolute top-8 right-8 font-display text-5xl text-stone-700 group-hover:text-stone-600 transition-colors duration-300 select-none">
@@ -60,7 +60,7 @@ export default function Why() {
               </div>
 
               {/* Icon */}
-              <div className="w-11 h-11 rounded-xl bg-stone-700 flex items-center justify-center mb-6 group-hover:bg-orange-500/20 transition-colors duration-300">
+              <div className="w-11 h-11 rounded-xl bg-stone-700 flex items-center justify-center mb-6 group-hover:bg-primary-500/20 transition-colors duration-300">
                 <Icon type={point.icon} />
               </div>
 

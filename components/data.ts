@@ -26,7 +26,7 @@ export const products: Product[] = [
     ctaLabel: "Get QuicText",
     ctaHref: "#",
     iconColor: "#f97316",
-    accentBg: "bg-orange-50",
+    accentBg: "bg-primary-50",
     icon: "text",
   },
   {

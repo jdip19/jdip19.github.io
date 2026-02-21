@@ -35,7 +35,7 @@ function ProductIcon({ icon, color }: { icon: string; color: string }) {
 function Badge({ type }: { type: BadgeType }) {
   const styles: Record<BadgeType, string> = {
     Free: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    Freemium: "bg-orange-100 text-orange-700 border-orange-200",
+    Freemium: "bg-primary-100 text-primary-700 border-primary-200",
     Pro: "bg-violet-100 text-violet-700 border-violet-200",
   };
   return (
