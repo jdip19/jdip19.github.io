@@ -921,10 +921,10 @@
         static getCheckoutUrl() {
           const params = new URLSearchParams({
             quantity: "1",
-            redirect_url: "https://jdip.vercel.app/payment",
+            redirect_url: "https://quiclab.tech/payment",
             showDiscounts: "false",
           });
-          return `${CONFIG.dodopayments.checkoutUrl}?${params.toString()}`;
+          return `${CONFIG.dodopayments.checkoutUrl}`;
         }
 
         static openCheckout() {
