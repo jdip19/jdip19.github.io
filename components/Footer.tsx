@@ -26,10 +26,7 @@ export default function Footer() {
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2.5 mb-4 w-fit">
               <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d="M3 9L7.5 4.5L12 9L7.5 13.5L3 9Z" fill="white" fillOpacity="0.9" />
-                  <path d="M9 5L13.5 9L9 13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <img src="/quiclab.svg" alt="Quiclab Logo" className="" />
               </div>
               <span className="font-display text-xl text-stone-900">Quiclab</span>
             </Link>
@@ -93,7 +90,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-stone-400">
           <p>© {new Date().getFullYear()} Quiclab. All rights reserved.</p>
-          <p>Built with ♥ for makers everywhere.</p>
+          <p>Built with ♥ for humans</p>
         </div>
       </div>
     </footer>
