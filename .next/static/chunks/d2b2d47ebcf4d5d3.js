@@ -1,6 +1,0 @@
-__turbopack_load_page_chunks__("/payment", [
-  "static/chunks/593e6e43c03b139e.js",
-  "static/chunks/5b05021fcc0cd6d3.js",
-  "static/chunks/391c7ca25cb80365.js",
-  "static/chunks/turbopack-6893d6793596ff0b.js"
-])

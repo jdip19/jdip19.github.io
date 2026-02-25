@@ -1,0 +1,25 @@
+[00:00:01.740] Server  LOG     ✓ Ready in 1251ms
+[00:02:02.253] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? fill-rule fillRule
+[00:02:02.253] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? clip-rule clipRule
+[00:02:02.253] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? clip-path clipPath
+[00:02:02.253] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? stop-color stopColor
+[00:02:02.826] Server  LOG     ✓ Compiled in 1034ms
+[00:02:22.303] Server  LOG     ✓ Compiled in 97ms
+[00:02:55.543] Server  LOG     ✓ Compiled in 87ms
+[00:04:47.904] Server  LOG     ✓ Compiled in 276ms
+[00:04:57.256] Server  LOG     ✓ Compiled in 221ms
+[00:05:01.610] Server  ERROR   Invalid DOM property `clip-path`. Did you mean `clipPath`?
+[00:05:01.610] Server  ERROR   Invalid DOM property `fill-rule`. Did you mean `fillRule`?
+[00:05:01.611] Server  ERROR   Invalid DOM property `clip-rule`. Did you mean `clipRule`?
+[00:05:01.611] Server  ERROR   Invalid DOM property `stop-color`. Did you mean `stopColor`?
+[00:05:02.284] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? fill-rule fillRule
+[00:05:02.284] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? clip-rule clipRule
+[00:05:02.284] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? clip-path clipPath
+[00:05:02.284] Browser ERROR   Invalid DOM property `%s`. Did you mean `%s`? stop-color stopColor
+[00:11:13.030] Server  LOG     ✓ Compiled in 82ms
+[00:13:05.620] Server  LOG     ✓ Compiled in 162ms
+[00:13:38.632] Server  LOG     ✓ Compiled in 186ms
+[00:15:15.503] Server  LOG     ✓ Compiled in 147ms
+[00:16:04.256] Server  LOG     ✓ Compiled in 119ms
+[00:18:03.564] Server  LOG     ✓ Compiled in 180ms
+[00:21:36.091] Server  LOG     ✓ Compiled in 347ms

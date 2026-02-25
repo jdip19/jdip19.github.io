@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://quiclab.com/sitemap.xml
