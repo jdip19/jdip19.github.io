@@ -104,6 +104,7 @@ export async function syncUsage(delta) {
  */
 export async function getDisplayTotal() {
     const stats = await getUsageStats();
+    console.log("Calculating display total with stats:", stats);
     return stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
 }
 /**

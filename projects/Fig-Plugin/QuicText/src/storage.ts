@@ -56,6 +56,7 @@ export async function getUsageData(): Promise<UsageData> {
 export async function incrementUsage(): Promise<void> {
   const stats = await getUsageStats();
   stats.usageCount++;
+  console.log("Incremented usage count:", stats.usageCount);
   await saveUsageStats(stats);
 
   // Check if we should sync (delta >= threshold)
@@ -118,6 +119,7 @@ export async function syncUsage(delta: number): Promise<void> {
  */
 export async function getDisplayTotal(): Promise<number> {
   const stats = await getUsageStats();
+  console.log("Calculating display total with stats:", stats);
   return stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
 }
 

@@ -62,7 +62,7 @@
       #proDashboard .badge,
       .universal-stats,
       #proDashboard,
-      .usage-info {
+      .usage-info,footer {
         display: flex;
         gap: 0.5rem;
       }
@@ -265,11 +265,20 @@
 
       footer {
         position: fixed;
+        justify-content: space-between;
+        align-items: center;  
         bottom: 0;
-        border-radius: 8px 8px 0 0;
         background: var(--black);
         width: 100%;
         padding: 0.6rem 1rem;
+      }
+      #version a {
+        font-size: 12px;
+        color: var(--white);
+        opacity: 0.7;
+      }
+      .row.btn-group {
+        flex-direction: column;
       }
 
       .universal-stats {
@@ -629,10 +638,11 @@
         Saving custom defaults is a Pro feature. Upgrade to unlock unlimited
         customization!
       </p>
-      <button id="upgradeBtn" class="activate-btn">
-        Upgrade to Pro - $<span id="upgradePrice">--</span>
-      </button>
-      <div class="row">
+
+      <div class="row btn-group">
+        <button id="upgradeBtn" class="activate-btn">
+          Upgrade to Pro - $<span id="upgradePrice">--</span>
+        </button>
         <button id="homeBtn" class="secondary-btn">Back to Dashboard</button>
       </div>
     </div>
@@ -738,6 +748,9 @@
           +
         </div>
         <div class="stat-label">Command generated so far</div>
+      </div>
+      <div id="version">
+       <a href="https://quiclab.tech/version" target="_blank"></a>
       </div>
     </footer>
 
@@ -994,7 +1007,6 @@
           DOMHelper.setText("remainingCount", remaining);
           DOMHelper.setText("price", price);
           DOMHelper.setText("upgradePrice", price);
-          DOMHelper.setText("universalTotal", displayTotal);
 
           updateBattery(remaining, 10);
         }
@@ -1167,6 +1179,7 @@
 
         render(data) {
           const licenseData = data.licenseData || data;
+          console.log("Rendering Pro Dashboard with license data:", licenseData);
 
           DOMHelper.setText("proEmail", licenseData.email || "—");
           DOMHelper.setValue("proKey", Utils.maskKey(licenseData.key || ""));
@@ -1177,6 +1190,7 @@
           // Update the community impact total if displayTotal is provided
           if (data.displayTotal !== undefined) {
             DOMHelper.setText("universalTotalPro", data.displayTotal);
+            console.log("Updated universal total pro commands:", data);
           }
         }
 
@@ -1344,7 +1358,16 @@
             remaining: msg.remaining,
             licenseData: msg.licenseData,
             displayTotal: msg.displayTotal,
+            version: msg.version,
           });
+
+          // Update version display
+          if (msg.version) {
+            const versionEl = document.querySelector('#version a');
+            if (versionEl) {
+              versionEl.textContent = `v${msg.version}`;
+            }
+          }
 
           if (msg.isPro && msg.licenseData) {
             this.switchView(CONFIG.views.PRO_DASHBOARD, {
@@ -1392,6 +1415,7 @@
             } else if (currentView === CONFIG.views.PRO_DASHBOARD) {
               DOMHelper.setText("universalTotalPro", msg.displayTotal);
             }
+            console.log("Usage updated:", msg.displayTotal);
           }
         }
       }

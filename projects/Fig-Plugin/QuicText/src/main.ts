@@ -4,6 +4,7 @@ import { verifyLicenseKey, hasLicense, activateLicense } from './license';
 import { getDeviceId, getUsageStats, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat, getEffectiveDefault, getDisplayTotal } from './storage';
 import { collectTextNodes, processAllTextNodes } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
+import { PLUGIN_VERSION } from './version';
 
 // Main plugin logic
 async function main() {
@@ -63,14 +64,6 @@ async function processTextCommand() {
   // Track usage for all users (free AND pro)
   if (ENABLE_MONETIZATION && didChange) {
     await incrementUsage();
-
-    // Send usage update to UI
-    const stats = await getUsageStats();
-    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
-    figma.ui.postMessage({
-      type: 'usage-updated',
-      displayTotal,
-    });
   }
 }
 
@@ -175,7 +168,8 @@ async function showAccountUI() {
     used,
     limit,
     price: LICENSE_PRICE,
-    displayTotal
+    displayTotal,
+    version: PLUGIN_VERSION
   });
 } 
 

@@ -3,7 +3,7 @@
 // ==================== VERSION.TS ====================
 
 // src/version.ts
-const PLUGIN_VERSION = "9.0.0";
+const PLUGIN_VERSION = "9.0.1";
 
 // ==================== TYPES.TS ====================
 
@@ -409,6 +409,7 @@ async function syncUsage(delta: number): Promise<void> {
  */
 async function getDisplayTotal(): Promise<number> {
   const stats = await getUsageStats();
+  console.log("Calculating display total with stats:", stats);
   return stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
 }
 
@@ -1294,6 +1295,7 @@ async function cycleCopyText(
 
 
 
+
 // Main plugin logic
 async function main() {
   try {
@@ -1352,14 +1354,6 @@ async function processTextCommand() {
   // Track usage for all users (free AND pro)
   if (ENABLE_MONETIZATION && didChange) {
     await incrementUsage();
-
-    // Send usage update to UI
-    const stats = await getUsageStats();
-    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
-    figma.ui.postMessage({
-      type: 'usage-updated',
-      displayTotal,
-    });
   }
 }
 
@@ -1464,7 +1458,8 @@ async function showAccountUI() {
     used,
     limit,
     price: LICENSE_PRICE,
-    displayTotal
+    displayTotal,
+    version: PLUGIN_VERSION
   });
 } 
 
