@@ -319,3 +319,11 @@ export async function getDateFormat(): Promise<string> {
 export async function setDateFormat(value: string) {
   await figma.clientStorage.setAsync("dateFormat", value);
 }
+
+export async function getTimeFormat(): Promise<string> {
+  return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+}
+
+export async function setTimeFormat(value: string) {
+  await figma.clientStorage.setAsync("timeFormat", value);
+}

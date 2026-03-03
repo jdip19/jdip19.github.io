@@ -43,6 +43,31 @@
         background: #ffffff;
         padding-bottom: 42px;
       }
+      /* Toast notification */
+      #toast {
+        position: fixed;
+        bottom: 72px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+        z-index: 1000;
+        opacity: 0;
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+        pointer-events: none;
+        font-size: 13px;
+      }
+
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+        pointer-events: auto;
+      }
 
       ::selection {
         background: var(--primary-color);
@@ -62,7 +87,8 @@
       #proDashboard .badge,
       .universal-stats,
       #proDashboard,
-      .usage-info,footer {
+      .usage-info,
+      footer {
         display: flex;
         gap: 0.5rem;
       }
@@ -266,16 +292,19 @@
       footer {
         position: fixed;
         justify-content: space-between;
-        align-items: center;  
+        align-items: center;
         bottom: 0;
         background: var(--black);
         width: 100%;
         padding: 0.6rem 1rem;
+        font-size: 12px;
       }
       #version a {
-        font-size: 12px;
         color: var(--white);
         opacity: 0.7;
+      }
+      #version a:hover {
+        opacity: 1;
       }
       .row.btn-group {
         flex-direction: column;
@@ -286,7 +315,6 @@
       }
 
       .universal-stats .stat-label {
-        font-size: 12px;
         color: var(--white);
         place-content: space-around;
       }
@@ -607,6 +635,15 @@
               </option>
             </select>
           </div>
+          <div class="input-row">
+            <label>Time Format</label>
+            <select id="defaultTimeFormat">
+              <option value="hh:mm a">09:30 AM</option>
+              <option value="hh:mm">09:30</option>
+              <option value="hh:mm:ss a">09:30:45 AM</option>
+              <option value="hh:mm:ss">09:30:45</option>
+            </select>
+          </div>
         </div>
         <div class="action-container">
           <button id="saveDefaults" class="activate-btn">Save defaults</button>
@@ -618,12 +655,7 @@
         >
           Changes are preview only. Upgrade to save defaults.
         </p>
-        <div
-          id="defaultsSavedMsg"
-          style="display: none; margin-top: 8px; color: var(--primary-color)"
-        >
-          Defaults saved
-        </div>
+        <div id="toast" aria-live="polite" role="status"></div>
       </div>
     </div>
 
@@ -750,7 +782,7 @@
         <div class="stat-label">Command generated so far</div>
       </div>
       <div id="version">
-       <a href="https://quiclab.tech/version" target="_blank"></a>
+        <a href="https://quiclab.tech/changelog" target="_blank"></a>
       </div>
     </footer>
 
@@ -788,6 +820,17 @@
         } else {
           levelEl.style.background = "#f44336"; // red
         }
+      }
+      // Simple toast helper
+      function showToast(message, duration = 1800) {
+        const el = document.getElementById("toast");
+        if (!el) return;
+        el.textContent = message;
+        el.classList.add("show");
+        if (el._toastTimeout) clearTimeout(el._toastTimeout);
+        el._toastTimeout = setTimeout(() => {
+          el.classList.remove("show");
+        }, duration);
       }
 
       // ============================================================================
@@ -1104,6 +1147,10 @@
             "defaultDateFormat",
             defaults.dateFormat || "mm-dd-yyyy",
           );
+          DOMHelper.setValue(
+            "defaultTimeFormat",
+            defaults.timeFormat || "hh:mm a",
+          );
 
           this.updateHint();
         }
@@ -1154,6 +1201,7 @@
             between: DOMHelper.getValue("defaultBetween"),
             suffix: DOMHelper.getValue("defaultSuffix"),
             dateFormat: DOMHelper.getValue("defaultDateFormat"),
+            timeFormat: DOMHelper.getValue("defaultTimeFormat"),
           };
 
           appState.set({ defaults });
@@ -1162,13 +1210,8 @@
         }
 
         showSavedMessage() {
-          const msg = DOMHelper.getElement("defaultsSavedMsg");
-          if (msg) {
-            msg.style.display = "block";
-            setTimeout(() => {
-              msg.style.display = "none";
-            }, 1800);
-          }
+          // Use toast helper for a consistent transient message
+          showToast("Defaults saved", 1800);
         }
       }
 
@@ -1179,7 +1222,10 @@
 
         render(data) {
           const licenseData = data.licenseData || data;
-          console.log("Rendering Pro Dashboard with license data:", licenseData);
+          console.log(
+            "Rendering Pro Dashboard with license data:",
+            licenseData,
+          );
 
           DOMHelper.setText("proEmail", licenseData.email || "—");
           DOMHelper.setValue("proKey", Utils.maskKey(licenseData.key || ""));
@@ -1336,7 +1382,9 @@
             case "date-format":
               DOMHelper.setValue("defaultDateFormat", msg.value);
               break;
-
+            case "time-format":
+              DOMHelper.setValue("defaultTimeFormat", msg.value);
+              break;
             case "defaults-saved":
               this.views[CONFIG.views.SETTINGS].showSavedMessage();
               break;
@@ -1363,7 +1411,7 @@
 
           // Update version display
           if (msg.version) {
-            const versionEl = document.querySelector('#version a');
+            const versionEl = document.querySelector("#version a");
             if (versionEl) {
               versionEl.textContent = `v${msg.version}`;
             }

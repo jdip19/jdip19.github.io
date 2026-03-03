@@ -16,6 +16,12 @@ export const DEFAULT_VALUES = {
     between: '-',
     suffix: '.'
 };
+export const MOBILE_NUMBER_TEXT = [
+    "+1 (555) 123-4567", "+44 20 7946 0958", "+91 98765 43210",
+];
+export const EMAIL_TEXTS = [
+    "jenaparker@gmail.com", "armanmirani@gmail.com", "nitishsharma@email.com"
+];
 // Text constants
 export const CTA_TEXTS = [
     "Get Started", "Learn More", "Know More", "Read More", "Buy Now",

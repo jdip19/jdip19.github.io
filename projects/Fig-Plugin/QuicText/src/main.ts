@@ -1,7 +1,7 @@
 // ==================== MAIN PLUGIN FILE ====================
 
 import { verifyLicenseKey, hasLicense, activateLicense } from './license';
-import { getDeviceId, getUsageStats, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat, getEffectiveDefault, getDisplayTotal } from './storage';
+import { getDeviceId, getUsageStats, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat, getTimeFormat, setTimeFormat, getEffectiveDefault, getDisplayTotal } from './storage';
 import { collectTextNodes, processAllTextNodes } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
 import { PLUGIN_VERSION } from './version';
@@ -72,12 +72,13 @@ figma.ui.onmessage = async (msg) => {
   try {
     switch (msg.type) {
       case 'save-defaults':
-        // msg.defaults = { prefix, between, suffix, dateFormat }
+        // msg.defaults = { prefix, between, suffix, dateFormat, timeFormat }
         if (msg.defaults) {
           if (msg.defaults.prefix !== undefined) await saveDefaultValue('default_prefix', msg.defaults.prefix || '');
           if (msg.defaults.between !== undefined) await saveDefaultValue('default_between', msg.defaults.between || '');
           if (msg.defaults.suffix !== undefined) await saveDefaultValue('default_suffix', msg.defaults.suffix || '');
           if (msg.defaults.dateFormat !== undefined) await setDateFormat(msg.defaults.dateFormat);
+          if (msg.defaults.timeFormat !== undefined) await setTimeFormat(msg.defaults.timeFormat);
         }
         figma.ui.postMessage({ type: 'defaults-saved', success: true });
         break;
@@ -89,8 +90,10 @@ figma.ui.onmessage = async (msg) => {
           const between = await getEffectiveDefault('between');
           const suffix = await getEffectiveDefault('suffix');
           const dateFormat = await getDateFormat();
+          const timeFormat = await getTimeFormat();
           figma.ui.postMessage({ type: 'current-defaults', defaults: { prefix, between, suffix } });
           figma.ui.postMessage({ type: 'date-format', value: dateFormat });
+          figma.ui.postMessage({ type: 'time-format', value: timeFormat });
         }
         break;
       case 'verify-license':

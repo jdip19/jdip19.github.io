@@ -51,6 +51,7 @@ export async function getUsageData() {
 export async function incrementUsage() {
     const stats = await getUsageStats();
     stats.usageCount++;
+    console.log("Incremented usage count:", stats.usageCount);
     await saveUsageStats(stats);
     // Check if we should sync (delta >= threshold)
     await maybeSyncUsage();
@@ -280,4 +281,10 @@ export async function getDateFormat() {
 }
 export async function setDateFormat(value) {
     await figma.clientStorage.setAsync("dateFormat", value);
+}
+export async function getTimeFormat() {
+    return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+}
+export async function setTimeFormat(value) {
+    await figma.clientStorage.setAsync("timeFormat", value);
 }

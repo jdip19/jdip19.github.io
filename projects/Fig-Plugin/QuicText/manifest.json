@@ -47,6 +47,10 @@
       "command": "addcdate"
     },
     {
+      "name": "Add current Time",
+      "command": "addctime"
+    },
+    {
       "name": "add Breaklines",
       "command": "addbreakline"
     },
@@ -81,6 +85,14 @@
     {
       "name": "remove Breaklines & Space",
       "command": "rmvspace"
+    },
+    {
+      "command": "copyemail",
+      "name": "add email Text"
+    },
+    {
+      "command": "copynumber",
+      "name": "add mobile number Text"
     },
     {
       "command": "copyhero",
