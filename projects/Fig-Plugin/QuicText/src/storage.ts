@@ -56,7 +56,6 @@ export async function getUsageData(): Promise<UsageData> {
 export async function incrementUsage(): Promise<void> {
   const stats = await getUsageStats();
   stats.usageCount++;
-  console.log("Incremented usage count:", stats.usageCount);
   await saveUsageStats(stats);
 
   // Check if we should sync (delta >= threshold)
@@ -70,8 +69,36 @@ export async function maybeSyncUsage(): Promise<void> {
   const stats = await getUsageStats();
   const delta = stats.usageCount - stats.syncedUsageCount;
 
-  if (delta >= SYNC_DELTA_THRESHOLD) {
+  if (delta >= SYNC_DELTA_THRESHOLD) {s
     await syncUsage(delta);
+  }
+}
+
+/**
+ * Ensure we sync at least once per day when UI is opened.
+ * This triggers a sync (POST) even if the delta is below threshold.
+ */
+export async function ensureDailySync(): Promise<void> {
+  try {
+    const stats = await getUsageStats();
+    const lastSync = stats.lastSyncAt ? new Date(stats.lastSyncAt) : null;
+    console.log("Checking daily sync: lastSyncAt=", stats.lastSyncAt, "usageCount=", stats.usageCount, "syncedUsageCount=", stats.syncedUsageCount);
+    const now = new Date();
+
+    const isSameDay = lastSync
+      ? lastSync.getFullYear() === now.getFullYear() &&
+        lastSync.getMonth() === now.getMonth() &&
+        lastSync.getDate() === now.getDate()
+      : false;
+
+    if (!isSameDay) {
+      const delta = stats.usageCount - stats.syncedUsageCount;
+      console.log('Daily sync: lastSyncAt=', stats.lastSyncAt, 'delta=', delta);
+      // Call syncUsage even when delta is 0 to fetch the global total from server
+      await syncUsage(delta);
+    }
+  } catch (err) {
+    console.error('Error in ensureDailySync:', err);
   }
 }
 
@@ -119,7 +146,6 @@ export async function syncUsage(delta: number): Promise<void> {
  */
 export async function getDisplayTotal(): Promise<number> {
   const stats = await getUsageStats();
-  console.log("Calculating display total with stats:", stats);
   return stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
 }
 
@@ -309,6 +335,25 @@ export async function clearLicenseData(): Promise<void> {
     console.log("Cleared license data from storage");
   } catch (err) {
     console.warn("Error clearing license data:", err);
+  }
+}
+
+/**
+ * Clear usage stats when user logs out (reset to fresh free tier).
+ * Also set lastSyncAt to today to prevent immediate re-sync on UI open.
+ */
+export async function clearUsageStats(): Promise<void> {
+  try {
+    const defaults: UsageData = {
+      usageCount: 0,
+      syncedUsageCount: 0,
+      lastFetchedTotal: 0,
+      lastSyncAt: new Date().toISOString(),
+    };
+    await figma.clientStorage.setAsync("usageStats", defaults);
+    console.log("Cleared usage stats from storage");
+  } catch (err) {
+    console.warn("Error clearing usage stats:", err);
   }
 }
 

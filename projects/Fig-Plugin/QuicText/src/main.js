@@ -1,8 +1,8 @@
 // ==================== MAIN PLUGIN FILE ====================
 import { verifyLicenseKey, activateLicense } from './license';
-import { incrementUsage, saveDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat, getTimeFormat, setTimeFormat, getEffectiveDefault, getDisplayTotal } from './storage';
+import { incrementUsage, saveDefaultValue, getLicenseData, clearLicenseData, clearUsageStats, getDateFormat, setDateFormat, getTimeFormat, setTimeFormat, getEffectiveDefault, getDisplayTotal, ensureDailySync } from './storage';
 import { collectTextNodes, processAllTextNodes } from './text-processing';
-import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
+import { ENABLE_MONETIZATION, LICENSE_PRICE, FREE_USAGE_LIMIT } from './config';
 import { PLUGIN_VERSION } from './version';
 // Main plugin logic
 async function main() {
@@ -117,6 +117,7 @@ figma.ui.onmessage = async (msg) => {
                 break;
             case 'logout':
                 await clearLicenseData();
+                await clearUsageStats();
                 figma.notify('Logged out');
                 await showAccountUI();
                 break;
@@ -132,9 +133,11 @@ figma.ui.onmessage = async (msg) => {
     }
 };
 async function showAccountUI() {
+    // Ensure we sync with the server once per day when UI is opened
+    await ensureDailySync();
     const displayTotal = await getDisplayTotal();
     const used = displayTotal;
-    const limit = 10;
+    const limit = FREE_USAGE_LIMIT;
     const remaining = Math.max(0, limit - used);
     const licenseData = await getLicenseData();
     const isPro = Boolean(licenseData);

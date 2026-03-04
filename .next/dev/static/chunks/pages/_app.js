@@ -1,12 +1,12 @@
 __turbopack_load_page_chunks__("/_app", [
-  "static/chunks/node_modules_next_dist_compiled_8ca6b690._.js",
-  "static/chunks/node_modules_next_dist_shared_lib_8bac8163._.js",
-  "static/chunks/node_modules_next_dist_client_5a8a528e._.js",
-  "static/chunks/node_modules_next_dist_75b597d7._.js",
-  "static/chunks/node_modules_react-dom_4411d9bd._.js",
-  "static/chunks/node_modules_f1be3ba2._.js",
-  "static/chunks/[root-of-the-server]__73ecdec8._.js",
-  "static/chunks/styles_globals_dc36e6c9.css",
-  "static/chunks/pages__app_2da965e7._.js",
-  "static/chunks/turbopack-pages__app_d4963271._.js"
+  "static/chunks/a0037_next_dist_compiled_4ac59b93._.js",
+  "static/chunks/a0037_next_dist_shared_lib_5a59a384._.js",
+  "static/chunks/a0037_next_dist_client_96317dcd._.js",
+  "static/chunks/a0037_next_dist_ba849d49._.js",
+  "static/chunks/a0037_react-dom_797aed86._.js",
+  "static/chunks/a0037_00290241._.js",
+  "static/chunks/[root-of-the-server]__e09bf550._.js",
+  "static/chunks/OneDrive_Desktop_jdip19_github_io_styles_globals_7e9bf647.css",
+  "static/chunks/OneDrive_Desktop_jdip19_github_io_pages__app_2da965e7._.js",
+  "static/chunks/turbopack-OneDrive_Desktop_jdip19_github_io_pages__app_d37ad0b6._.js"
 ])
