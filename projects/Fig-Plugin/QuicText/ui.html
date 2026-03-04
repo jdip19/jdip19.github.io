@@ -352,14 +352,10 @@
     .features li {
       padding: 8px 0;
       font-size: 14px;
+      display: flex;
+      gap: 0.5rem;
     }
 
-    .features li:before {
-      content: "✓ ";
-      color: var(--white);
-      font-weight: bold;
-      margin-right: 8px;
-    }
 
     .input-row {
       flex-direction: column;
@@ -688,12 +684,24 @@
       <div class="price-label">Upgrade to Pro</div>
       <div class="price">$<span id="price"></span></div>
       <ul class="features">
-        <li>One-time purchase, no recurring fees</li>
-        <li>Unlimited command usage forever</li>
-        <li>Unlock all premium features</li>
-        <li>Customize default settings (date,time, prefix, suffix)</li>
-        <li>Get future updates with 20+ new commands</li>
-        <li>Priority support</li>
+        <li>
+          <div>✓</div>One-time purchase, no recurring fees
+        </li>
+        <li>
+          <div>✓</div>Unlimited command usage forever
+        </li>
+        <li>
+          <div>✓</div>Unlock all premium features
+        </li>
+        <li>
+          <div>✓</div>Customize default settings (date,time, prefix, suffix)
+        </li>
+        <li>
+          <div>✓</div>Get future updates with 20+ new commands
+        </li>
+        <li>
+          <div>✓</div>Priority support
+        </li>
       </ul>
     </div>
 
