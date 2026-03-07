@@ -1,20 +1,26 @@
 // ==================== TEXT PROCESSING ====================
 
-import { getKeywordList, loadAllFontsForNode, formatDate } from "./utils";
+import {
+  getKeywordList,
+  loadAllFontsForNode,
+  formatDate,
+  formatTime,
+} from "./utils";
 import {
   getStoredIndex,
   saveStoredIndex,
   getEffectiveDefault,
   getDateFormat,
+  getTimeFormat,
 } from "./storage";
-import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS } from "./config";
+import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS,EMAIL_TEXTS,MOBILE_NUMBER_TEXT} from "./config";
 
 /**
  * Apply formatting to keywords in text nodes
  */
 export async function applyFormattingToKeywords(
   keywords: string,
-  applyRange: (node: TextNode, start: number, end: number) => void
+  applyRange: (node: TextNode, start: number, end: number) => void,
 ): Promise<void> {
   const keywordList = getKeywordList(keywords);
   if (keywordList.length === 0) {
@@ -42,7 +48,7 @@ export async function applyFormattingToKeywords(
           } catch (err) {
             console.warn(
               `Could not apply formatting at range ${index}-${endIndex}:`,
-              err
+              err,
             );
           }
         }
@@ -56,7 +62,7 @@ export async function applyFormattingToKeywords(
  * Process all text nodes with a transformation function
  */
 export async function processAllTextNodes(
-  textNodes: TextNode[]
+  textNodes: TextNode[],
 ): Promise<boolean> {
   let skippedCount = 0;
   let anyChanged = false;
@@ -64,7 +70,7 @@ export async function processAllTextNodes(
     // Warn if the node has mixed fills
     if (node.fills === figma.mixed) {
       figma.notify(
-        "Warning: Some text nodes have mixed color styles. These may be lost after processing."
+        "Warning: Some text nodes have mixed color styles. These may be lost after processing.",
       );
     }
     try {
@@ -77,7 +83,7 @@ export async function processAllTextNodes(
   }
   if (skippedCount > 0) {
     figma.notify(
-      `Skipped ${skippedCount} text node(s) due to processing errors.`
+      `Skipped ${skippedCount} text node(s) due to processing errors.`,
     );
   }
 
@@ -117,8 +123,6 @@ export function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   return result;
 }
 
-
-
 /**
  * Handle text case transformation
  */
@@ -157,7 +161,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
     nameBuilder: (index: number, text: string) => string,
     emptyMessage: string,
     successMessage: (count: number) => string,
-    containerName: string
+    containerName: string,
   ): void => {
     const filteredSegments = segments
       .map((segment) => segment.trim())
@@ -264,7 +268,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       });
 
       figma.notify(
-        "Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅"
+        "Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅",
       );
       break;
 
@@ -297,10 +301,10 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
     case "addbreakline":
       newText = newText.replace(/\. ?([a-z]|[A-Z])/g, ".\n$1");
       newText = newText.replace(/(^\w|\. ?\w)/gm, (match) =>
-        match.toUpperCase()
+        match.toUpperCase(),
       );
       figma.notify(
-        "Tadaannn... 🥁 Your Text now has line breaks after Fullstop."
+        "Tadaannn... 🥁 Your Text now has line breaks after Fullstop.",
       );
       break;
     case "addcdate": {
@@ -311,6 +315,23 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       figma.notify(`📅 Date added (${format})`);
       break;
     }
+    case "addctime": {
+      const format = await getTimeFormat();
+      const timeText = formatTime(format);
+
+      newText = timeText;
+      figma.notify(`⏰ Time added (${format})`);
+      break;
+    }
+    case "copyemail":
+      await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
+      figma.notify("Tadaannn... 🥁 Email Text Added");
+      return true;
+
+    case "copynumber":
+      await cycleCopyText(node, MOBILE_NUMBER_TEXT, "numberIndex");
+      figma.notify("Tadaannn... 🥁 Mobile Number Text Added");
+      return true;
     case "copycta":
       await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
       figma.notify("Tadaannn... 🥁 Button Text Added");
@@ -364,7 +385,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
         (index) => `${node.name} - Line ${index + 1}`,
         "No text lines found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} individual text layers!`,
-        `${node.name} - Split Lines`
+        `${node.name} - Split Lines`,
       );
       return true;
     }
@@ -376,7 +397,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
         (index) => `${node.name} - Word ${index + 1}`,
         "No words found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} word layers!`,
-        `${node.name} - Split Words`
+        `${node.name} - Split Words`,
       );
       return true;
     }
@@ -388,37 +409,37 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
         (index, letter) => `${node.name} - Letter ${index + 1}: ${letter}`,
         "No letters found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} letter layers!`,
-        `${node.name} - Split Letters`
+        `${node.name} - Split Letters`,
       );
       return true;
     }
 
     case "addprefix": {
       // Simplified: use stored default and treat like other commands
-      const value = await getEffectiveDefault('prefix');
+      const value = await getEffectiveDefault("prefix");
       newText = value + originalCharacters;
-      figma.notify('Tadaannn... 🥁 Prefix added');
+      figma.notify("Tadaannn... 🥁 Prefix added");
       break;
     }
 
     case "addbetween": {
-      const value = await getEffectiveDefault('between');
+      const value = await getEffectiveDefault("between");
       const parts = originalCharacters.split(/\s+/);
       newText = parts.join(value);
-      figma.notify('Tadaannn... 🥁 In-between added');
+      figma.notify("Tadaannn... 🥁 In-between added");
       break;
     }
 
     case "addsuffix": {
-      const value = await getEffectiveDefault('suffix');
+      const value = await getEffectiveDefault("suffix");
       newText = originalCharacters + value;
-      figma.notify('Tadaannn... 🥁 Suffix added');
+      figma.notify("Tadaannn... 🥁 Suffix added");
       break;
     }
 
     default:
       console.error("Unknown command:", figma.command);
-      return false; 
+      return false;
   }
 
   // If no change, skip updating and return false
@@ -460,7 +481,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
             node.setRangeFills(
               i,
               Math.min(i + 1, node.characters.length),
-              originalFills[i] as Paint[]
+              originalFills[i] as Paint[],
             );
           } catch (rangeError) {
             console.warn(`Could not apply fill at index ${i}:`, rangeError);
@@ -488,7 +509,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
 async function cycleCopyText(
   node: TextNode,
   texts: string[],
-  storageKey: string
+  storageKey: string,
 ): Promise<void> {
   const index = await getStoredIndex(storageKey);
   const text = texts[index];

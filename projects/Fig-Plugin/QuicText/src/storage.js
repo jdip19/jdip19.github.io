@@ -66,6 +66,32 @@ export async function maybeSyncUsage() {
     }
 }
 /**
+ * Ensure we sync at least once per day when UI is opened.
+ * This triggers a sync (POST) even if the delta is below threshold.
+ */
+export async function ensureDailySync() {
+    try {
+        const stats = await getUsageStats();
+        const lastSync = stats.lastSyncAt ? new Date(stats.lastSyncAt) : null;
+        console.log("Checking daily sync: lastSyncAt=", stats.lastSyncAt, "usageCount=", stats.usageCount, "syncedUsageCount=", stats.syncedUsageCount);
+        const now = new Date();
+        const isSameDay = lastSync
+            ? lastSync.getFullYear() === now.getFullYear() &&
+                lastSync.getMonth() === now.getMonth() &&
+                lastSync.getDate() === now.getDate()
+            : false;
+        if (!isSameDay) {
+            const delta = stats.usageCount - stats.syncedUsageCount;
+            console.log('Daily sync: lastSyncAt=', stats.lastSyncAt, 'delta=', delta);
+            // Call syncUsage even when delta is 0 to fetch the global total from server
+            await syncUsage(delta);
+        }
+    }
+    catch (err) {
+        console.error('Error in ensureDailySync:', err);
+    }
+}
+/**
  * Sync usage to backend when delta threshold is met
  */
 export async function syncUsage(delta) {
@@ -274,9 +300,34 @@ export async function clearLicenseData() {
         console.warn("Error clearing license data:", err);
     }
 }
+/**
+ * Clear usage stats when user logs out (reset to fresh free tier).
+ * Also set lastSyncAt to today to prevent immediate re-sync on UI open.
+ */
+export async function clearUsageStats() {
+    try {
+        const defaults = {
+            usageCount: 0,
+            syncedUsageCount: 0,
+            lastFetchedTotal: 0,
+            lastSyncAt: new Date().toISOString(),
+        };
+        await figma.clientStorage.setAsync("usageStats", defaults);
+        console.log("Cleared usage stats from storage");
+    }
+    catch (err) {
+        console.warn("Error clearing usage stats:", err);
+    }
+}
 export async function getDateFormat() {
     return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
 }
 export async function setDateFormat(value) {
     await figma.clientStorage.setAsync("dateFormat", value);
+}
+export async function getTimeFormat() {
+    return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+}
+export async function setTimeFormat(value) {
+    await figma.clientStorage.setAsync("timeFormat", value);
 }

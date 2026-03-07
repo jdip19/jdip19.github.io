@@ -80,10 +80,29 @@ serve(async (req) => {
         )
       }
 
-      // Return updated total
+      // After upsert, compute the global total across all devices and return that
+      const { data: allRows, error: sumError } = await supabaseClient
+        .from('command_usage')
+        .select('total_commands');
+
+      if (sumError) {
+        console.error('Error computing global total:', sumError);
+        // Fallback to returning per-device value if sum fails
+        return new Response(
+          JSON.stringify({ 
+            total_commands: newTotal,
+            delta,
+            updated_at: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const globalSum = (allRows || []).reduce((acc, row) => acc + (row?.total_commands || 0), 0);
+
       return new Response(
         JSON.stringify({ 
-          total_commands: newTotal,
+          total_commands: globalSum,
           delta,
           updated_at: new Date().toISOString()
         }),

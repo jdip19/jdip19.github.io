@@ -1,7 +1,7 @@
 // ==================== TEXT PROCESSING ====================
-import { getKeywordList, loadAllFontsForNode, formatDate } from "./utils";
-import { getStoredIndex, saveStoredIndex, getEffectiveDefault, getDateFormat, } from "./storage";
-import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS } from "./config";
+import { getKeywordList, loadAllFontsForNode, formatDate, formatTime, } from "./utils";
+import { getStoredIndex, saveStoredIndex, getEffectiveDefault, getDateFormat, getTimeFormat, } from "./storage";
+import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS, EMAIL_TEXTS, MOBILE_NUMBER_TEXT } from "./config";
 /**
  * Apply formatting to keywords in text nodes
  */
@@ -247,6 +247,21 @@ async function handleTextCase(node) {
             figma.notify(`📅 Date added (${format})`);
             break;
         }
+        case "addctime": {
+            const format = await getTimeFormat();
+            const timeText = formatTime(format);
+            newText = timeText;
+            figma.notify(`⏰ Time added (${format})`);
+            break;
+        }
+        case "copyemail":
+            await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
+            figma.notify("Tadaannn... 🥁 Email Text Added");
+            return true;
+        case "copynumber":
+            await cycleCopyText(node, MOBILE_NUMBER_TEXT, "numberIndex");
+            figma.notify("Tadaannn... 🥁 Mobile Number Text Added");
+            return true;
         case "copycta":
             await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
             figma.notify("Tadaannn... 🥁 Button Text Added");
@@ -302,22 +317,22 @@ async function handleTextCase(node) {
         }
         case "addprefix": {
             // Simplified: use stored default and treat like other commands
-            const value = await getEffectiveDefault('prefix');
+            const value = await getEffectiveDefault("prefix");
             newText = value + originalCharacters;
-            figma.notify('Tadaannn... 🥁 Prefix added');
+            figma.notify("Tadaannn... 🥁 Prefix added");
             break;
         }
         case "addbetween": {
-            const value = await getEffectiveDefault('between');
+            const value = await getEffectiveDefault("between");
             const parts = originalCharacters.split(/\s+/);
             newText = parts.join(value);
-            figma.notify('Tadaannn... 🥁 In-between added');
+            figma.notify("Tadaannn... 🥁 In-between added");
             break;
         }
         case "addsuffix": {
-            const value = await getEffectiveDefault('suffix');
+            const value = await getEffectiveDefault("suffix");
             newText = originalCharacters + value;
-            figma.notify('Tadaannn... 🥁 Suffix added');
+            figma.notify("Tadaannn... 🥁 Suffix added");
             break;
         }
         default:

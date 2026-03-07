@@ -39,8 +39,16 @@
       "command": "lowercase"
     },
     {
+      "name": "to Slug",
+      "command": "slug"
+    },
+    {
       "name": "add current Date",
       "command": "addcdate"
+    },
+    {
+      "name": "Add current Time",
+      "command": "addctime"
     },
     {
       "name": "add Breaklines",
@@ -59,26 +67,6 @@
       "name": "add Suffix"
     },
     {
-      "command": "copyhero",
-      "name": "add Hero Text"
-    },
-    {
-      "command": "copycta",
-      "name": "add CTA Text"
-    },
-    {
-      "command": "copyerror",
-      "name": "add Error Text"
-    },
-    {
-      "command": "removesymbols",
-      "name": "remove Symbols"
-    },
-    {
-      "name": "remove Breaklines & Space",
-      "command": "rmvspace"
-    },
-    {
       "name": "split into Layers",
       "command": "splitindividually"
     },
@@ -91,8 +79,32 @@
       "command": "splitletters"
     },
     {
-      "name": "to Slug",
-      "command": "slug"
+      "command": "removesymbols",
+      "name": "remove Symbols"
+    },
+    {
+      "name": "remove Breaklines & Space",
+      "command": "rmvspace"
+    },
+    {
+      "command": "copyemail",
+      "name": "add email Text"
+    },
+    {
+      "command": "copynumber",
+      "name": "add mobile number Text"
+    },
+    {
+      "command": "copyhero",
+      "name": "add Hero Text"
+    },
+    {
+      "command": "copycta",
+      "name": "add CTA Text"
+    },
+    {
+      "command": "copyerror",
+      "name": "add Error Text"
     }
   ]
 }

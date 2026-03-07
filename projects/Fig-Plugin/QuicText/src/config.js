@@ -10,12 +10,22 @@ export const SUPABASE_URL = "https://kmkjuuytbgpozrigspgw.supabase.co";
 export const SUPABASE_ANON_KEY = "99721bbe20f7fedf28087bc968479e65a32a340cb5fc72121b06e94b9484354d"; // Replace with your actual key
 // Sync settings
 export const SYNC_DELTA_THRESHOLD = 25;
+export const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+export const FREE_USAGE_LIMIT = 10; // Max usage count for free users (for display purposes)
+// Font loading timeout
+export const FONT_LOAD_TIMEOUT_MS = 5000;
 // Default values for prefix/between/suffix commands
 export const DEFAULT_VALUES = {
     prefix: '#',
     between: '-',
     suffix: '.'
 };
+export const MOBILE_NUMBER_TEXT = [
+    "+1 (555) 123-4567", "+44 20 7946 0958", "+91 98765 43210",
+];
+export const EMAIL_TEXTS = [
+    "jenaparker@gmail.com", "armanmirani@gmail.com", "nitishsharma@email.com"
+];
 // Text constants
 export const CTA_TEXTS = [
     "Get Started", "Learn More", "Know More", "Read More", "Buy Now",

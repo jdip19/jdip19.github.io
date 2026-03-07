@@ -3,7 +3,7 @@
 // ==================== VERSION.TS ====================
 
 // src/version.ts
-const PLUGIN_VERSION = "9.0.0";
+const PLUGIN_VERSION = "9.0.1";
 
 // ==================== TYPES.TS ====================
 
@@ -60,6 +60,11 @@ const SUPABASE_ANON_KEY = "99721bbe20f7fedf28087bc968479e65a32a340cb5fc72121b06e
 
 // Sync settings
 const SYNC_DELTA_THRESHOLD = 25;
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const FREE_USAGE_LIMIT = 10; // Max usage count for free users (for display purposes)
+
+// Font loading timeout
+const FONT_LOAD_TIMEOUT_MS = 5000;
 
 // Default values for prefix/between/suffix commands
 const DEFAULT_VALUES = {
@@ -67,6 +72,12 @@ const DEFAULT_VALUES = {
   between: '-',
   suffix: '.'
 };
+const MOBILE_NUMBER_TEXT = [
+  "+1 (555) 123-4567", "+44 20 7946 0958", "+91 98765 43210",
+];
+const EMAIL_TEXTS = [
+  "jenaparker@gmail.com", "armanmirani@gmail.com", "nitishsharma@email.com"
+];
 
 // Text constants
 const CTA_TEXTS = [
@@ -286,6 +297,27 @@ function formatDate(format: string, date = new Date()): string {
     .replace(/yy/g, yy);
 }
 
+/**
+ * Format current time with various format options
+ * Supported formats: HH:mm, HH:mm:ss, hh:mm a, hh:mm:ss a
+ */
+function formatTime(format: string, date = new Date()): string {
+  const hh = String(date.getHours()).padStart(2, "0");
+  const h = String(date.getHours() % 12 || 12).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  const ampm = date.getHours() >= 12 ? "PM" : "AM";
+
+  return format
+    .replace(/HH/g, hh)
+    .replace(/hh/g, h)
+    .replace(/mm/g, mm)
+    .replace(/ss/g, ss)
+    .replace(/ms/g, ms)
+    .replace(/a/g, ampm);
+}
+
 
 // ==================== STORAGE.TS ====================
 
@@ -362,6 +394,34 @@ async function maybeSyncUsage(): Promise<void> {
 
   if (delta >= SYNC_DELTA_THRESHOLD) {
     await syncUsage(delta);
+  }
+}
+
+/**
+ * Ensure we sync at least once per day when UI is opened.
+ * This triggers a sync (POST) even if the delta is below threshold.
+ */
+async function ensureDailySync(): Promise<void> {
+  try {
+    const stats = await getUsageStats();
+    const lastSync = stats.lastSyncAt ? new Date(stats.lastSyncAt) : null;
+    console.log("Checking daily sync: lastSyncAt=", stats.lastSyncAt, "usageCount=", stats.usageCount, "syncedUsageCount=", stats.syncedUsageCount);
+    const now = new Date();
+
+    const isSameDay = lastSync
+      ? lastSync.getFullYear() === now.getFullYear() &&
+        lastSync.getMonth() === now.getMonth() &&
+        lastSync.getDate() === now.getDate()
+      : false;
+
+    if (!isSameDay) {
+      const delta = stats.usageCount - stats.syncedUsageCount;
+      console.log('Daily sync: lastSyncAt=', stats.lastSyncAt, 'delta=', delta);
+      // Call syncUsage even when delta is 0 to fetch the global total from server
+      await syncUsage(delta);
+    }
+  } catch (err) {
+    console.error('Error in ensureDailySync:', err);
   }
 }
 
@@ -601,12 +661,39 @@ async function clearLicenseData(): Promise<void> {
   }
 }
 
+/**
+ * Clear usage stats when user logs out (reset to fresh free tier).
+ * Also set lastSyncAt to today to prevent immediate re-sync on UI open.
+ */
+async function clearUsageStats(): Promise<void> {
+  try {
+    const defaults: UsageData = {
+      usageCount: 0,
+      syncedUsageCount: 0,
+      lastFetchedTotal: 0,
+      lastSyncAt: new Date().toISOString(),
+    };
+    await figma.clientStorage.setAsync("usageStats", defaults);
+    console.log("Cleared usage stats from storage");
+  } catch (err) {
+    console.warn("Error clearing usage stats:", err);
+  }
+}
+
 async function getDateFormat(): Promise<string> {
   return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
 }
 
 async function setDateFormat(value: string) {
   await figma.clientStorage.setAsync("dateFormat", value);
+}
+
+async function getTimeFormat(): Promise<string> {
+  return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+}
+
+async function setTimeFormat(value: string) {
+  await figma.clientStorage.setAsync("timeFormat", value);
 }
 
 
@@ -797,7 +884,7 @@ async function activateLicense(licenseKey: string): Promise<boolean> {
  */
 async function applyFormattingToKeywords(
   keywords: string,
-  applyRange: (node: TextNode, start: number, end: number) => void
+  applyRange: (node: TextNode, start: number, end: number) => void,
 ): Promise<void> {
   const keywordList = getKeywordList(keywords);
   if (keywordList.length === 0) {
@@ -825,7 +912,7 @@ async function applyFormattingToKeywords(
           } catch (err) {
             console.warn(
               `Could not apply formatting at range ${index}-${endIndex}:`,
-              err
+              err,
             );
           }
         }
@@ -839,7 +926,7 @@ async function applyFormattingToKeywords(
  * Process all text nodes with a transformation function
  */
 async function processAllTextNodes(
-  textNodes: TextNode[]
+  textNodes: TextNode[],
 ): Promise<boolean> {
   let skippedCount = 0;
   let anyChanged = false;
@@ -847,7 +934,7 @@ async function processAllTextNodes(
     // Warn if the node has mixed fills
     if (node.fills === figma.mixed) {
       figma.notify(
-        "Warning: Some text nodes have mixed color styles. These may be lost after processing."
+        "Warning: Some text nodes have mixed color styles. These may be lost after processing.",
       );
     }
     try {
@@ -860,7 +947,7 @@ async function processAllTextNodes(
   }
   if (skippedCount > 0) {
     figma.notify(
-      `Skipped ${skippedCount} text node(s) due to processing errors.`
+      `Skipped ${skippedCount} text node(s) due to processing errors.`,
     );
   }
 
@@ -900,8 +987,6 @@ function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   return result;
 }
 
-
-
 /**
  * Handle text case transformation
  */
@@ -940,7 +1025,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
     nameBuilder: (index: number, text: string) => string,
     emptyMessage: string,
     successMessage: (count: number) => string,
-    containerName: string
+    containerName: string,
   ): void => {
     const filteredSegments = segments
       .map((segment) => segment.trim())
@@ -1047,7 +1132,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       });
 
       figma.notify(
-        "Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅"
+        "Tadaannn... 🥁 Case changed to TitleCase without hurting cojuctions. 💅",
       );
       break;
 
@@ -1080,10 +1165,10 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
     case "addbreakline":
       newText = newText.replace(/\. ?([a-z]|[A-Z])/g, ".\n$1");
       newText = newText.replace(/(^\w|\. ?\w)/gm, (match) =>
-        match.toUpperCase()
+        match.toUpperCase(),
       );
       figma.notify(
-        "Tadaannn... 🥁 Your Text now has line breaks after Fullstop."
+        "Tadaannn... 🥁 Your Text now has line breaks after Fullstop.",
       );
       break;
     case "addcdate": {
@@ -1094,6 +1179,23 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       figma.notify(`📅 Date added (${format})`);
       break;
     }
+    case "addctime": {
+      const format = await getTimeFormat();
+      const timeText = formatTime(format);
+
+      newText = timeText;
+      figma.notify(`⏰ Time added (${format})`);
+      break;
+    }
+    case "copyemail":
+      await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
+      figma.notify("Tadaannn... 🥁 Email Text Added");
+      return true;
+
+    case "copynumber":
+      await cycleCopyText(node, MOBILE_NUMBER_TEXT, "numberIndex");
+      figma.notify("Tadaannn... 🥁 Mobile Number Text Added");
+      return true;
     case "copycta":
       await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
       figma.notify("Tadaannn... 🥁 Button Text Added");
@@ -1147,7 +1249,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
         (index) => `${node.name} - Line ${index + 1}`,
         "No text lines found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} individual text layers!`,
-        `${node.name} - Split Lines`
+        `${node.name} - Split Lines`,
       );
       return true;
     }
@@ -1159,7 +1261,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
         (index) => `${node.name} - Word ${index + 1}`,
         "No words found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} word layers!`,
-        `${node.name} - Split Words`
+        `${node.name} - Split Words`,
       );
       return true;
     }
@@ -1171,37 +1273,37 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
         (index, letter) => `${node.name} - Letter ${index + 1}: ${letter}`,
         "No letters found to split.",
         (count) => `Tadaannn... 🥁 Split into ${count} letter layers!`,
-        `${node.name} - Split Letters`
+        `${node.name} - Split Letters`,
       );
       return true;
     }
 
     case "addprefix": {
       // Simplified: use stored default and treat like other commands
-      const value = await getEffectiveDefault('prefix');
+      const value = await getEffectiveDefault("prefix");
       newText = value + originalCharacters;
-      figma.notify('Tadaannn... 🥁 Prefix added');
+      figma.notify("Tadaannn... 🥁 Prefix added");
       break;
     }
 
     case "addbetween": {
-      const value = await getEffectiveDefault('between');
+      const value = await getEffectiveDefault("between");
       const parts = originalCharacters.split(/\s+/);
       newText = parts.join(value);
-      figma.notify('Tadaannn... 🥁 In-between added');
+      figma.notify("Tadaannn... 🥁 In-between added");
       break;
     }
 
     case "addsuffix": {
-      const value = await getEffectiveDefault('suffix');
+      const value = await getEffectiveDefault("suffix");
       newText = originalCharacters + value;
-      figma.notify('Tadaannn... 🥁 Suffix added');
+      figma.notify("Tadaannn... 🥁 Suffix added");
       break;
     }
 
     default:
       console.error("Unknown command:", figma.command);
-      return false; 
+      return false;
   }
 
   // If no change, skip updating and return false
@@ -1243,7 +1345,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
             node.setRangeFills(
               i,
               Math.min(i + 1, node.characters.length),
-              originalFills[i] as Paint[]
+              originalFills[i] as Paint[],
             );
           } catch (rangeError) {
             console.warn(`Could not apply fill at index ${i}:`, rangeError);
@@ -1271,7 +1373,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
 async function cycleCopyText(
   node: TextNode,
   texts: string[],
-  storageKey: string
+  storageKey: string,
 ): Promise<void> {
   const index = await getStoredIndex(storageKey);
   const text = texts[index];
@@ -1288,6 +1390,7 @@ async function cycleCopyText(
 // ==================== MAIN.TS ====================
 
 // ==================== MAIN PLUGIN FILE ====================
+
 
 
 
@@ -1352,14 +1455,6 @@ async function processTextCommand() {
   // Track usage for all users (free AND pro)
   if (ENABLE_MONETIZATION && didChange) {
     await incrementUsage();
-
-    // Send usage update to UI
-    const stats = await getUsageStats();
-    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
-    figma.ui.postMessage({
-      type: 'usage-updated',
-      displayTotal,
-    });
   }
 }
 
@@ -1368,12 +1463,13 @@ figma.ui.onmessage = async (msg) => {
   try {
     switch (msg.type) {
       case 'save-defaults':
-        // msg.defaults = { prefix, between, suffix, dateFormat }
+        // msg.defaults = { prefix, between, suffix, dateFormat, timeFormat }
         if (msg.defaults) {
           if (msg.defaults.prefix !== undefined) await saveDefaultValue('default_prefix', msg.defaults.prefix || '');
           if (msg.defaults.between !== undefined) await saveDefaultValue('default_between', msg.defaults.between || '');
           if (msg.defaults.suffix !== undefined) await saveDefaultValue('default_suffix', msg.defaults.suffix || '');
           if (msg.defaults.dateFormat !== undefined) await setDateFormat(msg.defaults.dateFormat);
+          if (msg.defaults.timeFormat !== undefined) await setTimeFormat(msg.defaults.timeFormat);
         }
         figma.ui.postMessage({ type: 'defaults-saved', success: true });
         break;
@@ -1385,8 +1481,10 @@ figma.ui.onmessage = async (msg) => {
           const between = await getEffectiveDefault('between');
           const suffix = await getEffectiveDefault('suffix');
           const dateFormat = await getDateFormat();
+          const timeFormat = await getTimeFormat();
           figma.ui.postMessage({ type: 'current-defaults', defaults: { prefix, between, suffix } });
           figma.ui.postMessage({ type: 'date-format', value: dateFormat });
+          figma.ui.postMessage({ type: 'time-format', value: timeFormat });
         }
         break;
       case 'verify-license':
@@ -1427,6 +1525,7 @@ figma.ui.onmessage = async (msg) => {
         break;
       case 'logout':
         await clearLicenseData();
+        await clearUsageStats();
         figma.notify('Logged out');
         await showAccountUI();
         break;
@@ -1442,10 +1541,13 @@ figma.ui.onmessage = async (msg) => {
 };
 
 async function showAccountUI() {
+  // Ensure we sync with the server once per day when UI is opened
+  await ensureDailySync();
+
   const displayTotal = await getDisplayTotal();
 
   const used = displayTotal;
-  const limit = 10;
+  const limit = FREE_USAGE_LIMIT;
   const remaining = Math.max(0, limit - used);
 
   const licenseData = await getLicenseData();
@@ -1464,7 +1566,8 @@ async function showAccountUI() {
     used,
     limit,
     price: LICENSE_PRICE,
-    displayTotal
+    displayTotal,
+    version: PLUGIN_VERSION
   });
 } 
 

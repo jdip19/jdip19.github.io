@@ -170,3 +170,22 @@ export function formatDate(format, date = new Date()) {
         .replace(/yyyy/g, yyyy)
         .replace(/yy/g, yy);
 }
+/**
+ * Format current time with various format options
+ * Supported formats: HH:mm, HH:mm:ss, hh:mm a, hh:mm:ss a
+ */
+export function formatTime(format, date = new Date()) {
+    const hh = String(date.getHours()).padStart(2, "0");
+    const h = String(date.getHours() % 12 || 12).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    const ss = String(date.getSeconds()).padStart(2, "0");
+    const ms = String(date.getMilliseconds()).padStart(3, "0");
+    const ampm = date.getHours() >= 12 ? "PM" : "AM";
+    return format
+        .replace(/HH/g, hh)
+        .replace(/hh/g, h)
+        .replace(/mm/g, mm)
+        .replace(/ss/g, ss)
+        .replace(/ms/g, ms)
+        .replace(/a/g, ampm);
+}

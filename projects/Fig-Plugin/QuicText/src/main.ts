@@ -1,9 +1,10 @@
 // ==================== MAIN PLUGIN FILE ====================
 
 import { verifyLicenseKey, hasLicense, activateLicense } from './license';
-import { getDeviceId, getUsageStats, incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, getDateFormat, setDateFormat, getEffectiveDefault, getDisplayTotal } from './storage';
+import {  incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, clearUsageStats, getDateFormat, setDateFormat, getTimeFormat, setTimeFormat, getEffectiveDefault, getDisplayTotal, ensureDailySync } from './storage';
 import { collectTextNodes, processAllTextNodes } from './text-processing';
-import { ENABLE_MONETIZATION, LICENSE_PRICE } from './config';
+import { ENABLE_MONETIZATION, LICENSE_PRICE,FREE_USAGE_LIMIT } from './config';
+import { PLUGIN_VERSION } from './version';
 
 // Main plugin logic
 async function main() {
@@ -63,14 +64,6 @@ async function processTextCommand() {
   // Track usage for all users (free AND pro)
   if (ENABLE_MONETIZATION && didChange) {
     await incrementUsage();
-
-    // Send usage update to UI
-    const stats = await getUsageStats();
-    const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
-    figma.ui.postMessage({
-      type: 'usage-updated',
-      displayTotal,
-    });
   }
 }
 
@@ -79,12 +72,13 @@ figma.ui.onmessage = async (msg) => {
   try {
     switch (msg.type) {
       case 'save-defaults':
-        // msg.defaults = { prefix, between, suffix, dateFormat }
+        // msg.defaults = { prefix, between, suffix, dateFormat, timeFormat }
         if (msg.defaults) {
           if (msg.defaults.prefix !== undefined) await saveDefaultValue('default_prefix', msg.defaults.prefix || '');
           if (msg.defaults.between !== undefined) await saveDefaultValue('default_between', msg.defaults.between || '');
           if (msg.defaults.suffix !== undefined) await saveDefaultValue('default_suffix', msg.defaults.suffix || '');
           if (msg.defaults.dateFormat !== undefined) await setDateFormat(msg.defaults.dateFormat);
+          if (msg.defaults.timeFormat !== undefined) await setTimeFormat(msg.defaults.timeFormat);
         }
         figma.ui.postMessage({ type: 'defaults-saved', success: true });
         break;
@@ -96,8 +90,10 @@ figma.ui.onmessage = async (msg) => {
           const between = await getEffectiveDefault('between');
           const suffix = await getEffectiveDefault('suffix');
           const dateFormat = await getDateFormat();
+          const timeFormat = await getTimeFormat();
           figma.ui.postMessage({ type: 'current-defaults', defaults: { prefix, between, suffix } });
           figma.ui.postMessage({ type: 'date-format', value: dateFormat });
+          figma.ui.postMessage({ type: 'time-format', value: timeFormat });
         }
         break;
       case 'verify-license':
@@ -138,6 +134,7 @@ figma.ui.onmessage = async (msg) => {
         break;
       case 'logout':
         await clearLicenseData();
+        await clearUsageStats();
         figma.notify('Logged out');
         await showAccountUI();
         break;
@@ -153,10 +150,13 @@ figma.ui.onmessage = async (msg) => {
 };
 
 async function showAccountUI() {
+  // Ensure we sync with the server once per day when UI is opened
+  await ensureDailySync();
+
   const displayTotal = await getDisplayTotal();
 
   const used = displayTotal;
-  const limit = 10;
+  const limit = FREE_USAGE_LIMIT;
   const remaining = Math.max(0, limit - used);
 
   const licenseData = await getLicenseData();
@@ -175,7 +175,8 @@ async function showAccountUI() {
     used,
     limit,
     price: LICENSE_PRICE,
-    displayTotal
+    displayTotal,
+    version: PLUGIN_VERSION
   });
 } 
 
