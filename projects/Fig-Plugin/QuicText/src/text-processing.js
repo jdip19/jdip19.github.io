@@ -1,7 +1,7 @@
 // ==================== TEXT PROCESSING ====================
 import { getKeywordList, loadAllFontsForNode, formatDate, formatTime, } from "./utils";
 import { getStoredIndex, saveStoredIndex, getEffectiveDefault, getDateFormat, getTimeFormat, } from "./storage";
-import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS, EMAIL_TEXTS, MOBILE_NUMBER_TEXT } from "./config";
+import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS, EMAIL_TEXTS, MOBILE_NUMBER_TEXT, } from "./config";
 /**
  * Apply formatting to keywords in text nodes
  */
@@ -276,11 +276,14 @@ async function handleTextCase(node) {
             return true;
         case "rmvspace":
             newText = newText
-                .split("\n") // handle each line separately
-                .map((line) => line.trim()) // remove starting & ending spaces
-                .join("\n") // keep line breaks
-                .replace(/[ \t]+/g, " ");
+                .split("\n")
+                .map((line) => line.trim().replace(/\s+/g, " "))
+                .join("\n");
             figma.notify("Tadaannn... 🥁 Your Text is now unwanted space free. 💅");
+            break;
+        case "rmvbreakline":
+            newText = newText.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+            figma.notify("Tadaannn... 🥁 Your Text is now breaklines free. 💅");
             break;
         case "removesymbols":
             newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");

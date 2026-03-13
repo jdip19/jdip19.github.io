@@ -83,8 +83,12 @@
       "name": "remove Symbols"
     },
     {
-      "name": "remove Breaklines & Space",
+      "name": "remove Space",
       "command": "rmvspace"
+    },
+    {
+      "name": "remove Breaklines",
+      "command": "rmvbreakline"
     },
     {
       "command": "copyemail",

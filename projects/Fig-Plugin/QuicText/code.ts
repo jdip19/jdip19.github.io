@@ -1163,13 +1163,18 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
 
     case "rmvspace":
       newText = newText
-        .split("\n") // handle each line separately
-        .map((line) => line.trim()) // remove starting & ending spaces
-        .join("\n") // keep line breaks
-        .replace(/[ \t]+/g, " ");
+        .split("\n")
+        .map((line) => line.trim().replace(/\s+/g, " "))
+        .join("\n");
+
       figma.notify("Tadaannn... 🥁 Your Text is now unwanted space free. 💅");
       break;
 
+    case "rmvbreakline":
+      newText = newText.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+      figma.notify("Tadaannn... 🥁 Your Text is now breaklines free. 💅");
+      break;
+      
     case "removesymbols":
       newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
       figma.notify("Removed punctuation & symbols ✔");
