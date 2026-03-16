@@ -69,7 +69,7 @@ export async function maybeSyncUsage(): Promise<void> {
   const stats = await getUsageStats();
   const delta = stats.usageCount - stats.syncedUsageCount;
 
-  if (delta >= SYNC_DELTA_THRESHOLD) {s
+  if (delta >= SYNC_DELTA_THRESHOLD) {
     await syncUsage(delta);
   }
 }
