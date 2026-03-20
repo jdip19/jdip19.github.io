@@ -51,6 +51,10 @@
       "command": "addctime"
     },
     {
+      "name": "Add current Timestamp",
+      "command": "addctimestamp"
+    },
+    {
       "name": "add Breaklines",
       "command": "addbreakline"
     },

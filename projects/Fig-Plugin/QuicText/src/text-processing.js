@@ -254,6 +254,14 @@ async function handleTextCase(node) {
             figma.notify(`⏰ Time added (${format})`);
             break;
         }
+        case "addctimestamp": {
+            const dateFormat = await getDateFormat();
+            const timeFormat = await getTimeFormat();
+            const timestampText = `${formatDate(dateFormat)} • ${formatTime(timeFormat)}`;
+            newText = timestampText;
+            figma.notify(`⏰ Timestamp added (${dateFormat} ${timeFormat})`);
+            break;
+        }
         case "copyemail":
             await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
             figma.notify("Tadaannn... 🥁 Email Text Added");
