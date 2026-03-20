@@ -3,7 +3,7 @@
 // ==================== VERSION.TS ====================
 
 // src/version.ts
-const PLUGIN_VERSION = "9.0.1";
+const PLUGIN_VERSION = "9.0.0";
 
 // ==================== TYPES.TS ====================
 
