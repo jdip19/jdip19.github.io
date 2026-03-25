@@ -63,13 +63,11 @@ async function fillForm(post) {
       'input[placeholder*="date" i]',
       '[placeholder*="Schedule date" i]',
     ]);
-    console.log(dateVal, formatDate(dateVal), dateEl);
 
     if (dateEl) {
       setNativeValue(dateEl, formatDate(dateVal));
       dateEl.dispatchEvent(new Event("input", { bubbles: true }));
       dateEl.dispatchEvent(new Event("change", { bubbles: true }));
-      console.log(dateVal, formatDate(dateVal));
       await sleep(300);
     }
   }
@@ -86,43 +84,23 @@ async function fillForm(post) {
       setNativeValue(timeEl, formatTime(timeVal));
       timeEl.dispatchEvent(new Event("input", { bubbles: true }));
       timeEl.dispatchEvent(new Event("change", { bubbles: true }));
-      console.log(timeVal, formatTime(timeVal));
       await sleep(300);
     }
   }
 
-  // ── 6. Image — only trigger ONCE ─────────────────────────────────
+  // ── 6. Image ─────────────────────────────────────────────────────
   const imagePath =
     post["image path"] ||
-    post["image filename"] ||
+    post["filename"] ||
     post["image"] ||
     post["photo"] ||
     "";
   if (imagePath) {
     const filename = imagePath.split(/[\\\/]/).pop();
-    // Look for file input that is NOT already handled
-    const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) {
-      showToast(`📎 Select image: "${filename}"`, 5000);
-      await sleep(300);
-      // Use a one-time click flag to prevent double trigger
-      if (!fileInput._spsClicked) {
-        fileInput._spsClicked = true;
-        fileInput.click();
-        setTimeout(() => {
-          fileInput._spsClicked = false;
-        }, 3000);
-      }
-    } else {
-      // Try upload area but avoid triggering hidden file inputs
-      const uploadArea = document.querySelector(
-        '[class*="upload"]:not(input), [class*="media"]:not(input), .add-media, label[for*="file"]',
-      );
-      if (uploadArea) {
-        showToast(`📎 Select image: "${filename}"`, 5000);
-        uploadArea.click();
-      }
-    }
+    showToast(`📎 Select image: "${filename}"`, 6000);
+    await sleep(400);
+    const uploadLabel = document.querySelector('label[for="fileInput"]');
+    if (uploadLabel) uploadLabel.click();
   }
 
   // ── 7. Radio — auto / reminder ───────────────────────────────────
