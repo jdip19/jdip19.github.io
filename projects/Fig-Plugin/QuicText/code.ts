@@ -70,7 +70,9 @@ const FONT_LOAD_TIMEOUT_MS = 5000;
 const DEFAULT_VALUES = {
   prefix: '#',
   between: '-',
-  suffix: '.'
+  suffix: '.',
+  defaultTime: 'hh:mm a',
+  defaultDate: 'dd MMM yyyy',
 };
 const MOBILE_NUMBER_TEXT = [
   "+1 (555) 123-4567", "+44 20 7946 0958", "+91 98765 43210",
@@ -571,7 +573,7 @@ async function saveLicenseData(licenseData: LicenseData): Promise<void> {
 }
 
 async function getEffectiveDefault(
-  key: "prefix" | "between" | "suffix"
+  key: "prefix" | "between" | "suffix" 
 ): Promise<string> {
   const storageKey = `default_${key}`;
   const stored = await getDefaultValue(storageKey);
@@ -579,7 +581,7 @@ async function getEffectiveDefault(
   if (stored !== null && stored !== undefined && stored !== "") {
     return stored;
   }
-
+  console.log(`Using config default for ${key}:`, DEFAULT_VALUES[key]);
   return DEFAULT_VALUES[key];
 }
 
@@ -681,7 +683,7 @@ async function clearUsageStats(): Promise<void> {
 }
 
 async function getDateFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
+  return (await figma.clientStorage.getAsync("dateFormat")) || DEFAULT_VALUES.defaultDate;
 }
 
 async function setDateFormat(value: string) {
@@ -689,7 +691,7 @@ async function setDateFormat(value: string) {
 }
 
 async function getTimeFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+  return (await figma.clientStorage.getAsync("timeFormat")) || DEFAULT_VALUES.defaultTime;
 }
 
 async function setTimeFormat(value: string) {

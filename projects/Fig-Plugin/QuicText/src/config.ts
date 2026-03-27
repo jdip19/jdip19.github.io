@@ -24,7 +24,9 @@ export const FONT_LOAD_TIMEOUT_MS = 5000;
 export const DEFAULT_VALUES = {
   prefix: '#',
   between: '-',
-  suffix: '.'
+  suffix: '.',
+  defaultTime: 'hh:mm a',
+  defaultDate: 'dd MMM yyyy',
 };
 export const MOBILE_NUMBER_TEXT = [
   "+1 (555) 123-4567", "+44 20 7946 0958", "+91 98765 43210",
