@@ -225,6 +225,7 @@ export async function getEffectiveDefault(key) {
     if (stored !== null && stored !== undefined && stored !== "") {
         return stored;
     }
+    console.log(`Using config default for ${key}:`, DEFAULT_VALUES[key]);
     return DEFAULT_VALUES[key];
 }
 /**
@@ -320,13 +321,13 @@ export async function clearUsageStats() {
     }
 }
 export async function getDateFormat() {
-    return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
+    return (await figma.clientStorage.getAsync("dateFormat")) || DEFAULT_VALUES.defaultDate;
 }
 export async function setDateFormat(value) {
     await figma.clientStorage.setAsync("dateFormat", value);
 }
 export async function getTimeFormat() {
-    return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+    return (await figma.clientStorage.getAsync("timeFormat")) || DEFAULT_VALUES.defaultTime;
 }
 export async function setTimeFormat(value) {
     await figma.clientStorage.setAsync("timeFormat", value);

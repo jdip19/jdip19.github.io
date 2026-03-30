@@ -24,7 +24,9 @@ export const FONT_LOAD_TIMEOUT_MS = 5000;
 export const DEFAULT_VALUES = {
   prefix: '#',
   between: '-',
-  suffix: '.'
+  suffix: '.',
+  defaultTime: 'hh:mm a',
+  defaultDate: 'dd MMM yyyy',
 };
 
 
