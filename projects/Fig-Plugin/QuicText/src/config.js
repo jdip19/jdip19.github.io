@@ -44,3 +44,6 @@ export const ERROR_TEXTS = [
     "Please try again", "Error loading content", "Something unexpected happened",
     "We encountered an issue", "Please refresh and try again"
 ];
+export const LOREM_TEXT = [
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed convallis libero quis nisi vestibulum placerat. Proin cursus libero feugiat, tempor nunc pulvinar, lacinia libero. Etiam at commodo leo. Ut molestie, lorem sed placerat convallis, tellus felis vulputate dolor, a ullamcorper erat sem eget mi. Nullam porttitor fermentum suscipit. Duis sed dui pretium purus scelerisque sodales. Duis quis justo sed nisi consectetur sollicitudin."
+];

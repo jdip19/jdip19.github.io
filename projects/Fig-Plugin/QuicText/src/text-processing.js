@@ -1,7 +1,7 @@
 // ==================== TEXT PROCESSING ====================
 import { getKeywordList, loadAllFontsForNode, formatDate, formatTime, } from "./utils";
 import { getStoredIndex, saveStoredIndex, getEffectiveDefault, getDateFormat, getTimeFormat, } from "./storage";
-import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS, EMAIL_TEXTS, MOBILE_NUMBER_TEXT, } from "./config";
+import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS, EMAIL_TEXTS, MOBILE_NUMBER_TEXT, LOREM_TEXT, } from "./config";
 /**
  * Apply formatting to keywords in text nodes
  */
@@ -262,6 +262,10 @@ async function handleTextCase(node) {
             figma.notify(`⏰ Timestamp added (${dateFormat} ${timeFormat})`);
             break;
         }
+        case "copylorem":
+            await cycleCopyText(node, LOREM_TEXT, "emailIndex");
+            figma.notify("Tadaannn... 🥁 Lorem Ipsum Text Added");
+            return true;
         case "copyemail":
             await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
             figma.notify("Tadaannn... 🥁 Email Text Added");
@@ -296,6 +300,18 @@ async function handleTextCase(node) {
         case "removesymbols":
             newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
             figma.notify("Removed punctuation & symbols ✔");
+            break;
+        case "removeemoji":
+            newText = originalCharacters
+                // normalize all types of line breaks
+                .replace(/\r\n|\r|\u2028|\u2029/g, "\n")
+                // remove emojis
+                .replace(/[\p{Emoji}\p{Emoji_Component}\uFE0F\u200D]/gu, "")
+                // clean spaces WITHOUT removing empty lines
+                .split("\n")
+                .map((line) => line.replace(/[^\S]+/g, " ")) // ❌ no trim
+                .join("\n");
+            figma.notify("Tadaannn... 🥁 All emojis removed! 💅");
             break;
         case "slug":
             newText = originalCharacters

@@ -19,6 +19,7 @@ import {
   ERROR_TEXTS,
   EMAIL_TEXTS,
   MOBILE_NUMBER_TEXT,
+  LOREM_TEXT,
 } from "./config";
 
 /**
@@ -339,6 +340,11 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       break;
     }
 
+    case "copylorem":
+      await cycleCopyText(node, LOREM_TEXT, "emailIndex");
+      figma.notify("Tadaannn... 🥁 Lorem Ipsum Text Added");
+      return true;
+
     case "copyemail":
       await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
       figma.notify("Tadaannn... 🥁 Email Text Added");
@@ -376,12 +382,27 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       newText = newText.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
       figma.notify("Tadaannn... 🥁 Your Text is now breaklines free. 💅");
       break;
-      
+
     case "removesymbols":
       newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
       figma.notify("Removed punctuation & symbols ✔");
       break;
 
+    case "removeemoji":
+      newText = originalCharacters
+        // normalize all types of line breaks
+        .replace(/\r\n|\r|\u2028|\u2029/g, "\n")
+
+        // remove emojis
+        .replace(/[\p{Emoji}\p{Emoji_Component}\uFE0F\u200D]/gu, "")
+
+        // clean spaces WITHOUT removing empty lines
+        .split("\n")
+        .map((line) => line.replace(/[^\S]+/g, " ")) // ❌ no trim
+        .join("\n");
+
+      figma.notify("Tadaannn... 🥁 All emojis removed! 💅");
+      break;
     case "slug":
       newText = originalCharacters
         .trim()

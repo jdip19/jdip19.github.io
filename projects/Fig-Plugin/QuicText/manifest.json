@@ -87,6 +87,10 @@
       "name": "remove Symbols"
     },
     {
+      "command": "removeemoji",
+      "name": "remove Emoji"
+    },
+    {
       "name": "remove Space",
       "command": "rmvspace"
     },
@@ -113,6 +117,10 @@
     {
       "command": "copyerror",
       "name": "add Error Text"
+    },
+    {
+      "command": "copylorem",
+      "name": "add Lorem Ipsum Text"
     }
   ]
 }
