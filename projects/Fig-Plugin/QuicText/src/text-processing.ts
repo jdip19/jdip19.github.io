@@ -390,15 +390,13 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
 
     case "removeemoji":
       newText = originalCharacters
-        // normalize all types of line breaks
         .replace(/\r\n|\r|\u2028|\u2029/g, "\n")
 
-        // remove emojis
-        .replace(/[\p{Emoji}\p{Emoji_Component}\uFE0F\u200D]/gu, "")
+        // ✅ better emoji removal (covers ⏱ and others)
+        .replace(/\p{Extended_Pictographic}/gu, "")
 
-        // clean spaces WITHOUT removing empty lines
         .split("\n")
-        .map((line) => line.replace(/[^\S]+/g, " ")) // ❌ no trim
+        .map((line) => (line === "" ? "" : line.replace(/[^\S]+/g, " ").trim()))
         .join("\n");
 
       figma.notify("Tadaannn... 🥁 All emojis removed! 💅");
