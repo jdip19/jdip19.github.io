@@ -1,0 +1,130 @@
+{
+  "name": "Auto-email-report",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ca4970c9-8ce3-41ce-8593-ec4d03d3fd8d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 30,
+        "filters": {
+          "q": "from:me leave"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "909bd12a-8854-4dd2-9689-10c1c2de312f",
+      "name": "Get many messages",
+      "webhookId": "308618f0-2d94-4d28-aa03-300107023e0d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oMF36pi2xDvmGW3F",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  let text = item.json.snippet || \"\";\n\n  // Remove reply threads\n  text = text.split(/On\\s.+wrote:/)[0];\n\n  // Clean spaces\n  text = text.replace(/\\n+/g, \" \").trim();\n\n  // Convert timestamp to readable date\n  let rawDate = item.json.internalDate;\n  let formattedDate = rawDate \n    ? new Date(parseInt(rawDate)).toISOString().split(\"T\")[0]\n    : null;\n\n  return {\n    json: {    // keep all original data\n      cleanText: text,\n      emailDate: formattedDate // ✅ formatted date\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "0fd827eb-dd3e-43b1-843e-97594d411c29",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer YOUR_API_KEY\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"openai/gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Extract leave details from this email.\\n\\nReturn JSON only like this:\\n[\\n  {\\\"date\\\": \\\"YYYY-MM-DD\\\", \\\"type\\\": \\\"full|half\\\"}\\n]\\n\\nRules:\\n- Convert dates to YYYY-MM-DD\\n- \\\"first half\\\" = half\\n- \\\"full day\\\" or normal leave = full\\n- If multiple dates exist, return all\\n- Ignore previous email replies\\n\\nEmail:\\n{{$json.cleanText}}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "76a87441-7fdd-455a-896c-b2ee72d6e718",
+      "name": "HTTP Request",
+      "credentials": {
+        "openRouterApi": {
+          "id": "EwqExjYdChW0HoDq",
+          "name": "OpenRouter account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a6a8126b-9fde-43c7-a283-0998efa38949",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f4c215ee098a06ea4d8db769bf79cc43eb41991ef81be3e2464542a2212309b"
+  },
+  "id": "mgSQmS413dIojGxe",
+  "tags": []
+}
