@@ -91,7 +91,7 @@
       "name": "remove Emoji"
     },
     {
-      "name": "remove Space",
+      "name": "remove extra Space",
       "command": "rmvspace"
     },
     {

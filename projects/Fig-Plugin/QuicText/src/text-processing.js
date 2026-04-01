@@ -94,6 +94,11 @@ export function collectTextNodes(nodes) {
     nodes.forEach(traverse);
     return result;
 }
+function cleanBaseText(text) {
+    return text
+        .replace(/\s+/g, " ")
+        .trim();
+}
 /**
  * Handle text case transformation
  */
@@ -174,43 +179,26 @@ async function handleTextCase(node) {
     switch (figma.command) {
         case "titlecase":
             const conjunctions = [
-                "for",
-                "as",
-                "an",
-                "a",
-                "in",
-                "on",
-                "of",
-                "am",
-                "are",
-                "and",
-                "to",
-                "is",
-                "at",
-                "also",
-                "with",
-                "or",
+                "for", "as", "an", "a", "in", "on", "of", "am", "are", "and", "to", "is", "at", "also", "with", "or",
             ];
+            // Step 0: Trim and remove extra spaces
+            newText = cleanBaseText(newText);
             // Step 1: Convert all text to lowercase
             newText = newText.toLowerCase();
             // Step 2: Apply Title Case transformation
             newText = newText.replace(/\b(\w+(['’]\w+)?|\w+)\b/g, (match, word) => {
                 if (conjunctions.includes(word)) {
-                    // Keep conjunctions lowercase
                     return word;
                 }
                 else if (word.includes("'") || word.includes("’")) {
-                    // Handle words with straight or curly apostrophes
                     const apostropheIndex = word.indexOf("'") !== -1 ? word.indexOf("'") : word.indexOf("’");
-                    const beforeApostrophe = word.slice(0, apostropheIndex + 1); // Part before and including the apostrophe
-                    const afterApostrophe = word.slice(apostropheIndex + 1); // Part after the apostrophe
-                    // Capitalize the first letter of the word, and keep the rest lowercase
+                    const beforeApostrophe = word.slice(0, apostropheIndex + 1);
+                    const afterApostrophe = word.slice(apostropheIndex + 1);
                     return (beforeApostrophe.charAt(0).toUpperCase() +
                         beforeApostrophe.slice(1) +
                         afterApostrophe.toLowerCase());
                 }
                 else {
-                    // Capitalize the first letter of standard words
                     return match.charAt(0).toUpperCase() + match.slice(1);
                 }
             });
@@ -298,8 +286,8 @@ async function handleTextCase(node) {
             figma.notify("Tadaannn... 🥁 Your Text is now breaklines free. 💅");
             break;
         case "removesymbols":
-            newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
-            figma.notify("Removed punctuation & symbols ✔");
+            newText = cleanBaseText(originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, ""));
+            figma.notify("Removed punctuation & symbols from your text! 💅");
             break;
         case "removeemoji":
             newText = originalCharacters
