@@ -729,6 +729,7 @@
   </footer>
 
   <script>
+    // @ts-nocheck
     // ============================================================================
     // CONFIGURATION
     // ============================================================================
@@ -792,10 +793,12 @@
             between: "",
             suffix: "",
             dateFormat: "mm-dd-yyyy",
+            timeFormat: "hh:mm a",
           },
           isProcessing: false,
         };
         this.listeners = [];
+        console.log("AppState initialized with state:", this.state);
       }
 
       get(key) {
@@ -872,7 +875,6 @@
       static post(message) {
         parent.postMessage({ pluginMessage: message }, "*");
       }
-
       static activateLicense(licenseKey) {
         this.post({ type: "activate-license", licenseKey });
       }
@@ -990,6 +992,7 @@
         const { remaining = 0, price = "--", displayTotal = 0 } = data;
         console.log("Rendering License View with data:", data);
 
+        DOMHelper.setText("universalTotalPro", displayTotal);
         DOMHelper.setText("remainingCount", remaining);
         DOMHelper.setText("price", price);
         DOMHelper.setText("upgradePrice", price);
@@ -1082,18 +1085,15 @@
 
       render(data) {
         const defaults = data?.defaults || appState.get("defaults");
-
+        
+        
         DOMHelper.setValue("defaultPrefix", defaults.prefix || "");
         DOMHelper.setValue("defaultBetween", defaults.between || "");
         DOMHelper.setValue("defaultSuffix", defaults.suffix || "");
-        DOMHelper.setValue(
-          "defaultDateFormat",
-          defaults.dateFormat || "mm-dd-yyyy",
-        );
-        DOMHelper.setValue(
-          "defaultTimeFormat",
-          defaults.timeFormat || "hh:mm a",
-        );
+        DOMHelper.setValue("defaultDateFormat",defaults.dateFormat || "",);
+        DOMHelper.setValue("defaultTimeFormat",defaults.timeFormat || "",);
+        
+        console.log("Rendering Settings View with defaults:", defaults.dateFormat, defaults.timeFormat);
 
         this.updateHint();
       }
@@ -1165,10 +1165,6 @@
 
       render(data) {
         const licenseData = data.licenseData || data;
-        console.log(
-          "Rendering Pro Dashboard with license data:",
-          licenseData,
-        );
 
         DOMHelper.setText("proEmail", licenseData.email || "—");
         DOMHelper.setValue("proKey", Utils.maskKey(licenseData.key || ""));
@@ -1179,9 +1175,10 @@
         // Update the community impact total if displayTotal is provided
         if (data.displayTotal !== undefined) {
           DOMHelper.setText("universalTotalPro", data.displayTotal);
-          console.log("Updated universal total pro commands:", data);
         }
+        
       }
+      
 
       setupEventListeners() {
         // Support Button
@@ -1333,14 +1330,16 @@
             break;
 
           case "usage-updated":
+            console.log("Received usage update message:", msg);
             this.handleUsageUpdated(msg);
             break;
 
           case "usage-info":
-            // console.log("Usage info:", msg);
+            console.log("Received usage info message:", msg);
             break;
         }
       }
+     
 
       static handleShowLicense(msg) {
         appState.set({
@@ -1351,6 +1350,8 @@
           displayTotal: msg.displayTotal,
           version: msg.version,
         });
+
+        console.log("Handling show-license with data:", msg);
 
         // Update version display
         if (msg.version) {
@@ -1390,11 +1391,13 @@
 
       static handleCurrentDefaults(msg) {
         const defaults = msg.defaults || {};
+        console.log("Received current defaults from plugin:", defaults);
         appState.set({ defaults });
         this.views[CONFIG.views.SETTINGS].render({ defaults });
       }
 
       static handleUsageUpdated(msg) {
+        console.log("Received usage update:", msg);
         // Update the current app state with new usage total
         if (msg.displayTotal !== undefined) {
           appState.set({ displayTotal: msg.displayTotal });

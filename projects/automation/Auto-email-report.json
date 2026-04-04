@@ -1,0 +1,189 @@
+{
+  "name": "Auto-email-report",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ca4970c9-8ce3-41ce-8593-ec4d03d3fd8d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 30,
+        "filters": {
+          "q": "from:me leave after:2025/12/01"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "909bd12a-8854-4dd2-9689-10c1c2de312f",
+      "name": "Get many messages",
+      "webhookId": "308618f0-2d94-4d28-aa03-300107023e0d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oMF36pi2xDvmGW3F",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  let text = item.json.snippet || \"\";\n\n  // Remove reply threads\n  text = text.split(/On\\s.+wrote:/)[0];\n\n  // Clean spaces\n  text = text.replace(/\\n+/g, \" \").trim();\n\n  // Convert timestamp to readable date\n  let rawDate = item.json.internalDate;\n  let formattedDate = rawDate \n    ? new Date(parseInt(rawDate)).toISOString().split(\"T\")[0]\n    : null;\n\n  return {\n    json: {    // keep all original data\n      cleanText: text,\n      emailDate: formattedDate // ✅ formatted date\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "0fd827eb-dd3e-43b1-843e-97594d411c29",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": ""
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"openai/gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Extract leave details from this email.\\n\\nReturn JSON only like this:\\n[\\n  {\\\"date\\\": \\\"YYYY-MM-DD\\\", \\\"type\\\": \\\"full|half\\\"}\\n]\\n\\nSTRICT RULES:\\n- Use emailDate ({{$json.emailDate}}) as reference year\\n- DO NOT generate years like 2020, 2021, 2022\\n- If year is missing, use year from emailDate\\n- Handle future leave (example: email in Dec, leave in Jan → next year)\\n- Handle past leave if clearly mentioned\\n- Handle 'today' and 'tomorrow' using emailDate\\n- \\\"first half\\\", \\\"second half\\\", \\\"half\\\" = half\\n- \\\"full day\\\" or normal leave = full\\n- Extract ALL dates if multiple\\n- Return ONLY JSON\\n\\nEmail:\\n{{$json.cleanText}}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "76a87441-7fdd-455a-896c-b2ee72d6e718",
+      "name": "HTTP Request",
+      "credentials": {
+        "openRouterApi": {
+          "id": "EwqExjYdChW0HoDq",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfor (const item of $input.all()) {\n  const content = item.json.choices?.[0]?.message?.content || \"[]\";\n  let leaves = [];\n  try {\n    leaves = JSON.parse(content);\n  } catch (e) {\n    continue;\n  }\n\n  // Build ONE flat object with all paths\n  const batchData = {};\n\n  leaves.forEach((leave) => {\n    const d = new Date(leave.date);\n    const year = d.getFullYear();\n    const month = String(d.getMonth() + 1).padStart(2, \"0\");\n    const value = leave.type === \"half\" ? 0.5 : 1;\n    const path = `leaves/${year}/${month}/${leave.date}`;\n\n    // Each path becomes a key in batch object\n    batchData[path] = {\n      type: leave.type,\n      value: value,\n    };\n  });\n\n  results.push({\n    json: {\n      batchData  // single object with all paths\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "fa522561-3d1f-421f-b60d-aac3aef41082",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "a2400bf9-5701-4589-afef-a45dc934a3c3",
+      "name": "HTTP Request1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ebb83257-cede-43b0-a9e7-b73a60b0d0a3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f4c215ee098a06ea4d8db769bf79cc43eb41991ef81be3e2464542a2212309b"
+  },
+  "id": "mgSQmS413dIojGxe",
+  "tags": []
+}

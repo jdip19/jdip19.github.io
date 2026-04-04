@@ -3,7 +3,7 @@
 // ==================== VERSION.TS ====================
 
 // src/version.ts
-const PLUGIN_VERSION = "9.0.1";
+const PLUGIN_VERSION = "9.0.0";
 
 // ==================== TYPES.TS ====================
 
@@ -70,8 +70,12 @@ const FONT_LOAD_TIMEOUT_MS = 5000;
 const DEFAULT_VALUES = {
   prefix: '#',
   between: '-',
-  suffix: '.'
+  suffix: '.',
+  defaultTime: 'hh:mm a',
+  defaultDate: 'dd MMM yyyy',
 };
+
+
 const MOBILE_NUMBER_TEXT = [
   "+1 (555) 123-4567", "+44 20 7946 0958", "+91 98765 43210",
 ];
@@ -100,7 +104,8 @@ const ERROR_TEXTS = [
   "We encountered an issue", "Please refresh and try again"
 ];
 
-
+const LOREM_TEXT = [
+  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed convallis libero quis nisi vestibulum placerat. Proin cursus libero feugiat, tempor nunc pulvinar, lacinia libero. Etiam at commodo leo. Ut molestie, lorem sed placerat convallis, tellus felis vulputate dolor, a ullamcorper erat sem eget mi. Nullam porttitor fermentum suscipit. Duis sed dui pretium purus scelerisque sodales. Duis quis justo sed nisi consectetur sollicitudin."];
 
 // ==================== UTILS.TS ====================
 
@@ -571,7 +576,7 @@ async function saveLicenseData(licenseData: LicenseData): Promise<void> {
 }
 
 async function getEffectiveDefault(
-  key: "prefix" | "between" | "suffix"
+  key: "prefix" | "between" | "suffix" 
 ): Promise<string> {
   const storageKey = `default_${key}`;
   const stored = await getDefaultValue(storageKey);
@@ -579,7 +584,7 @@ async function getEffectiveDefault(
   if (stored !== null && stored !== undefined && stored !== "") {
     return stored;
   }
-
+  console.log(`Using config default for ${key}:`, DEFAULT_VALUES[key]);
   return DEFAULT_VALUES[key];
 }
 
@@ -681,7 +686,7 @@ async function clearUsageStats(): Promise<void> {
 }
 
 async function getDateFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
+  return (await figma.clientStorage.getAsync("dateFormat")) || DEFAULT_VALUES.defaultDate;
 }
 
 async function setDateFormat(value: string) {
@@ -689,7 +694,7 @@ async function setDateFormat(value: string) {
 }
 
 async function getTimeFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+  return (await figma.clientStorage.getAsync("timeFormat")) || DEFAULT_VALUES.defaultTime;
 }
 
 async function setTimeFormat(value: string) {
@@ -986,6 +991,11 @@ function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   nodes.forEach(traverse);
   return result;
 }
+function cleanBaseText(text: string) {
+  return text
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 /**
  * Handle text case transformation
@@ -1086,23 +1096,11 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
   switch (figma.command) {
     case "titlecase":
       const conjunctions = [
-        "for",
-        "as",
-        "an",
-        "a",
-        "in",
-        "on",
-        "of",
-        "am",
-        "are",
-        "and",
-        "to",
-        "is",
-        "at",
-        "also",
-        "with",
-        "or",
+        "for", "as", "an", "a", "in", "on", "of", "am", "are", "and", "to", "is", "at", "also", "with", "or",
       ];
+
+      // Step 0: Trim and remove extra spaces
+      newText = cleanBaseText(newText);
 
       // Step 1: Convert all text to lowercase
       newText = newText.toLowerCase();
@@ -1110,23 +1108,20 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       // Step 2: Apply Title Case transformation
       newText = newText.replace(/\b(\w+(['’]\w+)?|\w+)\b/g, (match, word) => {
         if (conjunctions.includes(word)) {
-          // Keep conjunctions lowercase
           return word;
         } else if (word.includes("'") || word.includes("’")) {
-          // Handle words with straight or curly apostrophes
           const apostropheIndex =
             word.indexOf("'") !== -1 ? word.indexOf("'") : word.indexOf("’");
-          const beforeApostrophe = word.slice(0, apostropheIndex + 1); // Part before and including the apostrophe
-          const afterApostrophe = word.slice(apostropheIndex + 1); // Part after the apostrophe
 
-          // Capitalize the first letter of the word, and keep the rest lowercase
+          const beforeApostrophe = word.slice(0, apostropheIndex + 1);
+          const afterApostrophe = word.slice(apostropheIndex + 1);
+
           return (
             beforeApostrophe.charAt(0).toUpperCase() +
             beforeApostrophe.slice(1) +
             afterApostrophe.toLowerCase()
           );
         } else {
-          // Capitalize the first letter of standard words
           return match.charAt(0).toUpperCase() + match.slice(1);
         }
       });
@@ -1187,6 +1182,21 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       figma.notify(`⏰ Time added (${format})`);
       break;
     }
+    case "addctimestamp": {
+      const dateFormat = await getDateFormat();
+      const timeFormat = await getTimeFormat();
+      const timestampText = `${formatDate(dateFormat)} • ${formatTime(timeFormat)}`;
+
+      newText = timestampText;
+      figma.notify(`⏰ Timestamp added (${dateFormat} ${timeFormat})`);
+      break;
+    }
+
+    case "copylorem":
+      await cycleCopyText(node, LOREM_TEXT, "emailIndex");
+      figma.notify("Tadaannn... 🥁 Lorem Ipsum Text Added");
+      return true;
+
     case "copyemail":
       await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
       figma.notify("Tadaannn... 🥁 Email Text Added");
@@ -1213,18 +1223,36 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
 
     case "rmvspace":
       newText = newText
-        .split("\n") // handle each line separately
-        .map((line) => line.trim()) // remove starting & ending spaces
-        .join("\n") // keep line breaks
-        .replace(/[ \t]+/g, " ");
+        .split("\n")
+        .map((line) => line.trim().replace(/\s+/g, " "))
+        .join("\n");
+
       figma.notify("Tadaannn... 🥁 Your Text is now unwanted space free. 💅");
       break;
 
-    case "removesymbols":
-      newText = originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
-      figma.notify("Removed punctuation & symbols ✔");
+    case "rmvbreakline":
+      newText = newText.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+      figma.notify("Tadaannn... 🥁 Your Text is now breaklines free. 💅");
       break;
 
+    case "removesymbols":
+      newText = cleanBaseText(originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, ""));
+      figma.notify("Removed punctuation & symbols from your text! 💅");
+      break;
+
+    case "removeemoji":
+      newText = originalCharacters
+        .replace(/\r\n|\r|\u2028|\u2029/g, "\n")
+
+        // ✅ better emoji removal (covers ⏱ and others)
+        .replace(/\p{Extended_Pictographic}/gu, "")
+
+        .split("\n")
+        .map((line) => (line === "" ? "" : line.replace(/[^\S]+/g, " ").trim()))
+        .join("\n");
+
+      figma.notify("Tadaannn... 🥁 All emojis removed! 💅");
+      break;
     case "slug":
       newText = originalCharacters
         .trim()

@@ -69,7 +69,7 @@ export async function maybeSyncUsage(): Promise<void> {
   const stats = await getUsageStats();
   const delta = stats.usageCount - stats.syncedUsageCount;
 
-  if (delta >= SYNC_DELTA_THRESHOLD) {s
+  if (delta >= SYNC_DELTA_THRESHOLD) {
     await syncUsage(delta);
   }
 }
@@ -248,7 +248,7 @@ export async function saveLicenseData(licenseData: LicenseData): Promise<void> {
 }
 
 export async function getEffectiveDefault(
-  key: "prefix" | "between" | "suffix"
+  key: "prefix" | "between" | "suffix" 
 ): Promise<string> {
   const storageKey = `default_${key}`;
   const stored = await getDefaultValue(storageKey);
@@ -256,7 +256,7 @@ export async function getEffectiveDefault(
   if (stored !== null && stored !== undefined && stored !== "") {
     return stored;
   }
-
+  console.log(`Using config default for ${key}:`, DEFAULT_VALUES[key]);
   return DEFAULT_VALUES[key];
 }
 
@@ -358,7 +358,7 @@ export async function clearUsageStats(): Promise<void> {
 }
 
 export async function getDateFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("dateFormat")) || "dd-mm-yyyy";
+  return (await figma.clientStorage.getAsync("dateFormat")) || DEFAULT_VALUES.defaultDate;
 }
 
 export async function setDateFormat(value: string) {
@@ -366,7 +366,7 @@ export async function setDateFormat(value: string) {
 }
 
 export async function getTimeFormat(): Promise<string> {
-  return (await figma.clientStorage.getAsync("timeFormat")) || "HH:mm";
+  return (await figma.clientStorage.getAsync("timeFormat")) || DEFAULT_VALUES.defaultTime;
 }
 
 export async function setTimeFormat(value: string) {

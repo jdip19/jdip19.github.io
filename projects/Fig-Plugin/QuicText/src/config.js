@@ -18,7 +18,9 @@ export const FONT_LOAD_TIMEOUT_MS = 5000;
 export const DEFAULT_VALUES = {
     prefix: '#',
     between: '-',
-    suffix: '.'
+    suffix: '.',
+    defaultTime: 'hh:mm a',
+    defaultDate: 'dd MMM yyyy',
 };
 export const MOBILE_NUMBER_TEXT = [
     "+1 (555) 123-4567", "+44 20 7946 0958", "+91 98765 43210",
@@ -43,4 +45,7 @@ export const ERROR_TEXTS = [
     "We're sorry, something went wrong", "Unable to complete this action",
     "Please try again", "Error loading content", "Something unexpected happened",
     "We encountered an issue", "Please refresh and try again"
+];
+export const LOREM_TEXT = [
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed convallis libero quis nisi vestibulum placerat. Proin cursus libero feugiat, tempor nunc pulvinar, lacinia libero. Etiam at commodo leo. Ut molestie, lorem sed placerat convallis, tellus felis vulputate dolor, a ullamcorper erat sem eget mi. Nullam porttitor fermentum suscipit. Duis sed dui pretium purus scelerisque sodales. Duis quis justo sed nisi consectetur sollicitudin."
 ];
