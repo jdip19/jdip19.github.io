@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leave & Salary Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.103.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161d;
+    --surface2: #1a1e28;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #7a7f8e;
+    --text3: #4a4f5e;
+    --accent: #4f8ef7;
+    --green: #22c87a;
+    --red: #f05a5a;
+    --amber: #f5a623;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Sora', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+  }
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .header-left p {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+  .cache-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cache-badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+  @keyframes spin { to{ transform: rotate(360deg); } }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .month-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 2rem; }
+  .tab {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all .15s;
+    outline: none;
+  }
+  .tab:hover { border-color: var(--border2); color: var(--text); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+  .config-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 2rem; }
+  @media(max-width:520px){ .config-row{ grid-template-columns:1fr; } }
+  .field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    letter-spacing: .04em;
+  }
+  .field input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field input::placeholder { color: var(--text3); }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 2rem; }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+  .metric.green::before { background: var(--green); opacity: 0.6; }
+  .metric.red::before { background: var(--red); opacity: 0.6; }
+  .metric.amber::before { background: var(--amber); opacity: 0.6; }
+  .metric .lbl { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+  .metric .val { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+  .metric.green .val { color: var(--green); }
+  .metric.red .val { color: var(--red); }
+  .metric.amber .val { color: var(--amber); }
+  .metric .sub { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+  .breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 2rem; }
+  .breakdown-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--text2); letter-spacing: .05em; text-transform: uppercase; }
+  .brow { display: flex; justify-content: space-between; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--border); }
+  .brow:last-child { border-bottom: none; }
+  .brow .bl { color: var(--text2); font-family: var(--mono); font-size: 12px; }
+  .brow .br { color: var(--text); font-family: var(--mono); font-size: 12px; }
+  .brow.deduct .br { color: var(--red); }
+  .brow.net { background: rgba(34,200,122,0.05); }
+  .brow.net .bl { color: var(--text); font-weight: 500; }
+  .brow.net .br { color: var(--green); font-size: 15px; font-weight: 600; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media(max-width:600px){ .charts-grid{ grid-template-columns: 1fr; } }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; }
+  .chart-card .ct { font-family: var(--mono); font-size: 11px; color: var(--text2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+  .legend span { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; color: var(--text2); }
+  .ldot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+  #loadingMsg { display: flex; align-items: center; justify-content: center; min-height: 200px; flex-direction: column; gap: 12px; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  .load-text { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Leave & salary tracker</h1>
+    <p>1 paid leave/month · Sat+Sun off · PT ₹200</p>
+  </div>
+  <div class="cache-badge" id="cacheBadge">
+    <span class="dot"></span>
+    <span id="cacheStatus">connecting...</span>
+  </div>
+</div>
+
+<div id="loadingMsg">
+  <div class="spinner"></div>
+  <div class="load-text">fetching data from supabase...</div>
+</div>
+
+<div id="mainContent" style="display:none">
+  <div class="section-label">Month</div>
+  <div class="month-tabs" id="monthTabs"></div>
+
+  <div class="config-row">
+    <div class="field">
+      <label>Monthly salary (₹)</label>
+      <input type="number" id="salaryInput" placeholder="e.g. 50000" min="0" step="100" value="32000">
+    </div>
+    <div class="field">
+      <label>Extra holidays this month</label>
+      <input type="number" id="holidaysInput" value="0" min="0" step="1">
+    </div>
+  </div>
+
+  <div class="metrics" id="metricsRow"></div>
+  <div id="breakdownWrap"></div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="ct">Leaves per month</div>
+      <div class="legend">
+        <span><span class="ldot" style="background:#4f8ef7"></span>Full day</span>
+        <span><span class="ldot" style="background:#f5a623"></span>Half day</span>
+      </div>
+      <div style="position:relative;height:200px">
+        <canvas id="leaveChart" role="img" aria-label="Leave counts per month">Leave data</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="ct">Net salary — all months (₹)</div>
+      <div class="legend">
+        <span><span class="ldot" style="background:#f05a5a"></span>Deduction</span>
+        <span><span class="ldot" style="background:#22c87a"></span>Net received</span>
+      </div>
+      <div style="position:relative;height:200px">
+        <canvas id="salaryChart" role="img" aria-label="Salary breakdown per month">Salary data</canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
