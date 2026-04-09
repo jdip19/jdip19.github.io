@@ -2,8 +2,6 @@
 
 No OAuth. No login. Just an API Key.
 
----
-
 ## 🔑 Get a FREE Google Sheets API Key (2 minutes)
 
 1. Go to: https://console.cloud.google.com/
