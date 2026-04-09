@@ -123,7 +123,7 @@ function renderMonthTabs(monthKeys) {
 
 function renderMetrics(calc) {
     const el = document.getElementById('metricsRow');
-    if (!calc) { el.innerHTML = `<div class="metric"><div class="lbl">Tip</div><div class="val" style="font-size:13px;color:var(--text2)">Select a month above to see salary breakdown</div></div>`; return; }
+    if (!calc) { el.innerHTML = ''; return; }
     el.innerHTML = `
     <div class="metric"><div class="lbl">Working days</div><div class="val">${calc.workingDays}</div><div class="sub">${calc.totalDays}d − ${calc.weekendDays} wknd − ${calc.extraHolidays} holiday</div></div>
     <div class="metric amber"><div class="lbl">Leaves taken</div><div class="val">${calc.totalLeaveDays}</div><div class="sub">${calc.fullLeaves} full + ${calc.halfLeaves} half day</div></div>
@@ -196,7 +196,8 @@ function renderAll() {
 
     if (activeMonth) {
         const saved = monthConfigs[activeMonth] || {};
-        salaryEl.value = saved.salary || '';
+        // console.log('Loaded config for', saved.salary, salaryEl.value, typeof salaryEl.value);
+        salaryEl.value = saved.salary || 32000;
         holidaysEl.value = saved.holidays || 0;
         const onChange = () => {
             monthConfigs[activeMonth] = { salary: parseFloat(salaryEl.value) || 0, holidays: parseInt(holidaysEl.value) || 0 };
