@@ -1,2 +1,5 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PLUGIN_VERSION = void 0;
 // src/version.ts
-export const PLUGIN_VERSION = "9.0.0";
+exports.PLUGIN_VERSION = "9.0.0";

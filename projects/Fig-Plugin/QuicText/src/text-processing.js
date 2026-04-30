@@ -1,12 +1,17 @@
+"use strict";
 // ==================== TEXT PROCESSING ====================
-import { getKeywordList, loadAllFontsForNode, formatDate, formatTime, } from "./utils";
-import { getStoredIndex, saveStoredIndex, getEffectiveDefault, getDateFormat, getTimeFormat, } from "./storage";
-import { CTA_TEXTS, HERO_TEXTS, ERROR_TEXTS, EMAIL_TEXTS, MOBILE_NUMBER_TEXT, LOREM_TEXT, } from "./config";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.applyFormattingToKeywords = applyFormattingToKeywords;
+exports.processAllTextNodes = processAllTextNodes;
+exports.collectTextNodes = collectTextNodes;
+const utils_1 = require("./utils");
+const storage_1 = require("./storage");
+const config_1 = require("./config");
 /**
  * Apply formatting to keywords in text nodes
  */
-export async function applyFormattingToKeywords(keywords, applyRange) {
-    const keywordList = getKeywordList(keywords);
+async function applyFormattingToKeywords(keywords, applyRange) {
+    const keywordList = (0, utils_1.getKeywordList)(keywords);
     if (keywordList.length === 0) {
         return;
     }
@@ -43,7 +48,7 @@ export async function applyFormattingToKeywords(keywords, applyRange) {
 /**
  * Process all text nodes with a transformation function
  */
-export async function processAllTextNodes(textNodes) {
+async function processAllTextNodes(textNodes) {
     let skippedCount = 0;
     let anyChanged = false;
     for (const node of textNodes) {
@@ -75,7 +80,7 @@ const getAllTextNodes = () => {
 /**
  * Collect text nodes from selection
  */
-export function collectTextNodes(nodes) {
+function collectTextNodes(nodes) {
     const result = [];
     const visited = new Set();
     const traverse = (node) => {
@@ -105,7 +110,7 @@ function cleanBaseText(text) {
 async function handleTextCase(node) {
     // Load all fonts for this node before processing
     try {
-        await loadAllFontsForNode(node);
+        await (0, utils_1.loadAllFontsForNode)(node);
     }
     catch (fontError) {
         console.warn("Failed to load fonts for node:", fontError);
@@ -229,49 +234,49 @@ async function handleTextCase(node) {
             figma.notify("Tadaannn... 🥁 Your Text now has line breaks after Fullstop.");
             break;
         case "addcdate": {
-            const format = await getDateFormat();
-            const dateText = formatDate(format);
+            const format = await (0, storage_1.getDateFormat)();
+            const dateText = (0, utils_1.formatDate)(format);
             newText = dateText;
             figma.notify(`📅 Date added (${format})`);
             break;
         }
         case "addctime": {
-            const format = await getTimeFormat();
-            const timeText = formatTime(format);
+            const format = await (0, storage_1.getTimeFormat)();
+            const timeText = (0, utils_1.formatTime)(format);
             newText = timeText;
             figma.notify(`⏰ Time added (${format})`);
             break;
         }
         case "addctimestamp": {
-            const dateFormat = await getDateFormat();
-            const timeFormat = await getTimeFormat();
-            const timestampText = `${formatDate(dateFormat)} • ${formatTime(timeFormat)}`;
+            const dateFormat = await (0, storage_1.getDateFormat)();
+            const timeFormat = await (0, storage_1.getTimeFormat)();
+            const timestampText = `${(0, utils_1.formatDate)(dateFormat)} • ${(0, utils_1.formatTime)(timeFormat)}`;
             newText = timestampText;
             figma.notify(`⏰ Timestamp added (${dateFormat} ${timeFormat})`);
             break;
         }
         case "copylorem":
-            await cycleCopyText(node, LOREM_TEXT, "emailIndex");
+            await cycleCopyText(node, config_1.LOREM_TEXT, "emailIndex");
             figma.notify("Tadaannn... 🥁 Lorem Ipsum Text Added");
             return true;
         case "copyemail":
-            await cycleCopyText(node, EMAIL_TEXTS, "emailIndex");
+            await cycleCopyText(node, config_1.EMAIL_TEXTS, "emailIndex");
             figma.notify("Tadaannn... 🥁 Email Text Added");
             return true;
         case "copynumber":
-            await cycleCopyText(node, MOBILE_NUMBER_TEXT, "numberIndex");
+            await cycleCopyText(node, config_1.MOBILE_NUMBER_TEXT, "numberIndex");
             figma.notify("Tadaannn... 🥁 Mobile Number Text Added");
             return true;
         case "copycta":
-            await cycleCopyText(node, CTA_TEXTS, "ctaIndex");
+            await cycleCopyText(node, config_1.CTA_TEXTS, "ctaIndex");
             figma.notify("Tadaannn... 🥁 Button Text Added");
             return true;
         case "copyhero":
-            await cycleCopyText(node, HERO_TEXTS, "heroIndex");
+            await cycleCopyText(node, config_1.HERO_TEXTS, "heroIndex");
             figma.notify("Tadaannn... 🥁 Hero Text Added");
             return true;
         case "copyerror":
-            await cycleCopyText(node, ERROR_TEXTS, "errorIndex");
+            await cycleCopyText(node, config_1.ERROR_TEXTS, "errorIndex");
             figma.notify("Tadaannn... 🥁 Error Text Added");
             return true;
         case "rmvspace":
@@ -330,20 +335,20 @@ async function handleTextCase(node) {
         }
         case "addprefix": {
             // Simplified: use stored default and treat like other commands
-            const value = await getEffectiveDefault("prefix");
+            const value = await (0, storage_1.getEffectiveDefault)("prefix");
             newText = value + originalCharacters;
             figma.notify("Tadaannn... 🥁 Prefix added");
             break;
         }
         case "addbetween": {
-            const value = await getEffectiveDefault("between");
+            const value = await (0, storage_1.getEffectiveDefault)("between");
             const parts = originalCharacters.split(/\s+/);
             newText = parts.join(value);
             figma.notify("Tadaannn... 🥁 In-between added");
             break;
         }
         case "addsuffix": {
-            const value = await getEffectiveDefault("suffix");
+            const value = await (0, storage_1.getEffectiveDefault)("suffix");
             newText = originalCharacters + value;
             figma.notify("Tadaannn... 🥁 Suffix added");
             break;
@@ -414,11 +419,11 @@ async function handleTextCase(node) {
  * Cycle through copy text options
  */
 async function cycleCopyText(node, texts, storageKey) {
-    const index = await getStoredIndex(storageKey);
+    const index = await (0, storage_1.getStoredIndex)(storageKey);
     const text = texts[index];
     await figma.loadFontAsync(node.fontName);
     node.characters = text;
     // Move to next text and save for next run
     const nextIndex = (index + 1) % texts.length;
-    await saveStoredIndex(storageKey, nextIndex);
+    await (0, storage_1.saveStoredIndex)(storageKey, nextIndex);
 }

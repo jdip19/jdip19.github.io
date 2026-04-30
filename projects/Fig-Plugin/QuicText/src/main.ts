@@ -1,6 +1,6 @@
 // ==================== MAIN PLUGIN FILE ====================
 
-import { verifyLicenseKey, hasLicense, activateLicense } from './license';
+import { verifyLicenseKey, canUsePlugin, activateLicense } from './license';
 import {  incrementUsage, saveDefaultValue, getDefaultValue, getLicenseData, clearLicenseData, clearUsageStats, getDateFormat, setDateFormat, getTimeFormat, setTimeFormat, getEffectiveDefault, getDisplayTotal, ensureDailySync } from './storage';
 import { collectTextNodes, processAllTextNodes } from './text-processing';
 import { ENABLE_MONETIZATION, LICENSE_PRICE,FREE_USAGE_LIMIT } from './config';

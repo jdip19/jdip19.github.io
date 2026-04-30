@@ -1,10 +1,34 @@
+"use strict";
 // ==================== STORAGE UTILITIES ====================
-import { generateUUID } from "./utils";
-import { DEFAULT_VALUES, SYNC_USAGE_URL, SYNC_DELTA_THRESHOLD } from "./config";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getUsageStats = getUsageStats;
+exports.saveUsageStats = saveUsageStats;
+exports.getUsageData = getUsageData;
+exports.incrementUsage = incrementUsage;
+exports.maybeSyncUsage = maybeSyncUsage;
+exports.ensureDailySync = ensureDailySync;
+exports.syncUsage = syncUsage;
+exports.getDisplayTotal = getDisplayTotal;
+exports.getDeviceId = getDeviceId;
+exports.getStoredIndex = getStoredIndex;
+exports.saveStoredIndex = saveStoredIndex;
+exports.saveLicenseData = saveLicenseData;
+exports.getEffectiveDefault = getEffectiveDefault;
+exports.getDefaultValue = getDefaultValue;
+exports.saveDefaultValue = saveDefaultValue;
+exports.getLicenseData = getLicenseData;
+exports.clearLicenseData = clearLicenseData;
+exports.clearUsageStats = clearUsageStats;
+exports.getDateFormat = getDateFormat;
+exports.setDateFormat = setDateFormat;
+exports.getTimeFormat = getTimeFormat;
+exports.setTimeFormat = setTimeFormat;
+const utils_1 = require("./utils");
+const config_1 = require("./config");
 /**
  * Get current usage stats safely
  */
-export async function getUsageStats() {
+async function getUsageStats() {
     try {
         const stored = await figma.clientStorage.getAsync("usageStats");
         if (stored) {
@@ -31,7 +55,7 @@ export async function getUsageStats() {
 /**
  * Save usage stats safely
  */
-export async function saveUsageStats(stats) {
+async function saveUsageStats(stats) {
     try {
         await figma.clientStorage.setAsync("usageStats", stats);
     }
@@ -42,13 +66,13 @@ export async function saveUsageStats(stats) {
 /**
  * Legacy function for backward compatibility
  */
-export async function getUsageData() {
+async function getUsageData() {
     return getUsageStats();
 }
 /**
  * Increment usage count and check if sync is needed
  */
-export async function incrementUsage() {
+async function incrementUsage() {
     const stats = await getUsageStats();
     stats.usageCount++;
     await saveUsageStats(stats);
@@ -58,10 +82,10 @@ export async function incrementUsage() {
 /**
  * Check delta and sync to backend if threshold is met
  */
-export async function maybeSyncUsage() {
+async function maybeSyncUsage() {
     const stats = await getUsageStats();
     const delta = stats.usageCount - stats.syncedUsageCount;
-    if (delta >= SYNC_DELTA_THRESHOLD) {
+    if (delta >= config_1.SYNC_DELTA_THRESHOLD) {
         await syncUsage(delta);
     }
 }
@@ -69,7 +93,7 @@ export async function maybeSyncUsage() {
  * Ensure we sync at least once per day when UI is opened.
  * This triggers a sync (POST) even if the delta is below threshold.
  */
-export async function ensureDailySync() {
+async function ensureDailySync() {
     try {
         const stats = await getUsageStats();
         const lastSync = stats.lastSyncAt ? new Date(stats.lastSyncAt) : null;
@@ -94,10 +118,10 @@ export async function ensureDailySync() {
 /**
  * Sync usage to backend when delta threshold is met
  */
-export async function syncUsage(delta) {
+async function syncUsage(delta) {
     try {
         console.log(`Syncing usage: delta=${delta}`);
-        const response = await fetch(SYNC_USAGE_URL, {
+        const response = await fetch(config_1.SYNC_USAGE_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -128,14 +152,14 @@ export async function syncUsage(delta) {
 /**
  * Get display total (local + remote)
  */
-export async function getDisplayTotal() {
+async function getDisplayTotal() {
     const stats = await getUsageStats();
     return stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
 }
 /**
  * Get device ID (creates one if it doesn't exist)
  */
-export async function getDeviceId() {
+async function getDeviceId() {
     try {
         console.log("Getting device ID from storage...");
         const deviceId = await figma.clientStorage.getAsync("deviceId");
@@ -145,7 +169,7 @@ export async function getDeviceId() {
             return deviceId;
         }
         console.log("Generating new device ID...");
-        const newId = generateUUID();
+        const newId = (0, utils_1.generateUUID)();
         console.log("Generated new ID:", newId.substring(0, 8) + "...");
         console.log("Saving new device ID to storage...");
         await figma.clientStorage.setAsync("deviceId", newId);
@@ -163,20 +187,20 @@ export async function getDeviceId() {
 /**
  * Get stored index for cycling text
  */
-export async function getStoredIndex(key) {
+async function getStoredIndex(key) {
     const stored = await figma.clientStorage.getAsync(key);
     return stored !== undefined ? stored : 0;
 }
 /**
  * Save index for cycling text
  */
-export async function saveStoredIndex(key, index) {
+async function saveStoredIndex(key, index) {
     await figma.clientStorage.setAsync(key, index);
 }
 /**
  * Save license data to storage
  */
-export async function saveLicenseData(licenseData) {
+async function saveLicenseData(licenseData) {
     console.log("Saving consolidated license data...");
     await figma.clientStorage.setAsync("licenseData", licenseData);
     console.log("License data saved successfully");
@@ -219,19 +243,19 @@ export async function saveLicenseData(licenseData) {
     }
     console.log("All individual keys saved successfully");
 }
-export async function getEffectiveDefault(key) {
+async function getEffectiveDefault(key) {
     const storageKey = `default_${key}`;
     const stored = await getDefaultValue(storageKey);
     if (stored !== null && stored !== undefined && stored !== "") {
         return stored;
     }
-    console.log(`Using config default for ${key}:`, DEFAULT_VALUES[key]);
-    return DEFAULT_VALUES[key];
+    console.log(`Using config default for ${key}:`, config_1.DEFAULT_VALUES[key]);
+    return config_1.DEFAULT_VALUES[key];
 }
 /**
  * Get a stored default value for prefix/between/suffix commands
  */
-export async function getDefaultValue(key) {
+async function getDefaultValue(key) {
     try {
         const v = await figma.clientStorage.getAsync(key);
         return v !== undefined ? v : null;
@@ -244,7 +268,7 @@ export async function getDefaultValue(key) {
 /**
  * Save a default value for prefix/between/suffix commands
  */
-export async function saveDefaultValue(key, value) {
+async function saveDefaultValue(key, value) {
     try {
         await figma.clientStorage.setAsync(key, value);
     }
@@ -255,7 +279,7 @@ export async function saveDefaultValue(key, value) {
 /**
  * Read consolidated license data (if stored)
  */
-export async function getLicenseData() {
+async function getLicenseData() {
     try {
         const stored = await figma.clientStorage.getAsync("licenseData");
         if (stored)
@@ -286,7 +310,7 @@ export async function getLicenseData() {
 /**
  * Clear stored license information
  */
-export async function clearLicenseData() {
+async function clearLicenseData() {
     try {
         await figma.clientStorage.deleteAsync("licenseData");
         await figma.clientStorage.deleteAsync("licenseKey");
@@ -305,7 +329,7 @@ export async function clearLicenseData() {
  * Clear usage stats when user logs out (reset to fresh free tier).
  * Also set lastSyncAt to today to prevent immediate re-sync on UI open.
  */
-export async function clearUsageStats() {
+async function clearUsageStats() {
     try {
         const defaults = {
             usageCount: 0,
@@ -320,15 +344,15 @@ export async function clearUsageStats() {
         console.warn("Error clearing usage stats:", err);
     }
 }
-export async function getDateFormat() {
-    return (await figma.clientStorage.getAsync("dateFormat")) || DEFAULT_VALUES.defaultDate;
+async function getDateFormat() {
+    return (await figma.clientStorage.getAsync("dateFormat")) || config_1.DEFAULT_VALUES.defaultDate;
 }
-export async function setDateFormat(value) {
+async function setDateFormat(value) {
     await figma.clientStorage.setAsync("dateFormat", value);
 }
-export async function getTimeFormat() {
-    return (await figma.clientStorage.getAsync("timeFormat")) || DEFAULT_VALUES.defaultTime;
+async function getTimeFormat() {
+    return (await figma.clientStorage.getAsync("timeFormat")) || config_1.DEFAULT_VALUES.defaultTime;
 }
-export async function setTimeFormat(value) {
+async function setTimeFormat(value) {
     await figma.clientStorage.setAsync("timeFormat", value);
 }

@@ -2,14 +2,11 @@
   "compilerOptions": {
     "target": "es2017",
     "lib": ["es2017","DOM"],
-    "module": "es2015",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "strict": true,
     "skipLibCheck": true,
-    "typeRoots": [
-      "node_modules/@figma/plugin-typings",
-      "node_modules/@figma"
-    ]
-  }
-  ,
+    "types": ["@figma/plugin-typings"]
+  },
   "exclude": ["oldcode.ts"]
 }

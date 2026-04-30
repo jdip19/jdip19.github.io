@@ -1,7 +1,13 @@
+"use strict";
 // ==================== LICENSE MANAGEMENT ====================
-import { VERIFY_LICENSE_URL, ENABLE_MONETIZATION, FREE_DAILY_LIMIT, } from "./config";
-import { getDeviceId, getUsageStats } from "./storage";
-import { PLUGIN_VERSION } from "./version";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.hasLicense = hasLicense;
+exports.verifyLicenseKey = verifyLicenseKey;
+exports.canUsePlugin = canUsePlugin;
+exports.activateLicense = activateLicense;
+const config_1 = require("./config");
+const storage_1 = require("./storage");
+const version_1 = require("./version");
 /**
  * Read consolidated license data
  */
@@ -20,7 +26,7 @@ async function clearLicenseStorage() {
 /**
  * Check if user has a valid license
  */
-export async function hasLicense() {
+async function hasLicense() {
     try {
         const license = await getStoredLicense();
         if (license === null || license === void 0 ? void 0 : license.key) {
@@ -49,15 +55,15 @@ export async function hasLicense() {
 /**
  * Verify license key with Supabase
  */
-export async function verifyLicenseKey(licenseKey) {
+async function verifyLicenseKey(licenseKey) {
     if (!(licenseKey === null || licenseKey === void 0 ? void 0 : licenseKey.trim()))
         return null;
     try {
-        const deviceId = await getDeviceId();
+        const deviceId = await (0, storage_1.getDeviceId)();
         if (!deviceId) {
             return { valid: false, error: "Device ID unavailable" };
         }
-        const res = await fetch(VERIFY_LICENSE_URL, {
+        const res = await fetch(config_1.VERIFY_LICENSE_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -66,7 +72,7 @@ export async function verifyLicenseKey(licenseKey) {
             body: JSON.stringify({
                 key: licenseKey.trim(),
                 device_id: deviceId,
-                version: PLUGIN_VERSION
+                version: version_1.PLUGIN_VERSION
             }),
         });
         if (!res.ok) {
@@ -84,8 +90,8 @@ export async function verifyLicenseKey(licenseKey) {
 /**
  * Check if user can use the plugin (license or free quota)
  */
-export async function canUsePlugin() {
-    if (!ENABLE_MONETIZATION)
+async function canUsePlugin() {
+    if (!config_1.ENABLE_MONETIZATION)
         return { allowed: true };
     try {
         // Paid user
@@ -94,9 +100,9 @@ export async function canUsePlugin() {
             return { allowed: true };
         }
         // Free quota user
-        const stats = await getUsageStats();
+        const stats = await (0, storage_1.getUsageStats)();
         const displayTotal = stats.lastFetchedTotal + (stats.usageCount - stats.syncedUsageCount);
-        const remaining = FREE_DAILY_LIMIT - displayTotal;
+        const remaining = config_1.FREE_DAILY_LIMIT - displayTotal;
         if (remaining > 0) {
             return {
                 allowed: true,
@@ -117,7 +123,7 @@ export async function canUsePlugin() {
 /**
  * Activate license (called from UI)
  */
-export async function activateLicense(licenseKey) {
+async function activateLicense(licenseKey) {
     var _a, _b, _c, _d;
     if (!(licenseKey === null || licenseKey === void 0 ? void 0 : licenseKey.trim()))
         return false;
@@ -131,7 +137,7 @@ export async function activateLicense(licenseKey) {
             email: (_b = result.email) !== null && _b !== void 0 ? _b : "",
             plan: (_c = result.plan) !== null && _c !== void 0 ? _c : "",
             activatedVersion: (_d = result.version) !== null && _d !== void 0 ? _d : "",
-            currentVersion: PLUGIN_VERSION,
+            currentVersion: version_1.PLUGIN_VERSION,
             activatedAt: new Date().toISOString(),
         };
         console.log("Yo Storing license data:", licenseData);
