@@ -1,21 +1,8 @@
-"use strict";
 // ==================== UTILITY FUNCTIONS ====================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.loadAllFontsForNode = loadAllFontsForNode;
-exports.getAllUniqueFonts = getAllUniqueFonts;
-exports.loadAllFonts = loadAllFonts;
-exports.fontsEqual = fontsEqual;
-exports.createFontKey = createFontKey;
-exports.getKeywordList = getKeywordList;
-exports.padZero = padZero;
-exports.getTodayDate = getTodayDate;
-exports.generateUUID = generateUUID;
-exports.formatDate = formatDate;
-exports.formatTime = formatTime;
 /**
  * Get all font ranges in a text node
  */
-async function loadAllFontsForNode(node) {
+export async function loadAllFontsForNode(node) {
     const fontPromises = [];
     let failed = false;
     const charLength = Math.max(0, node.characters.length);
@@ -54,7 +41,7 @@ async function loadAllFontsForNode(node) {
 /**
  * Get all unique fonts from text nodes
  */
-function getAllUniqueFonts(textNodes) {
+export function getAllUniqueFonts(textNodes) {
     const fontSet = new Set();
     const fonts = [];
     for (const node of textNodes) {
@@ -97,7 +84,7 @@ function getAllUniqueFonts(textNodes) {
 /**
  * Load all fonts
  */
-async function loadAllFonts(fonts) {
+export async function loadAllFonts(fonts) {
     const loadResults = await Promise.all(fonts.map(async (font) => {
         try {
             console.log('Loading font:', font);
@@ -114,7 +101,7 @@ async function loadAllFonts(fonts) {
 /**
  * Check if fonts are equal
  */
-function fontsEqual(a, b) {
+export function fontsEqual(a, b) {
     if (a === b) {
         return true;
     }
@@ -126,7 +113,7 @@ function fontsEqual(a, b) {
 /**
  * Create font key for comparison
  */
-function createFontKey(font) {
+export function createFontKey(font) {
     if (font === figma.mixed) {
         return 'mixed';
     }
@@ -135,7 +122,7 @@ function createFontKey(font) {
 /**
  * Get keyword list from string
  */
-function getKeywordList(keywords) {
+export function getKeywordList(keywords) {
     return keywords
         .split(',')
         .map((k) => k.trim())
@@ -144,27 +131,27 @@ function getKeywordList(keywords) {
 /**
  * Helper to pad number with leading zero
  */
-function padZero(num) {
+export function padZero(num) {
     return num < 10 ? `0${num}` : `${num}`;
 }
 /**
  * Get today's date in YYYY-MM-DD format
  */
-function getTodayDate() {
+export function getTodayDate() {
     const now = new Date();
     return `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())}`;
 }
 /**
  * Generate UUID without crypto API
  */
-function generateUUID() {
+export function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = (Math.random() * 16) | 0;
         const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
 }
-function formatDate(format, date = new Date()) {
+export function formatDate(format, date = new Date()) {
     const dd = String(date.getDate()).padStart(2, "0");
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const yyyy = String(date.getFullYear());
@@ -187,7 +174,7 @@ function formatDate(format, date = new Date()) {
  * Format current time with various format options
  * Supported formats: HH:mm, HH:mm:ss, hh:mm a, hh:mm:ss a
  */
-function formatTime(format, date = new Date()) {
+export function formatTime(format, date = new Date()) {
     const hh = String(date.getHours()).padStart(2, "0");
     const h = String(date.getHours() % 12 || 12).padStart(2, "0");
     const mm = String(date.getMinutes()).padStart(2, "0");

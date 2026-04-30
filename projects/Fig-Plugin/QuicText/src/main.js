@@ -1,11 +1,9 @@
-"use strict";
 // ==================== MAIN PLUGIN FILE ====================
-Object.defineProperty(exports, "__esModule", { value: true });
-const license_1 = require("./license");
-const storage_1 = require("./storage");
-const text_processing_1 = require("./text-processing");
-const config_1 = require("./config");
-const version_1 = require("./version");
+import { verifyLicenseKey, canUsePlugin, activateLicense } from './license';
+import { incrementUsage, saveDefaultValue, getLicenseData, clearLicenseData, clearUsageStats, getDateFormat, setDateFormat, getTimeFormat, setTimeFormat, getEffectiveDefault, getDisplayTotal, ensureDailySync } from './storage';
+import { collectTextNodes, processAllTextNodes } from './text-processing';
+import { ENABLE_MONETIZATION, LICENSE_PRICE, FREE_USAGE_LIMIT } from './config';
+import { PLUGIN_VERSION } from './version';
 // Main plugin logic
 async function main() {
     try {
@@ -15,8 +13,8 @@ async function main() {
             return;
         }
         // 3️⃣ Usage gate (THIS is the only gate)
-        if (config_1.ENABLE_MONETIZATION) {
-            const usage = await (0, license_1.canUsePlugin)();
+        if (ENABLE_MONETIZATION) {
+            const usage = await canUsePlugin();
             if (!usage.allowed) {
                 await showAccountUI();
                 return;
@@ -40,17 +38,17 @@ async function processTextCommand() {
         figma.closePlugin();
         return;
     }
-    const textNodes = (0, text_processing_1.collectTextNodes)(selection);
+    const textNodes = collectTextNodes(selection);
     if (textNodes.length === 0) {
         figma.notify('No text layers found in selection.');
         figma.closePlugin();
         return;
     }
     // Process nodes and detect whether any actual text change happened
-    const didChange = await (0, text_processing_1.processAllTextNodes)(textNodes);
+    const didChange = await processAllTextNodes(textNodes);
     // Track usage for all users (free AND pro)
-    if (config_1.ENABLE_MONETIZATION && didChange) {
-        await (0, storage_1.incrementUsage)();
+    if (ENABLE_MONETIZATION && didChange) {
+        await incrementUsage();
     }
 }
 // Handle UI messages
@@ -61,33 +59,33 @@ figma.ui.onmessage = async (msg) => {
                 // msg.defaults = { prefix, between, suffix, dateFormat, timeFormat }
                 if (msg.defaults) {
                     if (msg.defaults.prefix !== undefined)
-                        await (0, storage_1.saveDefaultValue)('default_prefix', msg.defaults.prefix || '');
+                        await saveDefaultValue('default_prefix', msg.defaults.prefix || '');
                     if (msg.defaults.between !== undefined)
-                        await (0, storage_1.saveDefaultValue)('default_between', msg.defaults.between || '');
+                        await saveDefaultValue('default_between', msg.defaults.between || '');
                     if (msg.defaults.suffix !== undefined)
-                        await (0, storage_1.saveDefaultValue)('default_suffix', msg.defaults.suffix || '');
+                        await saveDefaultValue('default_suffix', msg.defaults.suffix || '');
                     if (msg.defaults.dateFormat !== undefined)
-                        await (0, storage_1.setDateFormat)(msg.defaults.dateFormat);
+                        await setDateFormat(msg.defaults.dateFormat);
                     if (msg.defaults.timeFormat !== undefined)
-                        await (0, storage_1.setTimeFormat)(msg.defaults.timeFormat);
+                        await setTimeFormat(msg.defaults.timeFormat);
                 }
                 figma.ui.postMessage({ type: 'defaults-saved', success: true });
                 break;
             case 'request-defaults':
                 {
                     // Use effective defaults which fall back to config defaults when not set in storage
-                    const prefix = await (0, storage_1.getEffectiveDefault)('prefix');
-                    const between = await (0, storage_1.getEffectiveDefault)('between');
-                    const suffix = await (0, storage_1.getEffectiveDefault)('suffix');
-                    const dateFormat = await (0, storage_1.getDateFormat)();
-                    const timeFormat = await (0, storage_1.getTimeFormat)();
+                    const prefix = await getEffectiveDefault('prefix');
+                    const between = await getEffectiveDefault('between');
+                    const suffix = await getEffectiveDefault('suffix');
+                    const dateFormat = await getDateFormat();
+                    const timeFormat = await getTimeFormat();
                     figma.ui.postMessage({ type: 'current-defaults', defaults: { prefix, between, suffix } });
                     figma.ui.postMessage({ type: 'date-format', value: dateFormat });
                     figma.ui.postMessage({ type: 'time-format', value: timeFormat });
                 }
                 break;
             case 'verify-license':
-                const result = await (0, license_1.verifyLicenseKey)(msg.licenseKey);
+                const result = await verifyLicenseKey(msg.licenseKey);
                 figma.ui.postMessage({
                     type: 'license-verified',
                     success: (result === null || result === void 0 ? void 0 : result.valid) || false,
@@ -102,7 +100,7 @@ figma.ui.onmessage = async (msg) => {
                 }
                 break;
             case 'activate-license': {
-                const success = await (0, license_1.activateLicense)(msg.licenseKey);
+                const success = await activateLicense(msg.licenseKey);
                 figma.ui.postMessage({
                     type: success ? 'license-activated' : 'license-error',
                     message: success ? 'License activated successfully' : 'Invalid license key'
@@ -118,8 +116,8 @@ figma.ui.onmessage = async (msg) => {
                 figma.closePlugin(); // Close plugin when user cancels
                 break;
             case 'logout':
-                await (0, storage_1.clearLicenseData)();
-                await (0, storage_1.clearUsageStats)();
+                await clearLicenseData();
+                await clearUsageStats();
                 figma.notify('Logged out');
                 await showAccountUI();
                 break;
@@ -136,12 +134,12 @@ figma.ui.onmessage = async (msg) => {
 };
 async function showAccountUI() {
     // Ensure we sync with the server once per day when UI is opened
-    await (0, storage_1.ensureDailySync)();
-    const displayTotal = await (0, storage_1.getDisplayTotal)();
+    await ensureDailySync();
+    const displayTotal = await getDisplayTotal();
     const used = displayTotal;
-    const limit = config_1.FREE_USAGE_LIMIT;
+    const limit = FREE_USAGE_LIMIT;
     const remaining = Math.max(0, limit - used);
-    const licenseData = await (0, storage_1.getLicenseData)();
+    const licenseData = await getLicenseData();
     const isPro = Boolean(licenseData);
     figma.showUI(__html__, {
         width: 300,
@@ -154,9 +152,9 @@ async function showAccountUI() {
         remaining,
         used,
         limit,
-        price: config_1.LICENSE_PRICE,
+        price: LICENSE_PRICE,
         displayTotal,
-        version: version_1.PLUGIN_VERSION
+        version: PLUGIN_VERSION
     });
 }
 // Run the plugin
