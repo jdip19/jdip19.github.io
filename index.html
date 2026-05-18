@@ -35,10 +35,6 @@
             'https://connect.facebook.net/en_US/fbevents.js');
         fbq('init', '991674240162982');
         fbq('track', 'PageView');
-
-        <noscript><img height="1" width="1" style="display:none"
-            src="https://www.facebook.com/tr?id=991674240162982&ev=PageView&noscript=1" /></noscript>
-
     </script>
 
     <!-- CSS
@@ -58,6 +54,8 @@
 
 
 <body id="top">
+    <noscript><img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=991674240162982&ev=PageView&noscript=1" /></noscript>
 
 
     <!-- preloader
@@ -507,8 +505,8 @@
                         </a>
                     </li>
                     <li>
-                        <a href="support-jdip.html">
-                            <span class="">Support Me</span>
+                        <a href="support-jdip.html" onclick="fbq('track', 'Lead')">
+                            <span>Support Me</span>
                         </a>
                     </li>
 
