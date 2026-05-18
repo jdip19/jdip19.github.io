@@ -21,20 +21,6 @@
         document.documentElement.classList.remove('no-js');
         document.documentElement.classList.add('js');
 
-
-        !function (f, b, e, v, n, t, s) {
-            if (f.fbq) return; n = f.fbq = function () {
-                n.callMethod ?
-                    n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-            };
-            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-            n.queue = []; t = b.createElement(e); t.async = !0;
-            t.src = v; s = b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t, s)
-        }(window, document, 'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '991674240162982');
-        fbq('track', 'PageView');
     </script>
 
     <!-- CSS
@@ -505,7 +491,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="support-jdip.html" onclick="fbq('track', 'Lead')">
+                        <a href="support-jdip.html">
                             <span>Support Me</span>
                         </a>
                     </li>
