@@ -1,0 +1,7 @@
+__turbopack_load_page_chunks__("/himalayan-power", [
+  "static/chunks/348e5e95b3e10ca3.js",
+  "static/chunks/2ac4b57fdd6fecd3.js",
+  "static/chunks/031bc13140f08b99.js",
+  "static/chunks/4e8c8a7aa82e2d92.js",
+  "static/chunks/turbopack-45666e9a80d006bc.js"
+])

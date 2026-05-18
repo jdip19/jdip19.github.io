@@ -49,6 +49,19 @@ a {
   z-index: 9999;
 }
 
+.btn-gold {
+  background: linear-gradient(135deg, #ffd166, #f7b824);
+  color: #08101f;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, #ffde70, #fbc642);
+}
+
+.text-gold {
+  color: #ffd166;
+}
+
 a.flex.items-center.gap-2\.5.group svg {
     height: 36px;
 }

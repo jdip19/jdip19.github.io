@@ -1,9 +1,9 @@
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CHANGELOGS, getAllProducts } from "@/data/changelog";
-import Link from "next/link";
 
 export default function Changelog() {
   const router = useRouter();
@@ -97,10 +97,6 @@ export default function Changelog() {
                   fontWeight: "400",
                   transition: "all 0.2s",
                   borderBottom: "2px solid transparent",
-                  hover: {
-                    borderBottom: "2px solid #007bff",
-                    color: "#007bff",
-                  }
                 }}>
                   {prod.name}
                 </a>

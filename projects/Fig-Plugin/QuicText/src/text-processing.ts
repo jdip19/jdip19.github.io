@@ -129,10 +129,18 @@ export function collectTextNodes(nodes: readonly SceneNode[]): TextNode[] {
   nodes.forEach(traverse);
   return result;
 }
-function cleanBaseText(text: string) {
-  return text
-    .replace(/\s+/g, " ")
-    .trim();
+
+
+function cleanBaseText(text: string): string {
+  return text      // Remove symbols FIRST (if needed)
+    .split(/\r\n|\r|\n/)                     // Split by any line break type
+    .map((line) => 
+      line
+        .replace(/\s+/g, " ")                // Replace multiple spaces with single space
+        .trim()                              // Remove leading/trailing spaces
+    )
+    .filter((line) => line.length > 0)       // Remove empty lines
+    .join("\n");                             // Join with single newline
 }
 
 /**
@@ -374,7 +382,7 @@ async function handleTextCase(node: TextNode): Promise<boolean> {
       break;
 
     case "removesymbols":
-      newText = cleanBaseText(originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, ""));
+      newText = cleanBaseText(originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "")); //originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
       figma.notify("Removed punctuation & symbols from your text! 💅");
       break;
 

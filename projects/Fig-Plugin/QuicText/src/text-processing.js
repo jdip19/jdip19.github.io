@@ -95,9 +95,14 @@ export function collectTextNodes(nodes) {
     return result;
 }
 function cleanBaseText(text) {
-    return text
-        .replace(/\s+/g, " ")
-        .trim();
+    return text // Remove symbols FIRST (if needed)
+        .split(/\r\n|\r|\n/) // Split by any line break type
+        .map((line) => line
+        .replace(/\s+/g, " ") // Replace multiple spaces with single space
+        .trim() // Remove leading/trailing spaces
+    )
+        .filter((line) => line.length > 0) // Remove empty lines
+        .join("\n"); // Join with single newline
 }
 /**
  * Handle text case transformation
@@ -286,7 +291,7 @@ async function handleTextCase(node) {
             figma.notify("Tadaannn... 🥁 Your Text is now breaklines free. 💅");
             break;
         case "removesymbols":
-            newText = cleanBaseText(originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, ""));
+            newText = cleanBaseText(originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "")); //originalCharacters.replace(/[^\p{L}\p{N}\s]/gu, "");
             figma.notify("Removed punctuation & symbols from your text! 💅");
             break;
         case "removeemoji":

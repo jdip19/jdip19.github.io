@@ -12,6 +12,16 @@
 				"isDefault": true
 			},
 			"label": "tsc: build - projects/Fig-Plugin/QuicText/tsconfig.json"
+		},
+		{
+			"label": "Install Dependencies",
+			"type": "shell",
+			"command": "npm install"
+		},
+		{
+			"label": "Build Next.js App",
+			"type": "shell",
+			"command": "npm run build"
 		}
 	]
 }

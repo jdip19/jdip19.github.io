@@ -5,6 +5,7 @@ import Products from "@/components/Products";
 import Why from "@/components/Why";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -53,6 +54,14 @@ export default function Home() {
           <Products />
           <Why />
           <CTA />
+          <div className="mx-auto max-w-7xl px-6 py-8 text-center">
+            <Link
+              href="/#"
+              className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              View the Himalayan Shilajit Power Combo page
+            </Link>
+          </div>
         </main>
         <Footer />
       </div>
