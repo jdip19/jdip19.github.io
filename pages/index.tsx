@@ -20,7 +20,7 @@ export default function Home() {
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq("track", "Lead", { value: 10.0, currency: "USD" });
     }
-    router.push("himalayan-shilajit-power-combo");
+    router.push("/himalayan-power");
   };
 
   // ...
