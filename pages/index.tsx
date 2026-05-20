@@ -64,7 +64,25 @@ export default function Home() {
         />
       </Head>
 
+      <Script
+        id="meta-pixel"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '991674240162982');
+            fbq('track', 'PageView');`,
+        }}
+      />
 
+      <noscript>
+        <img height="1" width="1" style={{ display: "none" }} src="https://www.facebook.com/tr?id=991674240162982&ev=PageView&noscript=1" alt="facebook pixel" />
+      </noscript>
 
       <div className="grain">
         <Navbar />
@@ -73,6 +91,15 @@ export default function Home() {
           <Products />
           <Why />
           <CTA />
+          <div className="mx-auto max-w-7xl px-6 py-8 text-center">
+            <Link
+              href="/#"
+              className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              onClick={handleLeadClick}
+            >
+              View the Himalayan Shilajit
+            </Link>
+          </div>
         </main>
         <Footer />
       </div>
