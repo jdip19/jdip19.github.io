@@ -3,6 +3,20 @@
 // Show UI with dimensions
 figma.showUI(__html__, { width: 300, height: 450 });
 
+const syncSelectionInfoToUI = () => {
+  const selection = figma.currentPage.selection;
+  const names = selection.map((node) => node.name);
+  const types = selection.map((node) => node.type);
+
+  figma.ui.postMessage({
+    type: "selection-info",
+    names,
+    types,
+  });
+};
+
+syncSelectionInfoToUI();
+
 // Load saved URL when plugin starts
 figma.clientStorage.getAsync("lastSheetUrl").then((savedUrl) => {
   if (savedUrl) {
@@ -12,6 +26,17 @@ figma.clientStorage.getAsync("lastSheetUrl").then((savedUrl) => {
     });
   }
 });
+
+const getLayerSequenceOrder = (layer: SceneNode): number => {
+  if (layer.parent && "children" in layer.parent) {
+    const parentIndex = layer.parent.children.indexOf(layer);
+    if (parentIndex >= 0) {
+      return parentIndex;
+    }
+  }
+
+  return layer.y;
+};
 
 // Handle messages from the UI
 figma.ui.onmessage = async (msg: any) => {
@@ -29,7 +54,17 @@ figma.ui.onmessage = async (msg: any) => {
       return;
     }
 
-    const selection = figma.currentPage.selection;
+    const selection = figma.currentPage.selection
+      .slice()
+      .sort((a, b) => {
+        const layerOrderDiff = getLayerSequenceOrder(a) - getLayerSequenceOrder(b);
+        if (layerOrderDiff !== 0) {
+          return layerOrderDiff;
+        }
+
+        return a.y - b.y;
+      });
+
     if (selection.length === 0) {
       figma.notify("Please select at least one layer. 😊");
       return;
@@ -78,18 +113,17 @@ figma.ui.onmessage = async (msg: any) => {
       for (const layer of selection) {
         const layerName = layer.name;
         console.log("Checking layer:", layerName);
-        let matched = false;
 
         const cleanLayerName = layerName.trim();
 
-        if (columnMap.hasOwnProperty(cleanLayerName)) {
+        if (Object.prototype.hasOwnProperty.call(columnMap, cleanLayerName)) {
           if (!layerGroups[cleanLayerName]) {
             layerGroups[cleanLayerName] = [];
           }
 
           layerGroups[cleanLayerName].push(layer);
-        }
-        if (!matched) {
+          console.log("  ✓ Matched column:", cleanLayerName);
+        } else {
           console.log("  ✗ No matching prefix found");
         }
       }
@@ -102,8 +136,20 @@ figma.ui.onmessage = async (msg: any) => {
       let otherLayersCount = 0;
       let imageLayersCount = 0;
 
-      for (const prefix in layerGroups) {
-        const layers = layerGroups[prefix].slice().sort((a, b) => a.y - b.y);
+      const orderedPrefixes = Object.keys(columnMap);
+
+      for (const prefix of orderedPrefixes) {
+        const layers = layerGroups[prefix]
+          ? layerGroups[prefix].slice().sort((a, b) => {
+              const orderDiff = getLayerSequenceOrder(a) - getLayerSequenceOrder(b);
+
+              if (orderDiff !== 0) {
+                return orderDiff;
+              }
+
+              return a.y - b.y;
+            })
+          : [];
         const columnIndex = columnMap[prefix];
 
         // Get all values for this column (skip header row)
@@ -126,8 +172,9 @@ figma.ui.onmessage = async (msg: any) => {
           if (i < values.length && values[i] !== undefined) {
             const value = values[i];
 
-            // Always update the layer name
-
+            // Update the layer name for all matching layers
+            const newName = String(value);
+            layer.name = newName;
             updatedNameCount++;
 
             // Track layer types and update content
@@ -143,7 +190,7 @@ figma.ui.onmessage = async (msg: any) => {
               } catch (error) {
                 console.error("Error loading font:", error);
                 figma.notify(
-                  `Error loading font for layer "${layer.name}". Only name was updated.`,
+                  `Error loading font for layer "${newName}". Only name was updated.`,
                 );
               }
             } else if (
@@ -257,13 +304,5 @@ figma.ui.onmessage = async (msg: any) => {
 
 // Update selection info in UI
 figma.on("selectionchange", () => {
-  const selection = figma.currentPage.selection;
-  const names = selection.map((node) => node.name);
-  const types = selection.map((node) => node.type);
-
-  figma.ui.postMessage({
-    type: "selection-info",
-    names,
-    types,
-  });
+  syncSelectionInfoToUI();
 });
