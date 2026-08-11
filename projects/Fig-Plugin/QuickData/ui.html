@@ -133,6 +133,15 @@
         border-bottom: 2px solid #32cd32;
       }
 
+      .preview-table th.clickable-header {
+        cursor: pointer;
+        color: #0a66c2;
+      }
+
+      .preview-table th.clickable-header:hover {
+        background: #e7f1ff;
+      }
+
       .preview-table tr:hover {
         background: #f9f9f9;
       }
@@ -590,6 +599,7 @@
             <ul style="margin-top: 8px">
               <li>Select the layers you want to update</li>
               <li>Click the "Sync" button</li>
+              <li>Or click a column header to rename selected layers to that column</li>
               <li>Text layers: Both name and content update</li>
               <li>Other layers: Names update only</li>
               <li>Multiple layers can use the same column</li>
@@ -804,7 +814,7 @@
 
         // Add headers (always use first row as headers after normalization)
         data[0].forEach((header) => {
-          tableHTML += `<th>${header || ""}</th>`;
+          tableHTML += `<th class="clickable-header">${header || ""}</th>`;
         });
         tableHTML += "</tr></thead><tbody>";
 
@@ -825,9 +835,38 @@
 
         // Update table content
         previewTable.innerHTML = tableHTML;
+        setupHeaderClickHandlers(data[0]);
 
         tablePreview.classList.add("visible");
         buttonContainer.classList.add("visible");
+      }
+
+      function setupHeaderClickHandlers(headers) {
+        const previewTable = document.getElementById("previewTable");
+        if (!previewTable || !headers) return;
+
+        const headerCells = previewTable.querySelectorAll(
+          "th.clickable-header",
+        );
+
+        headerCells.forEach((th, index) => {
+          const headerText = headers[index] ? String(headers[index]).trim() : "";
+          if (!headerText) return;
+
+          th.style.cursor = "pointer";
+          th.title = `Click to rename selected layers to #${headerText}`;
+          th.addEventListener("click", () => {
+            parent.postMessage(
+              {
+                pluginMessage: {
+                  type: "sync-header",
+                  header: headerText,
+                },
+              },
+              "*",
+            );
+          });
+        });
       }
 
       async function fetchSheetData(sheetId, gid) {

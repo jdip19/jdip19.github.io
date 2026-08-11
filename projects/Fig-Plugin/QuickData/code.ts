@@ -15,6 +15,72 @@ const syncSelectionInfoToUI = () => {
   });
 };
 
+const getMatchKey = (value: string) => {
+  const trimmedValue = value.trim();
+  return trimmedValue.startsWith("#") ? trimmedValue : `#${trimmedValue}`;
+};
+
+// In-memory cache for images during a single sync operation
+const imageCache: Map<string, any> = new Map();
+
+const extractImageUrl = (value: string): string | null => {
+  if (!value) return null;
+  const trimmed = String(value).trim();
+
+  // Markdown style link: [text](url) or direct markdown link where url is in parentheses
+  const mdMatch = trimmed.match(/\((https?:\/\/[^)]+)\)/i);
+  if (mdMatch && mdMatch[1]) {
+    return mdMatch[1].trim();
+  }
+
+  // Plain URL maybe wrapped in <>
+  const angleMatch = trimmed.match(/<?(https?:\/\/[^>\s]+)>?/i);
+  if (angleMatch && angleMatch[1]) {
+    return angleMatch[1].trim();
+  }
+
+  return null;
+};
+
+const isImageExtension = (url: string) => {
+  return /\.(jpe?g|png|webp|gif|svg)(?:[?#]|$)/i.test(url);
+};
+
+const fetchAndCreateImage = async (url: string) => {
+  if (imageCache.has(url)) return imageCache.get(url);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+
+  const contentType = ((response as any).headers?.get?.("content-type") || "").toLowerCase();
+  if (!contentType.startsWith("image/") && !contentType.includes("svg")) {
+    throw new Error(`URL did not return an image content-type: ${contentType}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const img = figma.createImage(new Uint8Array(arrayBuffer));
+  imageCache.set(url, img);
+  return img;
+};
+
+const applyImageToLayer = (layer: SceneNode, image: any) => {
+  try {
+    const fills = JSON.parse(JSON.stringify((layer as any).fills || []));
+    fills[0] = {
+      type: "IMAGE",
+      scaleMode: "FILL",
+      imageHash: image.hash,
+      visible: true,
+      opacity: 1,
+    } as Paint;
+    (layer as any).fills = fills;
+    return true;
+  } catch (err) {
+    console.error("applyImageToLayer error", err);
+    return false;
+  }
+};
+
 syncSelectionInfoToUI();
 
 // Load saved URL when plugin starts
@@ -36,6 +102,32 @@ const getLayerSequenceOrder = (layer: SceneNode): number => {
   }
 
   return layer.y;
+};
+
+const syncSelectedLayersToHeader = (headerName: string) => {
+  const trimmedHeader = String(headerName ?? "").trim();
+  if (!trimmedHeader) {
+    figma.notify("Invalid column header");
+    return;
+  }
+
+  const selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    figma.notify("Please select at least one layer to rename.");
+    return;
+  }
+
+  const newName = getMatchKey(trimmedHeader);
+  for (const layer of selection) {
+    layer.name = newName;
+  }
+
+  figma.notify(
+    `Renamed ${selection.length} selected layer${
+      selection.length > 1 ? "s" : ""
+    } to ${newName}`,
+    { timeout: 3000 },
+  );
 };
 
 // Handle messages from the UI
@@ -94,16 +186,16 @@ figma.ui.onmessage = async (msg: any) => {
       const columnMap: { [key: string]: number } = {};
       headers.forEach((header: string, index: number) => {
         if (header && header.trim()) {
-          // Remove any whitespace and special characters
-          const cleanHeader = header.trim().replace(/[^a-zA-Z0-9]/g, "");
-          if (cleanHeader) {
-            columnMap["#" + cleanHeader] = index;
+          const trimmedHeader = header.trim();
+          const matchKey = getMatchKey(trimmedHeader);
+          if (matchKey) {
+            columnMap[matchKey] = index;
           }
         }
       });
       console.log("Created column mapping:", columnMap);
 
-      // Group selected layers by their prefix
+      // Group selected layers by their matching column name
       const layerGroups: { [prefix: string]: SceneNode[] } = {};
       console.log(
         "Selected layers:",
@@ -114,15 +206,18 @@ figma.ui.onmessage = async (msg: any) => {
         const layerName = layer.name;
         console.log("Checking layer:", layerName);
 
-        const cleanLayerName = layerName.trim();
+        const cleanLayerName = getMatchKey(layerName);
+        const matchingColumnKey = Object.keys(columnMap).find(
+          (key) => key.toLowerCase() === cleanLayerName.toLowerCase(),
+        );
 
-        if (Object.prototype.hasOwnProperty.call(columnMap, cleanLayerName)) {
-          if (!layerGroups[cleanLayerName]) {
-            layerGroups[cleanLayerName] = [];
+        if (matchingColumnKey) {
+          if (!layerGroups[matchingColumnKey]) {
+            layerGroups[matchingColumnKey] = [];
           }
 
-          layerGroups[cleanLayerName].push(layer);
-          console.log("  ✓ Matched column:", cleanLayerName);
+          layerGroups[matchingColumnKey].push(layer);
+          console.log("  ✓ Matched column:", matchingColumnKey);
         } else {
           console.log("  ✗ No matching prefix found");
         }
@@ -193,45 +288,28 @@ figma.ui.onmessage = async (msg: any) => {
                   `Error loading font for layer "${newName}". Only name was updated.`,
                 );
               }
-            } else if (
-              layer.type === "FRAME" ||
-              layer.type === "RECTANGLE" ||
-              layer.type === "ELLIPSE" ||
-              layer.type === "POLYGON" ||
-              layer.type === "STAR" ||
-              layer.type === "VECTOR"
-            ) {
-              // Check if the value is a valid image URL (now allow any http/https URL)
-              if (value.startsWith("http")) {
+            } else if ("fills" in layer) {
+              // Try to extract an image URL (supports markdown links and plain URLs)
+              const imageUrlCandidate = extractImageUrl(String(value));
+              const potentialUrl = imageUrlCandidate ?? (String(value).trim().startsWith("http") ? String(value).trim() : null);
+
+              if (potentialUrl) {
                 try {
-                  // Fetch the image data
-                  const response = await fetch(value);
-                  if (!response.ok) {
-                    throw new Error(
-                      `Failed to fetch image: ${response.statusText}`,
-                    );
+                  // fetch, validate and create figma image (uses in-memory cache)
+                  const img = await fetchAndCreateImage(potentialUrl);
+                  const applied = applyImageToLayer(layer, img);
+                  if (applied) {
+                    imageLayersCount++;
+                  } else {
+                    otherLayersCount++;
+                    figma.notify(`Cannot apply image to layer "${layer.name}": unsupported layer type or fills.`, { timeout: 3000 });
                   }
-                  // Convert the response to array buffer
-                  const imageData = await response.arrayBuffer();
-                  // Create a new image fill
-                  const imageHash = await figma.createImage(
-                    new Uint8Array(imageData),
-                  );
-                  const fills = JSON.parse(JSON.stringify(layer.fills));
-                  fills[0] = {
-                    type: "IMAGE",
-                    scaleMode: "FILL",
-                    imageHash: imageHash.hash,
-                    visible: true,
-                    opacity: 1,
-                  };
-                  layer.fills = fills;
-                  imageLayersCount++;
                 } catch (error) {
                   console.error("Error loading image:", error);
                   figma.notify(
-                    `Error loading image for layer "${layer.name}". Only name was updated.`,
+                    `Error loading image for layer "${layer.name}": ${error instanceof Error ? error.message : String(error)}`,
                   );
+                  otherLayersCount++;
                 }
               } else {
                 otherLayersCount++;
@@ -297,6 +375,8 @@ figma.ui.onmessage = async (msg: any) => {
         `Error updating layers: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  } else if (msg.type === "sync-header") {
+    syncSelectedLayersToHeader(msg.header);
   } else if (msg.type === "close") {
     figma.closePlugin();
   }
