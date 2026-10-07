@@ -1,0 +1,2 @@
+C:\mingw64\bin\ar.exe qc libimageenc.a CMakeFiles/imageenc.dir/imageio/image_enc.c.obj
+C:\mingw64\bin\ranlib.exe libimageenc.a

@@ -1,7 +1,7 @@
 /// <reference types="@figma/plugin-typings" />
 
 // Show UI with dimensions
-figma.showUI(__html__, { width: 300, height: 450 });
+figma.showUI(__html__, { width: 600, height: 500 });
 
 const syncSelectionInfoToUI = () => {
   const selection = figma.currentPage.selection;

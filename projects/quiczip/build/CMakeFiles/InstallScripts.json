@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/cmake_install.cmake",
+		"D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

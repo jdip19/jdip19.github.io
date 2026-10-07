@@ -1,0 +1,2 @@
+C:\mingw64\bin\ar.exe qc libsharpyuv.a CMakeFiles/sharpyuv.dir/sharpyuv/sharpyuv_sse2.c.obj CMakeFiles/sharpyuv.dir/sharpyuv/sharpyuv_neon.c.obj CMakeFiles/sharpyuv.dir/sharpyuv/sharpyuv_cpu.c.obj CMakeFiles/sharpyuv.dir/sharpyuv/sharpyuv_csp.c.obj CMakeFiles/sharpyuv.dir/sharpyuv/sharpyuv_dsp.c.obj CMakeFiles/sharpyuv.dir/sharpyuv/sharpyuv_gamma.c.obj CMakeFiles/sharpyuv.dir/sharpyuv/sharpyuv.c.obj
+C:\mingw64\bin\ranlib.exe libsharpyuv.a

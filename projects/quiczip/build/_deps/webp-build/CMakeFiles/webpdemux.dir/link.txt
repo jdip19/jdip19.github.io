@@ -1,0 +1,2 @@
+C:\mingw64\bin\ar.exe qc libwebpdemux.a CMakeFiles/webpdemux.dir/src/demux/anim_decode.c.obj CMakeFiles/webpdemux.dir/src/demux/demux.c.obj
+C:\mingw64\bin\ranlib.exe libwebpdemux.a

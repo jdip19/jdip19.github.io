@@ -728,6 +728,15 @@
         } else if (msg.type === "load-url") {
           document.getElementById("sheetUrl").value = msg.url;
           validateUI();
+
+          // Auto-fetch and display data when a saved URL is loaded (preview on open)
+          (async () => {
+            try {
+              await fetchAndDisplayData();
+            } catch (err) {
+              console.error("Auto-fetch failed:", err);
+            }
+          })();
         }
       };
 

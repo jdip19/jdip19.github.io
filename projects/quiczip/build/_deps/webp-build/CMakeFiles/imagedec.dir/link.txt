@@ -1,0 +1,2 @@
+C:\mingw64\bin\ar.exe qc libimagedec.a CMakeFiles/imagedec.dir/imageio/image_dec.c.obj CMakeFiles/imagedec.dir/imageio/jpegdec.c.obj CMakeFiles/imagedec.dir/imageio/metadata.c.obj CMakeFiles/imagedec.dir/imageio/pngdec.c.obj CMakeFiles/imagedec.dir/imageio/pnmdec.c.obj CMakeFiles/imagedec.dir/imageio/tiffdec.c.obj CMakeFiles/imagedec.dir/imageio/webpdec.c.obj CMakeFiles/imagedec.dir/imageio/wicdec.c.obj
+C:\mingw64\bin\ranlib.exe libimagedec.a
