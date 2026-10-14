@@ -1,0 +1,4 @@
+project_id = "kmkjuuytbgpozrigspgw"
+
+[functions.admin-licenses]
+verify_jwt = false

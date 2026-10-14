@@ -1,3 +1,32 @@
+## QuickText license admin
+
+The GitHub Pages admin panel is available at `/admin/`. Its static page contains no
+password or Supabase service-role key; authentication and license creation are
+handled by the `admin-licenses` Supabase Edge Function.
+
+From `projects/Fig-Plugin/QuicText`, link the Supabase project and set function
+secrets. Use a unique admin password and a random token secret of at least 32
+characters. Do not put these values in the website or commit them:
+
+```sh
+supabase link --project-ref kmkjuuytbgpozrigspgw
+supabase secrets set ADMIN_PASSWORD="replace-with-a-strong-password" ADMIN_TOKEN_SECRET="replace-with-at-least-32-random-characters" ADMIN_ALLOWED_ORIGINS="https://jdip19.github.io,https://jdip19.github.com"
+supabase functions deploy admin-licenses --no-verify-jwt
+```
+
+Supabase provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to Edge
+Functions at runtime; keep the service-role key out of the repository.
+
+The function validates a signed, eight-hour admin session before writing a
+cryptographically generated QuickText Pro key to the existing `licenses` table.
+The table must permit the admin-issued row fields (`serial_key`, `email`,
+`plugin`, `plan`, `license_type`, `unlimited`, `source`, and `device_id`).
+Only expose the static panel over HTTPS. GitHub Pages cannot hide static files
+behind server-side authentication; the protected function is what prevents
+unauthorized license creation.
+
+## Run the plugin
+
 Below are the steps to get your plugin running. You can also find instructions at:
 
   https://www.figma.com/plugin-docs/plugin-quickstart-guide/
