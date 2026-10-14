@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/CMakeFiles/webp-populate"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/CMakeFiles/webp-populate.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/CMakeFiles/webp-populate-complete.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-build.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-configure.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-download.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-install.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-mkdir.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-patch.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-test.rule"
+		},
+		{
+			"file" : "D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/webp-populate-prefix/src/webp-populate-stamp/webp-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"webp-populate"
+		],
+		"name" : "webp-populate"
+	}
+}

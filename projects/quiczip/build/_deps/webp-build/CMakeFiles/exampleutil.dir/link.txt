@@ -1,0 +1,2 @@
+C:\mingw64\bin\ar.exe qc libexampleutil.a CMakeFiles/exampleutil.dir/examples/example_util.c.obj
+C:\mingw64\bin\ranlib.exe libexampleutil.a

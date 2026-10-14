@@ -67,7 +67,8 @@ self.__SERVER_FILES_MANIFEST={
       "qualities": [
         75
       ],
-      "unoptimized": false
+      "unoptimized": false,
+      "customCacheHandler": false
     },
     "devIndicators": {
       "position": "bottom-left"
@@ -88,7 +89,10 @@ self.__SERVER_FILES_MANIFEST={
     "httpAgentOptions": {
       "keepAlive": true
     },
-    "logging": {},
+    "logging": {
+      "serverFunctions": true,
+      "browserToTerminal": "warn"
+    },
     "compiler": {},
     "expireTime": 31536000,
     "staticPageGenerationTimeout": 60,
@@ -100,7 +104,7 @@ self.__SERVER_FILES_MANIFEST={
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "C:\\Users\\jaydi",
+    "outputFileTracingRoot": "D:\\Jaydip-Upadhyay\\jdip19.github.io",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -141,6 +145,7 @@ self.__SERVER_FILES_MANIFEST={
     },
     "cacheHandlers": {},
     "experimental": {
+      "appNewScrollHandler": false,
       "useSkewCookie": false,
       "cssChunking": true,
       "multiZoneDraftMode": false,
@@ -149,7 +154,11 @@ self.__SERVER_FILES_MANIFEST={
       "serverMinification": true,
       "linkNoTouchStart": false,
       "caseSensitiveRoutes": false,
+      "cachedNavigations": false,
+      "partialFallbacks": false,
       "dynamicOnHover": false,
+      "varyParams": false,
+      "prefetchInlining": false,
       "preloadEntriesOnStart": true,
       "clientRouterFilter": true,
       "clientRouterFilterRedirects": false,
@@ -185,6 +194,7 @@ self.__SERVER_FILES_MANIFEST={
       "authInterrupts": false,
       "webpackMemoryOptimizations": false,
       "optimizeServerReact": true,
+      "strictRouteTypes": false,
       "viewTransition": false,
       "removeUncaughtErrorAndRejectionListeners": false,
       "validateRSCRequestHeaders": false,
@@ -192,23 +202,24 @@ self.__SERVER_FILES_MANIFEST={
         "dynamic": 0,
         "static": 300
       },
-      "reactDebugChannel": false,
+      "reactDebugChannel": true,
       "serverComponentsHmrCache": true,
       "staticGenerationMaxConcurrency": 8,
       "staticGenerationMinPagesPerWorker": 25,
       "transitionIndicator": false,
+      "gestureTransition": false,
       "inlineCss": false,
       "useCache": false,
       "globalNotFound": false,
-      "browserDebugInfoInTerminal": false,
+      "browserDebugInfoInTerminal": "warn",
       "lockDistDir": true,
-      "isolatedDevBuild": true,
       "proxyClientMaxBodySize": 10485760,
       "hideLogsAfterAbort": false,
       "mcpServer": true,
       "turbopackFileSystemCacheForDev": true,
       "turbopackFileSystemCacheForBuild": false,
-      "turbopackInferModuleSideEffects": false,
+      "turbopackInferModuleSideEffects": true,
+      "turbopackPluginRuntimeStrategy": "childProcesses",
       "optimizePackageImports": [
         "lucide-react",
         "date-fns",
@@ -293,12 +304,12 @@ self.__SERVER_FILES_MANIFEST={
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "C:\\Users\\jaydi"
+      "root": "D:\\Jaydip-Upadhyay\\jdip19.github.io"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "C:\\Users\\jaydi\\OneDrive\\Desktop\\jdip19.github.io",
-  "relativeAppDir": "OneDrive\\Desktop\\jdip19.github.io",
+  "appDir": "D:\\Jaydip-Upadhyay\\jdip19.github.io",
+  "relativeAppDir": "",
   "files": [
     ".next\\routes-manifest.json",
     ".next\\server\\pages-manifest.json",

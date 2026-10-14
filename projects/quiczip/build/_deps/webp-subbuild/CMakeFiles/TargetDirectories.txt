@@ -1,0 +1,3 @@
+D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/CMakeFiles/webp-populate.dir
+D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/CMakeFiles/edit_cache.dir
+D:/Jaydip-Upadhyay/jdip19.github.io/projects/quiczip/build/_deps/webp-subbuild/CMakeFiles/rebuild_cache.dir

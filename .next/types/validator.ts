@@ -26,7 +26,7 @@ type ApiRouteConfig = {
   default: (req: any, res: any) => ReturnType<NextApiHandler>
   config?: {
     api?: {
-      bodyParser?: boolean | { sizeLimit?: string }
+      bodyParser?: boolean | { sizeLimit?: number | string }
       responseLimit?: string | number | boolean
       externalResolver?: boolean
     }

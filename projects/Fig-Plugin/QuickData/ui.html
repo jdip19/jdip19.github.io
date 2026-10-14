@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <style>
@@ -131,6 +131,15 @@
         top: 0;
         z-index: 1;
         border-bottom: 2px solid #32cd32;
+      }
+
+      .preview-table th.clickable-header {
+        cursor: pointer;
+        color: #0a66c2;
+      }
+
+      .preview-table th.clickable-header:hover {
+        background: #e7f1ff;
       }
 
       .preview-table tr:hover {
@@ -289,14 +298,14 @@
         gap: 4px;
       }
       .footer a:hover {
-      color:#E9AA70;
+        color: #e9aa70;
       }
-      .footer a:hover svg{
+      .footer a:hover svg {
         transform: rotate(-5deg);
         transition: transform 0.3s ease;
       }
-      .footer a:hover .steam{
-        top:1px;
+      .footer a:hover .steam {
+        top: 1px;
         left: 179px;
         transform: rotate(-5deg);
       }
@@ -526,9 +535,9 @@
       </div>
       <div class="section">
         <div class="input-group">
-        <input
-          type="text"
-          id="sheetUrl"
+          <input
+            type="text"
+            id="sheetUrl"
             placeholder="Paste your Google Sheet URL here to fetch data automatically"
           />
           <button class="refresh-button" id="refreshBtn" title="Refresh data">
@@ -563,7 +572,7 @@
             <ul style="margin-top: 8px">
               <li>
                 Make your sheet public (File → Share → Anyone with the link)
-          </li>
+              </li>
               <li>Ensure your first row contains column headers</li>
               <li>For best results, freeze the header row in your sheet</li>
             </ul>
@@ -590,6 +599,7 @@
             <ul style="margin-top: 8px">
               <li>Select the layers you want to update</li>
               <li>Click the "Sync" button</li>
+              <li>Or click a column header to rename selected layers to that column</li>
               <li>Text layers: Both name and content update</li>
               <li>Other layers: Names update only</li>
               <li>Multiple layers can use the same column</li>
@@ -718,6 +728,15 @@
         } else if (msg.type === "load-url") {
           document.getElementById("sheetUrl").value = msg.url;
           validateUI();
+
+          // Auto-fetch and display data when a saved URL is loaded (preview on open)
+          (async () => {
+            try {
+              await fetchAndDisplayData();
+            } catch (err) {
+              console.error("Auto-fetch failed:", err);
+            }
+          })();
         }
       };
 
@@ -772,7 +791,7 @@
 
         // Filter the data to keep only non-empty columns
         return data.map((row) =>
-          nonEmptyColumnIndexes.map((colIndex) => row[colIndex])
+          nonEmptyColumnIndexes.map((colIndex) => row[colIndex]),
         );
       }
 
@@ -804,7 +823,7 @@
 
         // Add headers (always use first row as headers after normalization)
         data[0].forEach((header) => {
-          tableHTML += `<th>${header || ""}</th>`;
+          tableHTML += `<th class="clickable-header">${header || ""}</th>`;
         });
         tableHTML += "</tr></thead><tbody>";
 
@@ -825,9 +844,38 @@
 
         // Update table content
         previewTable.innerHTML = tableHTML;
+        setupHeaderClickHandlers(data[0]);
 
         tablePreview.classList.add("visible");
         buttonContainer.classList.add("visible");
+      }
+
+      function setupHeaderClickHandlers(headers) {
+        const previewTable = document.getElementById("previewTable");
+        if (!previewTable || !headers) return;
+
+        const headerCells = previewTable.querySelectorAll(
+          "th.clickable-header",
+        );
+
+        headerCells.forEach((th, index) => {
+          const headerText = headers[index] ? String(headers[index]).trim() : "";
+          if (!headerText) return;
+
+          th.style.cursor = "pointer";
+          th.title = `Click to rename selected layers to #${headerText}`;
+          th.addEventListener("click", () => {
+            parent.postMessage(
+              {
+                pluginMessage: {
+                  type: "sync-header",
+                  header: headerText,
+                },
+              },
+              "*",
+            );
+          });
+        });
       }
 
       async function fetchSheetData(sheetId, gid) {
@@ -845,9 +893,11 @@
             const table = response.table;
             const headers = table.cols.map((col) => col.label);
             const rows = table.rows.map((row) =>
-              row.c.map((cell) =>
-                cell && cell.v !== null && cell.v !== undefined ? cell.v : ""
-              )
+              row.c.map((cell) => {
+                if (!cell) return "";
+
+                return String(cell.f ?? cell.v ?? "").trim();
+              }),
             );
 
             // Normalize the data structure
@@ -865,14 +915,13 @@
       function normalizeSheetData(data) {
         if (!data || data.length < 2) return data;
 
-        // Check if first row is empty or has empty values
         const firstRowEmpty = data[0].every(
-          (cell) => !cell || cell.trim() === ""
+          (cell) => String(cell ?? "").trim() === "",
         );
-        const secondRowHasHeaders =
-          data[1] && data[1].some((cell) => cell && cell.trim() !== "");
 
-        // If first row is empty and second row has content, remove the first row
+        const secondRowHasHeaders =
+          data[1] && data[1].some((cell) => String(cell ?? "").trim() !== "");
+
         if (firstRowEmpty && secondRowHasHeaders) {
           console.log("Normalizing data: Removing empty first row");
           return data.slice(1);
@@ -885,7 +934,7 @@
       const handleUrlInput = debounce(async (event) => {
         const url = event.target.value.trim();
         if (url) {
-        await fetchAndDisplayData();
+          await fetchAndDisplayData();
         }
       }, 1000);
 
@@ -938,10 +987,10 @@
         // Reset UI to initial state if URL is empty
         if (!sheetUrl) {
           messageRow.style.display = "table-row";
-        messageRow.className = "message";
+          messageRow.className = "message";
           messageRow.querySelector("td").textContent =
             "Data will be previewed here";
-        buttonContainer.classList.remove("visible");
+          buttonContainer.classList.remove("visible");
           return;
         }
 
@@ -959,11 +1008,11 @@
 
         // Show loading state only if URL is valid
         messageRow.style.display = "table-row";
-          messageRow.className = "message loading";
+        messageRow.className = "message loading";
         messageRow.querySelector("td").textContent = "";
-          refreshBtn.classList.add("spinning");
+        refreshBtn.classList.add("spinning");
         buttonContainer.classList.remove("visible");
-          
+
         try {
           const data = await fetchSheetData(sheetId, gid);
           currentSheetData = filterEmptyColumns(data);
@@ -1041,18 +1090,18 @@
             document.getElementById("loading").classList.remove("visible");
             return;
           }
-          }
+        }
 
-          parent.postMessage(
-            {
-              pluginMessage: {
-                type: "update-layers",
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "update-layers",
               data: currentSheetData,
               sheetUrl: document.getElementById("sheetUrl").value.trim(),
-              },
             },
-            "*"
-          );
+          },
+          "*",
+        );
       };
 
       function validateUI() {
@@ -1066,8 +1115,8 @@
 
         if (!hasValidUrl) {
           fetchButton.textContent = "Enter valid sheet URL";
-          } else if (layerCount === 0) {
-            fetchButton.textContent = "Select layers to sync";
+        } else if (layerCount === 0) {
+          fetchButton.textContent = "Select layers to sync";
         } else {
           fetchButton.textContent = `Sync (${layerCount} layer${
             layerCount > 1 ? "s" : ""
