@@ -187,11 +187,8 @@ Deno.serve(async (request) => {
     return jsonResponse({ authenticated: true }, 200, origin, allowedOrigins);
   }
 
-  if (body.action !== "create-license") {
+  if (!["create-license", "list-licenses", "delete-license"].includes(String(body.action))) {
     return jsonResponse({ error: "Unknown action." }, 400, origin, allowedOrigins);
-  }
-  if (!isValidEmail(body.email)) {
-    return jsonResponse({ error: "Enter a valid customer email address." }, 400, origin, allowedOrigins);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -199,6 +196,84 @@ Deno.serve(async (request) => {
   if (!supabaseUrl || !serviceRoleKey) {
     console.error("Admin function requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
     return jsonResponse({ error: "License storage is not configured." }, 500, origin, allowedOrigins);
+  }
+
+  const restUrl = `${supabaseUrl.replace(/\/+$/, "")}/rest/v1/licenses`;
+  const supabaseHeaders = {
+    apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
+  };
+
+  if (body.action === "list-licenses") {
+    const query = new URLSearchParams({
+      select: "id,serial_key,email,plugin,plan,license_type,unlimited",
+      plugin: "eq.quictext",
+      order: "id.desc",
+    });
+    try {
+      const licenses: unknown[] = [];
+      const pageSize = 1000;
+      for (let offset = 0; ; offset += pageSize) {
+        const response = await fetch(`${restUrl}?${query}`, {
+          headers: {
+            ...supabaseHeaders,
+            Range: `${offset}-${offset + pageSize - 1}`,
+          },
+        });
+        if (!response.ok) {
+          const details = await response.text();
+          console.error("Supabase license list failed:", response.status, details);
+          return jsonResponse({ error: "Could not load QuickText licenses." }, 502, origin, allowedOrigins);
+        }
+        const page: unknown = await response.json();
+        if (!Array.isArray(page)) {
+          console.error("Supabase license list returned an unexpected response.");
+          return jsonResponse({ error: "License storage returned an invalid response." }, 502, origin, allowedOrigins);
+        }
+        licenses.push(...page);
+        if (page.length < pageSize) break;
+      }
+      return jsonResponse({ licenses }, 200, origin, allowedOrigins);
+    } catch (error) {
+      console.error("Supabase license list request failed:", error);
+      return jsonResponse({ error: "Could not connect to license storage." }, 502, origin, allowedOrigins);
+    }
+  }
+
+  if (body.action === "delete-license") {
+    if ((typeof body.id !== "string" && typeof body.id !== "number")
+      || String(body.id).length === 0
+      || String(body.id).length > 128) {
+      return jsonResponse({ error: "Invalid license ID." }, 400, origin, allowedOrigins);
+    }
+    const query = new URLSearchParams({
+      id: `eq.${String(body.id)}`,
+      plugin: "eq.quictext",
+      select: "id",
+    });
+    try {
+      const response = await fetch(`${restUrl}?${query}`, {
+        method: "DELETE",
+        headers: { ...supabaseHeaders, Prefer: "return=representation" },
+      });
+      if (!response.ok) {
+        const details = await response.text();
+        console.error("Supabase license deletion failed:", response.status, details);
+        return jsonResponse({ error: "Could not delete the license." }, 502, origin, allowedOrigins);
+      }
+      const deleted: unknown = await response.json();
+      if (!Array.isArray(deleted) || deleted.length === 0) {
+        return jsonResponse({ error: "QuickText license was not found." }, 404, origin, allowedOrigins);
+      }
+      return jsonResponse({ deleted: true }, 200, origin, allowedOrigins);
+    } catch (error) {
+      console.error("Supabase license deletion request failed:", error);
+      return jsonResponse({ error: "Could not connect to license storage." }, 502, origin, allowedOrigins);
+    }
+  }
+
+  if (!isValidEmail(body.email)) {
+    return jsonResponse({ error: "Enter a valid customer email address." }, 400, origin, allowedOrigins);
   }
 
   const licenseKey = generateLicenseKey();
@@ -214,11 +289,10 @@ Deno.serve(async (request) => {
   };
 
   try {
-    const response = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/rest/v1/licenses`, {
+    const response = await fetch(restUrl, {
       method: "POST",
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        ...supabaseHeaders,
         "Content-Type": "application/json",
         Prefer: "return=minimal",
       },

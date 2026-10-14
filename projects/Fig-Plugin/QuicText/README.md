@@ -1,8 +1,8 @@
 ## QuickText license admin
 
 The GitHub Pages admin panel is available at `/admin/`. Its static page contains no
-password or Supabase service-role key; authentication and license creation are
-handled by the `admin-licenses` Supabase Edge Function.
+password or Supabase service-role key; authentication and license management
+(list, create, and delete) are handled by the `admin-licenses` Supabase Edge Function.
 
 From `projects/Fig-Plugin/QuicText`, link the Supabase project and set function
 secrets. Use a unique admin password and a random token secret of at least 32
@@ -17,8 +17,10 @@ supabase functions deploy admin-licenses --no-verify-jwt
 Supabase provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to Edge
 Functions at runtime; keep the service-role key out of the repository.
 
-The function validates a signed, eight-hour admin session before writing a
-cryptographically generated QuickText Pro key to the existing `licenses` table.
+The function validates a signed, eight-hour admin session before listing,
+creating, or deleting QuickText license rows in the existing `licenses` table.
+The admin table displays all matching rows and confirms before permanently
+deleting a license.
 The table must permit the admin-issued row fields (`serial_key`, `email`,
 `plugin`, `plan`, `license_type`, `unlimited`, `source`, and `device_id`).
 Only expose the static panel over HTTPS. GitHub Pages cannot hide static files
