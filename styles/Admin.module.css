@@ -1,0 +1,260 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(249, 115, 22, .14), transparent 42%),
+    #101114;
+  color: #f5f5f5;
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+}
+
+.panel {
+  width: min(100%, 1040px);
+  padding: 32px;
+  border: 1px solid #303137;
+  border-radius: 20px;
+  background: rgba(24, 25, 29, .96);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .35);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #fb923c;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.panel h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -.03em;
+}
+
+.intro {
+  margin: 10px 0 26px;
+  color: #a1a1aa;
+  line-height: 1.55;
+}
+
+.panel label {
+  display: block;
+  margin: 18px 0 8px;
+  color: #d4d4d8;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid #3f4047;
+  border-radius: 10px;
+  outline: none;
+  background: #111216;
+  color: #fff;
+  font: inherit;
+}
+
+.panel input:focus {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, .16);
+}
+
+.panel button {
+  min-height: 44px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 10px;
+  background: #f97316;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.panel form > button {
+  width: 100%;
+}
+
+.panel button:hover {
+  background: #ea580c;
+}
+
+.panel button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.secondary {
+  width: auto;
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 0 12px;
+  border: 1px solid #414149 !important;
+  background: transparent !important;
+  color: #d4d4d8 !important;
+  font-size: 13px !important;
+}
+
+.secondary:hover {
+  background: #292a30 !important;
+}
+
+.topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.status {
+  min-height: 22px;
+  margin: 14px 0 0;
+  color: #fca5a5;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.success {
+  color: #86efac;
+}
+
+.working {
+  color: #fdba74;
+}
+
+.license {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid #5b351e;
+  border-radius: 12px;
+  background: #21170f;
+}
+
+.licenseLabel {
+  margin: 0 0 10px;
+  color: #fdba74;
+  font-size: 13px;
+}
+
+.panel code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #fff7ed;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.panel td code {
+  font-size: 12px;
+}
+
+.copy {
+  margin-top: 14px !important;
+}
+
+.finePrint {
+  margin: 22px 0 0;
+  color: #71717a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #303137;
+}
+
+.sectionHeading {
+  margin-bottom: 16px;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.sectionHeading p {
+  margin: 6px 0 0;
+  color: #a1a1aa;
+  font-size: 13px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #303137;
+  border-radius: 12px;
+}
+
+.panel table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.panel th,
+.panel td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #303137;
+  vertical-align: middle;
+}
+
+.panel th {
+  background: #202126;
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.panel td {
+  color: #e4e4e7;
+  font-size: 13px;
+}
+
+.panel tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableStatus {
+  margin: 12px 0 0;
+  color: #a1a1aa;
+  font-size: 13px;
+}
+
+.panel .deleteButton {
+  width: auto;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid #7f1d1d;
+  background: #351719;
+  color: #fecaca;
+  font-size: 12px;
+}
+
+.panel .deleteButton:hover {
+  background: #521d20;
+}
+
+@media (max-width: 480px) {
+  .panel {
+    padding: 24px;
+  }
+
+  .topline {
+    align-items: flex-start;
+  }
+
+  .adminTopline {
+    flex-direction: column;
+  }
+}

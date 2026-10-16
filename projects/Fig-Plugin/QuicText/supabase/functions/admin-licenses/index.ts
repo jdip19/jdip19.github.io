@@ -3,6 +3,7 @@ const SESSION_LIFETIME_SECONDS = 8 * 60 * 60;
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://jdip19.github.io",
   "https://jdip19.github.com",
+  "https://quiclab.tech",
   "http://localhost:3000",
   "http://localhost:5500",
 ];
