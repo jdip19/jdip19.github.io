@@ -1,1 +1,0 @@
- "_deps/webp-build/libwebp.a" -luser32 -lshell32 -lole32 -loleaut32 -lshlwapi -lwindowscodecs -lcomctl32 -ladvapi32 "_deps/webp-build/libsharpyuv.a" -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

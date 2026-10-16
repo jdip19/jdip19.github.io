@@ -1,2 +1,0 @@
-C:\mingw64\bin\ar.exe qc libwebpmux.a CMakeFiles/libwebpmux.dir/src/mux/anim_encode.c.obj CMakeFiles/libwebpmux.dir/src/mux/muxedit.c.obj CMakeFiles/libwebpmux.dir/src/mux/muxinternal.c.obj CMakeFiles/libwebpmux.dir/src/mux/muxread.c.obj
-C:\mingw64\bin\ranlib.exe libwebpmux.a

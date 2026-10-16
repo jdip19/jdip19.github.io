@@ -1,2 +1,0 @@
-C:\mingw64\bin\ar.exe qc libimageioutil.a CMakeFiles/imageioutil.dir/imageio/imageio_util.c.obj
-C:\mingw64\bin\ranlib.exe libimageioutil.a
