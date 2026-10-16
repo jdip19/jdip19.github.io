@@ -27,6 +27,7 @@
   ],
   "exclude": [
     "node_modules",
+    "**/build/**",
     "public/projects",
     "**/*.figma.ts",
     "**/Fig-Plugin/**"
