@@ -1,15 +1,7 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
-import {
-  getDatabase,
-  ref,
-  set,
-  get,
-} from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
-
 let firebaseConfig = {};
 let ALLOWED_DB_PATHS = {};
 let RATE_LIMIT = {}; // from firebase-setup.json
-let database = null;
+let databaseUrl = null;
 let firebaseReady = false;
 
 // Remote config loader
@@ -23,6 +15,10 @@ async function loadRemoteConfig() {
     firebaseConfig = config.firebaseConfig;
     ALLOWED_DB_PATHS = config.ALLOWED_DB_PATHS;
     RATE_LIMIT = config.RATE_LIMIT;
+    databaseUrl = firebaseConfig.databaseURL;
+    if (!databaseUrl) {
+      throw new Error("Remote Firebase configuration has no databaseURL");
+    }
     return true;
   } catch (err) {
     console.error("Failed to load remote config:", err);
@@ -38,16 +34,8 @@ async function init() {
     return;
   }
 
-  try {
-    const app = initializeApp(firebaseConfig);
-    database = getDatabase(app);
-    firebaseReady = true;
-
-    // Database is ready
-    runPostFirebaseInit();
-  } catch (err) {
-    console.error("Firebase initialization failed:", err);
-  }
+  firebaseReady = true;
+  runPostFirebaseInit();
 }
 
 init();
@@ -74,22 +62,57 @@ function ensureFirebaseReady() {
 }
 
 function runPostFirebaseInit() {
-  const versionRef = ref(database, ALLOWED_DB_PATHS.VERSION);
-
-  get(versionRef).then((snapshot) => {
-    if (snapshot.exists()) {
-      const remoteVersion = snapshot.val();
-
+  firebaseRequest(ALLOWED_DB_PATHS.VERSION)
+    .then((remoteVersion) => {
+      if (remoteVersion !== null) {
       // Store remote version and comparison result
       chrome.storage.local.set({
         remoteVersion,
         updateAvailable: remoteVersion > localVersion,
       });
-    }
-  });
+      }
+    })
+    .catch((error) => {
+      console.error("Could not check the remote extension version:", error);
+    });
 }
 
 const localVersion = chrome.runtime.getManifest().version;
+
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => {
+    console.error("Could not enable the extension side panel:", error);
+  });
+
+async function firebaseRequest(path, { method = "GET", body } = {}) {
+  const ready = await ensureFirebaseReady();
+  if (!ready) {
+    throw new Error("Firebase configuration is not available");
+  }
+  if (!validateDbPath(path)) {
+    throw new Error("Invalid database path");
+  }
+
+  const encodedPath = path
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const baseUrl = databaseUrl.endsWith("/")
+    ? databaseUrl
+    : `${databaseUrl}/`;
+  const response = await fetch(`${baseUrl}${encodedPath}.json`, {
+    method,
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Firebase request failed (${response.status} ${response.statusText})`
+    );
+  }
+  return response.json();
+}
 
 // Per-user licensing / access control
 let clientId = null;
@@ -141,27 +164,33 @@ async function refreshUserStatus() {
       throw new Error("Invalid users path");
     }
 
-    const userRef = ref(database, `${usersPath}/${id}`);
-    const snapshot = await get(userRef);
+    const userPath = `${usersPath}/${id}`;
+    const data = await firebaseRequest(userPath);
 
-    if (!snapshot.exists()) {
+    if (data === null) {
       // First time we see this user → create pending entry
       const now = Date.now();
-      await set(userRef, {
+      await firebaseRequest(userPath, {
+        method: "PUT",
+        body: {
         status: "pending",
         createdAt: now,
         lastSeen: now,
+        },
       });
       userStatus = "pending";
     } else {
-      const data = snapshot.val() || {};
-      userStatus = data.status || "pending";
+      const userData = data || {};
+      userStatus = userData.status || "pending";
 
       // Update lastSeen for analytics
       try {
-        await set(userRef, { ...data, lastSeen: Date.now() });
+        await firebaseRequest(userPath, {
+          method: "PUT",
+          body: { ...userData, lastSeen: Date.now() },
+        });
       } catch (e) {
-        // Non-fatal
+        console.error("Could not update Firebase lastSeen:", e);
       }
     }
 
@@ -306,26 +335,27 @@ async function syncPendingUpdatesToFirebase() {
     }
 
     // Get current values from Firebase
-    const copiedRef = ref(database, `${statsPath}/copied`);
-    const downloadedRef = ref(database, `${statsPath}/downloaded`);
-
     const [copiedSnap, downloadedSnap] = await Promise.all([
-      get(copiedRef),
-      get(downloadedRef),
+      firebaseRequest(`${statsPath}/copied`),
+      firebaseRequest(`${statsPath}/downloaded`),
     ]);
 
-    const currentCopied = copiedSnap.exists() ? copiedSnap.val() : 0;
-    const currentDownloaded = downloadedSnap.exists()
-      ? downloadedSnap.val()
-      : 0;
+    const currentCopied = copiedSnap ?? 0;
+    const currentDownloaded = downloadedSnap ?? 0;
 
     // Update Firebase with batched increments (only 2 writes instead of multiple)
     const newCopied = currentCopied + updatesToSync.copied;
     const newDownloaded = currentDownloaded + updatesToSync.downloaded;
 
     await Promise.all([
-      set(copiedRef, newCopied),
-      set(downloadedRef, newDownloaded),
+      firebaseRequest(`${statsPath}/copied`, {
+        method: "PUT",
+        body: newCopied,
+      }),
+      firebaseRequest(`${statsPath}/downloaded`, {
+        method: "PUT",
+        body: newDownloaded,
+      }),
     ]);
 
     // Update local storage with synced values
@@ -382,10 +412,15 @@ chrome.storage.local.get(
 async function checkAndNudgeShortcuts() {
   try {
     const commands = await chrome.commands.getAll();
+    const sidePanelCommand = commands.find(
+      (cmd) => cmd.name === "_execute_action"
+    );
     const copyCommand = commands.find((cmd) => cmd.name === "copy_svg");
     const downloadCommand = commands.find((cmd) => cmd.name === "download_svg");
 
     const shortcutsRegistered =
+      sidePanelCommand &&
+      sidePanelCommand.shortcut &&
       copyCommand &&
       copyCommand.shortcut &&
       downloadCommand &&
@@ -400,8 +435,7 @@ async function checkAndNudgeShortcuts() {
             type: "basic",
             iconUrl: chrome.runtime.getURL("i2snatcher128.png"),
             title: "i2Snatcher - Keyboard Shortcuts",
-            message:
-              "Click to set up keyboard shortcuts (Alt+Shift+C and Alt+Shift+D)",
+            message: "Click to assign available i2Snatcher keyboard shortcuts",
             buttons: [{ title: "Set Up Shortcuts" }],
           },
           (notificationId) => {
@@ -527,6 +561,11 @@ chrome.contextMenus.onClicked.addListener((info) => {
 
 // Handle keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
+  if (command !== "copy_svg" && command !== "download_svg") {
+    console.error("Received an unknown keyboard command:", command);
+    return;
+  }
+
   isUserAllowedAsync().then((allowed) => {
     if (!allowed) {
       chrome.notifications.create({
@@ -540,16 +579,28 @@ chrome.commands.onCommand.addListener((command) => {
     }
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        const tabId = tabs[0].id;
-        const action = command === "copy_svg" ? "copy" : "download";
-
-        chrome.scripting.executeScript({
-          target: { tabId },
-          function: extractSvg,
-          args: [action],
-        });
+      const tabId = tabs[0]?.id;
+      if (!tabId) {
+        console.error("Could not run SVG command: no active tab found.");
+        return;
       }
+
+      const action = command === "copy_svg" ? "copy" : "download";
+      chrome.scripting.executeScript(
+        {
+          target: { tabId },
+          func: extractSvg,
+          args: [action],
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              `Could not ${action} SVG in the active tab:`,
+              chrome.runtime.lastError.message
+            );
+          }
+        }
+      );
     });
   });
 });
@@ -568,11 +619,29 @@ setInterval(() => {
 // Open the link in a background tab and extract the SVG
 function processSvg(detailLink, action) {
   chrome.tabs.create({ url: detailLink, active: true }, (tab) => {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: extractSvg,
-      args: [action],
-    });
+    if (chrome.runtime.lastError || !tab || !tab.id) {
+      console.error(
+        "Could not open the SVG detail tab:",
+        chrome.runtime.lastError?.message || "No tab was created."
+      );
+      return;
+    }
+
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tab.id },
+        func: extractSvg,
+        args: [action],
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            `Could not ${action} SVG from the detail tab:`,
+            chrome.runtime.lastError.message
+          );
+        }
+      }
+    );
   });
 }
 
@@ -617,6 +686,13 @@ function extractSvg(action) {
         const categoryElement = document.querySelector(
           "a.link--normal.mg-right-lv1"
         );
+        const packName =
+          categoryElement && categoryElement.textContent.trim()
+            ? categoryElement.textContent.trim()
+            : "Unknown icon pack";
+        const packId = categoryElement && categoryElement.href
+          ? new URL(categoryElement.href).pathname.toLowerCase()
+          : packName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
         let iconName =
           titleElement && categoryElement
@@ -625,91 +701,348 @@ function extractSvg(action) {
             ? `${titleElement.textContent.trim()}`
             : "icon";
 
-        function extractUniqueColorsFromSVG(svgElement) {
-          const html = svgElement.outerHTML;
+        function normalizeColor(value) {
+          const color = value.trim().toLowerCase();
+          const hexMatch = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+          if (hexMatch) {
+            const hex = hexMatch[1];
+            return hex.length === 3
+              ? `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`
+              : `#${hex}`;
+          }
 
-          // Match both 3-digit and 6-digit hex codes
-          const hexMatches = html.match(/#[0-9a-fA-F]{3,6}/g) || [];
+          const rgbMatch = color.match(
+            /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/
+          );
+          if (
+            !rgbMatch ||
+            (rgbMatch[4] !== undefined && Number(rgbMatch[4]) === 0)
+          ) {
+            return null;
+          }
 
-          // Convert 3-digit hex codes to 6-digit format
-          const normalizeHex = (hex) => {
-            if (hex.length === 4) {
-              return "#" + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+          return `#${rgbMatch
+            .slice(1, 4)
+            .map((channel) =>
+              Math.min(255, Number(channel)).toString(16).padStart(2, "0")
+            )
+            .join("")}`;
+        }
+
+        function getSvgElements(svg) {
+          return [svg, ...svg.querySelectorAll("*")];
+        }
+
+        const paintedElements = new Set([
+          "circle",
+          "ellipse",
+          "line",
+          "path",
+          "polygon",
+          "polyline",
+          "rect",
+          "text",
+          "tspan",
+          "use",
+        ]);
+
+        function getElementColorStyles(element) {
+          const computedStyle = window.getComputedStyle(element);
+          const colorStyles = [];
+          if (paintedElements.has(element.localName)) {
+            colorStyles.push(
+              ["fill", computedStyle.fill],
+              ["stroke", computedStyle.stroke]
+            );
+          }
+          if (element.localName === "stop") {
+            colorStyles.push(["stop-color", computedStyle.stopColor]);
+          }
+          return colorStyles;
+        }
+
+        function extractUniqueColorsFromSVG(svg) {
+          const colors = new Set();
+          getSvgElements(svg).forEach((element) => {
+            getElementColorStyles(element).forEach(([, value]) => {
+              const normalized = normalizeColor(value);
+              if (normalized) colors.add(normalized);
+            });
+          });
+          return [...colors];
+        }
+
+        function applyColorMappings(svg, mappings) {
+          const colorAttributes = new Set([
+            "color",
+            "fill",
+            "flood-color",
+            "lighting-color",
+            "solid-color",
+            "stop-color",
+            "stroke",
+          ]);
+          const colorTokenPattern =
+            /#[0-9a-f]{3,8}\b|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[\d.]+)?\s*\)/gi;
+
+          function replaceColorTokens(value) {
+            return value.replace(colorTokenPattern, (token) => {
+              const normalized = normalizeColor(token);
+              const replacement = normalized && mappings[normalized];
+              return replacement && /^#[0-9a-f]{6}$/i.test(replacement)
+                ? replacement
+                : token;
+            });
+          }
+
+          function replaceStyleDeclarations(value) {
+            return value.replace(
+              /(^|[;{]\s*)(color|fill|flood-color|lighting-color|solid-color|stop-color|stroke)(\s*:\s*)([^;}]+)/gi,
+              (declaration, prefix, property, separator, colorValue) =>
+                `${prefix}${property}${separator}${replaceColorTokens(colorValue)}`
+            );
+          }
+
+          getSvgElements(svg).forEach((element) => {
+            Array.from(element.attributes).forEach((attribute) => {
+              const name = attribute.name.toLowerCase();
+              if (colorAttributes.has(name) || name === "data-original") {
+                element.setAttribute(
+                  attribute.name,
+                  replaceColorTokens(attribute.value)
+                );
+              } else if (name === "style") {
+                element.setAttribute(
+                  attribute.name,
+                  replaceStyleDeclarations(attribute.value)
+                );
+              }
+            });
+
+            if (element.localName === "style") {
+              element.textContent = replaceStyleDeclarations(element.textContent);
             }
-            return hex.toLowerCase();
-          };
+          });
+        }
 
-          // Normalize and deduplicate
-          const uniqueHexColors = [...new Set(hexMatches.map(normalizeHex))];
+        function loadPackMappings(previousPackId, callback) {
+          chrome.storage.sync.get(
+            [
+              "colorMappings",
+              "colorMappingLocks",
+              "colorMappingsByPack",
+              "colorMappingLocksByPack",
+            ],
+            (data) => {
+              if (chrome.runtime.lastError) {
+                console.error(
+                  "Could not load pack color mappings:",
+                  chrome.runtime.lastError.message
+                );
+                callback({});
+                return;
+              }
 
-          return uniqueHexColors;
+              const mappingsByPack = { ...(data.colorMappingsByPack || {}) };
+              const locksByPack = {
+                ...(data.colorMappingLocksByPack || {}),
+              };
+              const isLegacyMappings =
+                data.colorMappings &&
+                typeof data.colorMappings === "object" &&
+                !Array.isArray(data.colorMappings) &&
+                Object.keys(data.colorMappings).every((color) =>
+                  /^#[0-9a-f]{3,8}$/i.test(color)
+                );
+              const isLegacyLocks =
+                data.colorMappingLocks &&
+                typeof data.colorMappingLocks === "object" &&
+                !Array.isArray(data.colorMappingLocks) &&
+                Object.keys(data.colorMappingLocks).every((color) =>
+                  /^#[0-9a-f]{3,8}$/i.test(color)
+                );
+
+              if (previousPackId && isLegacyMappings) {
+                mappingsByPack[previousPackId] = {
+                  ...data.colorMappings,
+                  ...(mappingsByPack[previousPackId] || {}),
+                };
+              }
+              if (previousPackId && isLegacyLocks) {
+                locksByPack[previousPackId] = {
+                  ...data.colorMappingLocks,
+                  ...(locksByPack[previousPackId] || {}),
+                };
+              }
+
+              const migrated =
+                previousPackId && (isLegacyMappings || isLegacyLocks);
+              const finish = () => {
+                callback(
+                  mappingsByPack[packId] &&
+                    typeof mappingsByPack[packId] === "object"
+                    ? mappingsByPack[packId]
+                    : {}
+                );
+              };
+
+              if (!migrated) {
+                finish();
+                return;
+              }
+
+              chrome.storage.sync.set(
+                {
+                  colorMappingsByPack: mappingsByPack,
+                  colorMappingLocksByPack: locksByPack,
+                },
+                () => {
+                  if (chrome.runtime.lastError) {
+                    console.error(
+                      "Could not migrate existing color mappings:",
+                      chrome.runtime.lastError.message
+                    );
+                    finish();
+                    return;
+                  }
+                  chrome.storage.sync.remove(
+                    ["colorMappings", "colorMappingLocks"],
+                    () => {
+                      if (chrome.runtime.lastError) {
+                        console.error(
+                          "Could not remove migrated global color mappings:",
+                          chrome.runtime.lastError.message
+                        );
+                      }
+                      finish();
+                    }
+                  );
+                }
+              );
+            }
+          );
         }
 
         if (svgElement) {
           const uniqueColors = extractUniqueColorsFromSVG(svgElement);
-          chrome.runtime.sendMessage({
-            action: "detected_colors",
-            colors: uniqueColors,
-          });
-
           svgElement.setAttribute("width", size);
           svgElement.setAttribute("height", size);
           svgElement.setAttribute("id", iconName);
 
-          if (action === "copy") {
+          const processWithMappings = (mappings) => {
             const svgClone = svgElement.cloneNode(true);
-            normalizeForFigma(svgClone);
+            applyColorMappings(svgClone, mappings);
 
-            const svgString = new XMLSerializer().serializeToString(svgClone);
+            if (action === "copy") {
+              normalizeForFigma(svgClone);
 
-            const textarea = document.createElement("textarea");
-            textarea.value = svgString;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand("copy");
-            document.body.removeChild(textarea);
+              const svgString = new XMLSerializer().serializeToString(svgClone);
 
-            // Increment counter for copy action
-            chrome.runtime.sendMessage({
-              type: "incrementSvgCounter",
-              action: "copied",
-            });
+              const textarea = document.createElement("textarea");
+              textarea.value = svgString;
+              document.body.appendChild(textarea);
+              textarea.select();
+              const copied = document.execCommand("copy");
+              document.body.removeChild(textarea);
 
-            // Close the popup after copying (if enabled in settings)
-            chrome.storage.sync.get("autoClosePopup", function (data) {
-              const autoCloseEnabled = data.autoClosePopup !== false;
-              if (autoCloseEnabled) {
-                setTimeout(() => {
-                  const closeButton = document.querySelector("#detail-close");
-                  if (closeButton) closeButton.click();
-                }, 500);
+              if (!copied) {
+                console.error("The browser could not copy the SVG to clipboard.");
+                return;
               }
-            });
-          } else if (action === "download") {
-            const blob = new Blob([svgElement.outerHTML], {
-              type: "image/svg+xml",
-            });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `${iconName}.svg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            chrome.runtime.sendMessage({
-              type: "incrementSvgCounter",
-              action: "downloaded",
-            });
 
-            chrome.storage.sync.get("autoClosePopup", function (data) {
-              const autoCloseEnabled = data.autoClosePopup !== false;
-              if (autoCloseEnabled) {
-                setTimeout(() => {
-                  const closeButton = document.querySelector("#detail-close");
-                  if (closeButton) closeButton.click();
-                }, 500);
-              }
-            });
-          }
+              chrome.runtime.sendMessage({
+                type: "incrementSvgCounter",
+                action: "copied",
+              });
+
+              chrome.storage.sync.get("autoClosePopup", function (settings) {
+                const autoCloseEnabled = settings.autoClosePopup !== false;
+                if (autoCloseEnabled) {
+                  setTimeout(() => {
+                    const closeButton = document.querySelector("#detail-close");
+                    if (closeButton) closeButton.click();
+                  }, 500);
+                }
+              });
+            } else if (action === "download") {
+              const blob = new Blob([svgClone.outerHTML], {
+                type: "image/svg+xml",
+              });
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.download = `${iconName}.svg`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              chrome.runtime.sendMessage({
+                type: "incrementSvgCounter",
+                action: "downloaded",
+              });
+
+              chrome.storage.sync.get("autoClosePopup", function (settings) {
+                const autoCloseEnabled = settings.autoClosePopup !== false;
+                if (autoCloseEnabled) {
+                  setTimeout(() => {
+                    const closeButton = document.querySelector("#detail-close");
+                    if (closeButton) closeButton.click();
+                  }, 500);
+                }
+              });
+            }
+          };
+
+          chrome.storage.local.get("lastCopiedIcon", (localData) => {
+            const previousPackId =
+              localData.lastCopiedIcon?.packId ||
+              (Array.isArray(localData.lastCopiedColors)
+                ? "legacy-pack"
+                : null);
+            if (action === "copy") {
+              const copiedColors =
+                localData.lastCopiedIcon?.packId === packId
+                  ? [
+                      ...new Set([
+                        ...(localData.lastCopiedIcon.colors || []),
+                        ...uniqueColors,
+                      ]),
+                    ]
+                  : uniqueColors;
+              const copiedIcon = {
+                packId,
+                packName,
+                colors: copiedColors,
+              };
+              chrome.storage.local.set(
+                {
+                  lastCopiedIcon: copiedIcon,
+                  lastCopiedColors: copiedColors,
+                },
+                () => {
+                  if (chrome.runtime.lastError) {
+                    console.error(
+                      "Could not save detected icon pack colors:",
+                      chrome.runtime.lastError.message
+                    );
+                  }
+                }
+              );
+              chrome.storage.sync.get("colorPackNames", (syncData) => {
+                const colorPackNames = {
+                  ...(syncData.colorPackNames || {}),
+                  [packId]: packName,
+                };
+                chrome.storage.sync.set({ colorPackNames }, () => {
+                  if (chrome.runtime.lastError) {
+                    console.error(
+                      "Could not save icon pack name:",
+                      chrome.runtime.lastError.message
+                    );
+                  }
+                });
+              });
+            }
+            loadPackMappings(previousPackId, processWithMappings);
+          });
         }
       }, 2000);
     });

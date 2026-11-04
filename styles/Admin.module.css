@@ -13,7 +13,7 @@
 }
 
 .panel {
-  width: min(100%, 1040px);
+  width: min(100%, 600px);
   padding: 32px;
   border: 1px solid #303137;
   border-radius: 20px;
