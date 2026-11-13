@@ -1,0 +1,4 @@
+project_id = "jfxwmldeikfmiwhjnsgg"
+
+[functions.i2snatcher-api]
+verify_jwt = false

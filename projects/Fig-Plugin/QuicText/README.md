@@ -27,6 +27,30 @@ Only expose the static panel over HTTPS. GitHub Pages cannot hide static files
 behind server-side authentication; the protected function is what prevents
 unauthorized license creation.
 
+## i2Snatcher approvals and usage counters
+
+i2Snatcher stores its data in a separate Supabase project (`jfxwmldeikfmiwhjnsgg`).
+Its migration and public API function are deployed from `projects/i2Snatcher`.
+The existing QuicText admin panel still controls approvals through the protected
+`admin-licenses` function. Configure these secrets on the QuicText project:
+
+```text
+I2SNATCHER_SUPABASE_URL=https://jfxwmldeikfmiwhjnsgg.supabase.co
+I2SNATCHER_SERVICE_ROLE_KEY=<service-role key from the i2Snatcher project>
+```
+
+Open `/admin/` to approve or revoke approval for i2Snatcher clients. The
+`approved` column is `0` by default and becomes `1` when approved. Existing Firebase
+approvals and historical counters are not imported automatically; approve
+existing clients again and import prior totals separately if they need to be
+preserved.
+
+The extension uses the i2Snatcher project's public publishable key. The
+`i2snatcher-api` function uses that project's server-side service-role key;
+the QuicText admin function uses the separate `I2SNATCHER_SERVICE_ROLE_KEY`
+secret to administer that project's tables. Never put either service-role key
+in the extension or the static admin page.
+
 ## Run the plugin
 
 Below are the steps to get your plugin running. You can also find instructions at:

@@ -28,6 +28,7 @@
   "exclude": [
     "node_modules",
     "**/build/**",
+    "**/supabase/functions/**",
     "public/projects",
     "**/*.figma.ts",
     "**/Fig-Plugin/**"

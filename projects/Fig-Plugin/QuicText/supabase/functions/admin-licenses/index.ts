@@ -188,7 +188,15 @@ Deno.serve(async (request) => {
     return jsonResponse({ authenticated: true }, 200, origin, allowedOrigins);
   }
 
-  if (!["create-license", "list-licenses", "delete-license"].includes(String(body.action))) {
+  const allowedActions = [
+    "create-license",
+    "list-licenses",
+    "delete-license",
+    "list-i2snatcher-users",
+    "update-i2snatcher-approval",
+    "get-i2snatcher-stats",
+  ];
+  if (!allowedActions.includes(String(body.action))) {
     return jsonResponse({ error: "Unknown action." }, 400, origin, allowedOrigins);
   }
 
@@ -204,6 +212,132 @@ Deno.serve(async (request) => {
     apikey: serviceRoleKey,
     Authorization: `Bearer ${serviceRoleKey}`,
   };
+
+  const i2SnatcherActions = [
+    "list-i2snatcher-users",
+    "update-i2snatcher-approval",
+    "get-i2snatcher-stats",
+  ];
+  let i2SnatcherUrl = "";
+  let i2SnatcherHeaders: Record<string, string> = {};
+  if (i2SnatcherActions.includes(String(body.action))) {
+    const configuredUrl = Deno.env.get("I2SNATCHER_SUPABASE_URL");
+    const configuredKey = Deno.env.get("I2SNATCHER_SERVICE_ROLE_KEY");
+    if (!configuredUrl || !configuredKey) {
+      console.error("Admin function requires I2SNATCHER_SUPABASE_URL and I2SNATCHER_SERVICE_ROLE_KEY.");
+      return jsonResponse({ error: "i2Snatcher storage is not configured." }, 500, origin, allowedOrigins);
+    }
+    i2SnatcherUrl = configuredUrl.replace(/\/+$/, "");
+    i2SnatcherHeaders = {
+      apikey: configuredKey,
+      Authorization: `Bearer ${configuredKey}`,
+    };
+  }
+
+  if (body.action === "list-i2snatcher-users") {
+    const query = new URLSearchParams({
+      select: "client_id,display_name,approved,created_at,last_seen",
+      order: "created_at.desc",
+    });
+    try {
+      const users: unknown[] = [];
+      const pageSize = 1000;
+      for (let offset = 0; ; offset += pageSize) {
+        const response = await fetch(
+          `${i2SnatcherUrl}/rest/v1/i2snatcher_users?${query}`,
+          {
+            headers: {
+              ...i2SnatcherHeaders,
+              Range: `${offset}-${offset + pageSize - 1}`,
+            },
+          },
+        );
+        if (!response.ok) {
+          const details = await response.text();
+          console.error("Supabase i2Snatcher user list failed:", response.status, details);
+          return jsonResponse({ error: "Could not load i2Snatcher users." }, 502, origin, allowedOrigins);
+        }
+        const page: unknown = await response.json();
+        if (!Array.isArray(page)) {
+          return jsonResponse({ error: "User storage returned an invalid response." }, 502, origin, allowedOrigins);
+        }
+        users.push(...page);
+        if (page.length < pageSize) break;
+      }
+      return jsonResponse({ users }, 200, origin, allowedOrigins);
+    } catch (error) {
+      console.error("Supabase i2Snatcher user list request failed:", error);
+      return jsonResponse({ error: "Could not connect to i2Snatcher user storage." }, 502, origin, allowedOrigins);
+    }
+  }
+
+  if (body.action === "update-i2snatcher-approval") {
+    if (
+      typeof body.clientId !== "string" ||
+      !/^[a-zA-Z0-9_-]{1,128}$/.test(body.clientId) ||
+      !["0", "1"].includes(String(body.approved))
+    ) {
+      return jsonResponse({ error: "Invalid client ID or approval value." }, 400, origin, allowedOrigins);
+    }
+    const query = new URLSearchParams({
+      client_id: `eq.${body.clientId}`,
+      select: "client_id,approved",
+    });
+    try {
+      const response = await fetch(
+        `${i2SnatcherUrl}/rest/v1/i2snatcher_users?${query}`,
+        {
+          method: "PATCH",
+          headers: {
+            ...i2SnatcherHeaders,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({ approved: Number(body.approved) }),
+        },
+      );
+      if (!response.ok) {
+        const details = await response.text();
+        console.error("Supabase i2Snatcher status update failed:", response.status, details);
+        return jsonResponse({ error: "Could not update i2Snatcher access." }, 502, origin, allowedOrigins);
+      }
+      const updated: unknown = await response.json();
+      if (!Array.isArray(updated) || updated.length === 0) {
+        return jsonResponse({ error: "i2Snatcher client was not found." }, 404, origin, allowedOrigins);
+      }
+      return jsonResponse({ user: updated[0] }, 200, origin, allowedOrigins);
+    } catch (error) {
+      console.error("Supabase i2Snatcher status update request failed:", error);
+      return jsonResponse({ error: "Could not connect to i2Snatcher user storage." }, 502, origin, allowedOrigins);
+    }
+  }
+
+  if (body.action === "get-i2snatcher-stats") {
+    const query = new URLSearchParams({
+      select: "copied,downloaded",
+      singleton: "eq.true",
+      limit: "1",
+    });
+    try {
+      const response = await fetch(
+        `${i2SnatcherUrl}/rest/v1/i2snatcher_stats?${query}`,
+        { headers: i2SnatcherHeaders },
+      );
+      if (!response.ok) {
+        const details = await response.text();
+        console.error("Supabase i2Snatcher stats request failed:", response.status, details);
+        return jsonResponse({ error: "Could not load i2Snatcher counters." }, 502, origin, allowedOrigins);
+      }
+      const rows: unknown = await response.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return jsonResponse({ stats: { copied: 0, downloaded: 0 } }, 200, origin, allowedOrigins);
+      }
+      return jsonResponse({ stats: rows[0] as Record<string, unknown> }, 200, origin, allowedOrigins);
+    } catch (error) {
+      console.error("Supabase i2Snatcher stats request failed:", error);
+      return jsonResponse({ error: "Could not connect to i2Snatcher stats." }, 502, origin, allowedOrigins);
+    }
+  }
 
   if (body.action === "list-licenses") {
     const query = new URLSearchParams({

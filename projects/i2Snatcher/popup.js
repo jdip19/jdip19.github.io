@@ -1,4 +1,93 @@
 document.addEventListener("DOMContentLoaded", function () {
+  const accessGate = document.getElementById("accessGate");
+  const accessForm = document.getElementById("accessRequestForm");
+  const accessNameInput = document.getElementById("accessName");
+  const accessMessage = document.getElementById("accessMessage");
+  const accessDescription = document.getElementById("accessDescription");
+  const requestAccessButton = document.getElementById("requestAccessButton");
+  const checkAccessButton = document.getElementById("checkAccessButton");
+  const mainContainer = document.getElementById("container");
+
+  function showAccessState(result) {
+    chrome.storage.sync.get("clientId", (data) => {
+      if (data.clientId) {
+        document.getElementById("accessClientId").textContent =
+          `Extension ID: ${data.clientId}`;
+      }
+    });
+    const state = result?.status || "unknown";
+    if (state === "approved") {
+      accessGate.hidden = true;
+      mainContainer.style.display = "block";
+      return;
+    }
+
+    accessGate.hidden = false;
+    mainContainer.style.display = "none";
+    if (state === "pending") {
+      accessDescription.textContent =
+        "Your request has been sent. i2Snatcher will be available after an admin approves it.";
+      accessForm.hidden = true;
+      accessMessage.textContent = "Access request pending approval.";
+    } else {
+      accessDescription.textContent =
+        "Enter your name to request access to i2Snatcher. You can use the extension after your request is approved.";
+      accessForm.hidden = false;
+      accessMessage.textContent =
+        result?.error || "Could not check access. Please try again.";
+    }
+  }
+
+  function checkAccess() {
+    accessMessage.textContent = "Checking access...";
+    chrome.runtime.sendMessage({ action: "getAccessStatus" }, (result) => {
+      if (chrome.runtime.lastError) {
+        showAccessState({
+          status: "unknown",
+          error: "Could not contact the extension service. Try again.",
+        });
+        return;
+      }
+      showAccessState(result);
+    });
+  }
+
+  chrome.storage.sync.get(["accessRequestName", "clientId"], (data) => {
+    if (data.accessRequestName) accessNameInput.value = data.accessRequestName;
+    const clientId = document.getElementById("accessClientId");
+    if (data.clientId) clientId.textContent = `Extension ID: ${data.clientId}`;
+  });
+
+  accessForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const displayName = accessNameInput.value.trim();
+    if (!displayName || displayName.length > 80) {
+      accessMessage.textContent = "Enter a name between 1 and 80 characters.";
+      return;
+    }
+    requestAccessButton.disabled = true;
+    accessMessage.textContent = "Sending access request...";
+    chrome.storage.sync.set({ accessRequestName: displayName }, () => {
+      chrome.runtime.sendMessage(
+        { action: "requestAccess", displayName },
+        (result) => {
+          requestAccessButton.disabled = false;
+          if (chrome.runtime.lastError) {
+            showAccessState({
+              status: "unknown",
+              error: "Could not send request. Please try again.",
+            });
+            return;
+          }
+          showAccessState(result);
+        }
+      );
+    });
+  });
+
+  checkAccessButton.addEventListener("click", checkAccess);
+  checkAccess();
+
   const iconTab = document.getElementById("iconTab");
   const imageTab = document.getElementById("imageTab");
   const settingsTab = document.getElementById("settingsTab");
@@ -649,9 +738,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (userStatusDisplay) {
       const status = data.userStatus || "unknown";
       let label = "";
-      if (status === "approved") label = "Status: Approvedd";
+      if (status === "approved") label = "Status: Approved";
       else if (status === "pending") label = "Status: Pending approval";
-      else if (status === "blocked") label = "Status: Access blocked";
       else label = "Status: Unknown";
 
       userStatusDisplay.textContent = label;

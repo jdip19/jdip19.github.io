@@ -1,83 +1,80 @@
-let firebaseConfig = {};
-let ALLOWED_DB_PATHS = {};
-let RATE_LIMIT = {}; // from firebase-setup.json
-let databaseUrl = null;
-let firebaseReady = false;
+const localVersion = chrome.runtime.getManifest().version;
+const SUPABASE_API_URL =
+  "https://jfxwmldeikfmiwhjnsgg.supabase.co/functions/v1/i2snatcher-api";
+const SUPABASE_ANON_KEY =
+  "sb_publishable_65G3T7wUY1zz0Cm5z4dMNQ_j4neKB85";
 
-// Remote config loader
-async function loadRemoteConfig() {
+class SupabaseRequestError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = "SupabaseRequestError";
+    this.status = status;
+  }
+}
+
+async function i2SnatcherApiRequest(payload) {
+  const response = await fetch(SUPABASE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new SupabaseRequestError(
+      "Supabase returned an invalid response.",
+      response.status
+    );
+  }
+  if (!response.ok) {
+    throw new SupabaseRequestError(
+      data.error || `Supabase request failed (${response.status}).`,
+      response.status
+    );
+  }
+  return data;
+}
+
+function compareVersions(left, right) {
+  const leftParts = String(left).split(".").map(Number);
+  const rightParts = String(right).split(".").map(Number);
+  const length = Math.max(leftParts.length, rightParts.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference =
+      (leftParts[index] || 0) - (rightParts[index] || 0);
+    if (difference !== 0) return Math.sign(difference);
+  }
+  return 0;
+}
+
+async function checkRemoteVersion() {
   try {
     const response = await fetch(
-      "https://jdip19.github.io/js/firebase-setup.json"
+      "https://jdip19.github.io/projects/i2Snatcher/manifest.json",
+      { cache: "no-store" }
     );
-    const config = await response.json();
-
-    firebaseConfig = config.firebaseConfig;
-    ALLOWED_DB_PATHS = config.ALLOWED_DB_PATHS;
-    RATE_LIMIT = config.RATE_LIMIT;
-    databaseUrl = firebaseConfig.databaseURL;
-    if (!databaseUrl) {
-      throw new Error("Remote Firebase configuration has no databaseURL");
+    if (!response.ok) {
+      throw new Error(`Version check failed (${response.status}).`);
     }
-    return true;
-  } catch (err) {
-    console.error("Failed to load remote config:", err);
-    return false;
-  }
-}
-
-// Wait for Firebase before allowing references
-async function init() {
-  const configLoaded = await loadRemoteConfig();
-  if (!configLoaded) {
-    console.error("Cannot initialize Firebase: config loading failed");
-    return;
-  }
-
-  firebaseReady = true;
-  runPostFirebaseInit();
-}
-
-init();
-
-// Helper to ensure Firebase is ready before operations
-function ensureFirebaseReady() {
-  return new Promise((resolve) => {
-    const maxWait = 5000; // 5 second timeout
-    const startTime = Date.now();
-    const checkReady = () => {
-      if (firebaseReady) {
-        resolve(true);
-        return;
-      }
-      if (Date.now() - startTime > maxWait) {
-        console.error("Firebase initialization timeout");
-        resolve(false);
-        return;
-      }
-      setTimeout(checkReady, 100);
-    };
-    checkReady();
-  });
-}
-
-function runPostFirebaseInit() {
-  firebaseRequest(ALLOWED_DB_PATHS.VERSION)
-    .then((remoteVersion) => {
-      if (remoteVersion !== null) {
-      // Store remote version and comparison result
-      chrome.storage.local.set({
-        remoteVersion,
-        updateAvailable: remoteVersion > localVersion,
-      });
-      }
-    })
-    .catch((error) => {
-      console.error("Could not check the remote extension version:", error);
+    const manifest = await response.json();
+    if (typeof manifest.version !== "string") {
+      throw new Error("Published extension manifest has no version.");
+    }
+    chrome.storage.local.set({
+      remoteVersion: manifest.version,
+      updateAvailable: compareVersions(manifest.version, localVersion) > 0,
     });
+  } catch (error) {
+    console.error("Could not check the remote extension version:", error);
+  }
 }
 
-const localVersion = chrome.runtime.getManifest().version;
+checkRemoteVersion();
 
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
@@ -85,38 +82,9 @@ chrome.sidePanel
     console.error("Could not enable the extension side panel:", error);
   });
 
-async function firebaseRequest(path, { method = "GET", body } = {}) {
-  const ready = await ensureFirebaseReady();
-  if (!ready) {
-    throw new Error("Firebase configuration is not available");
-  }
-  if (!validateDbPath(path)) {
-    throw new Error("Invalid database path");
-  }
-
-  const encodedPath = path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-  const baseUrl = databaseUrl.endsWith("/")
-    ? databaseUrl
-    : `${databaseUrl}/`;
-  const response = await fetch(`${baseUrl}${encodedPath}.json`, {
-    method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Firebase request failed (${response.status} ${response.statusText})`
-    );
-  }
-  return response.json();
-}
-
 // Per-user licensing / access control
 let clientId = null;
-let userStatus = "unknown"; // "approved" | "pending" | "blocked" | "unknown"
+let userStatus = "unknown"; // "approved" | "pending" | "unknown"
 // Timestamp (ms) of last remote status check stored in chrome.storage.local
 let statusCheckedAt = 0;
 
@@ -148,60 +116,47 @@ async function getOrCreateClientId() {
   });
 }
 
-// Fetch user status from Firebase (approved / pending / blocked)
-async function refreshUserStatus() {
+// Fetch user status and current usage totals from Supabase.
+async function refreshUserStatus(displayName) {
   try {
-    // Ensure Firebase is ready before attempting to access database
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      throw new Error("Firebase not ready");
-    }
-
     const id = await getOrCreateClientId();
-
-    const usersPath = `${ALLOWED_DB_PATHS.USERS}`;
-    if (!validateDbPath(usersPath)) {
-      throw new Error("Invalid users path");
+    const data = await i2SnatcherApiRequest({
+      action: "status",
+      clientId: id,
+      ...(displayName ? { displayName } : {}),
+    });
+    const approvalFlag = Number(data.approved);
+    if (approvalFlag !== 0 && approvalFlag !== 1) {
+      throw new Error("Supabase returned an invalid approval value.");
     }
 
-    const userPath = `${usersPath}/${id}`;
-    const data = await firebaseRequest(userPath);
-
-    if (data === null) {
-      // First time we see this user → create pending entry
-      const now = Date.now();
-      await firebaseRequest(userPath, {
-        method: "PUT",
-        body: {
-        status: "pending",
-        createdAt: now,
-        lastSeen: now,
-        },
-      });
-      userStatus = "pending";
-    } else {
-      const userData = data || {};
-      userStatus = userData.status || "pending";
-
-      // Update lastSeen for analytics
-      try {
-        await firebaseRequest(userPath, {
-          method: "PUT",
-          body: { ...userData, lastSeen: Date.now() },
-        });
-      } catch (e) {
-        console.error("Could not update Firebase lastSeen:", e);
-      }
-    }
-
-    chrome.storage.local.set({ clientId: id, userStatus });
-    // record when we checked the status
+    userStatus = approvalFlag === 1 ? "approved" : "pending";
     statusCheckedAt = Date.now();
-    chrome.storage.local.set({ statusCheckedAt });
+    const totals = {
+      copied: Number(data.copied) || 0,
+      downloaded: Number(data.downloaded) || 0,
+    };
+    chrome.storage.local.set({
+      clientId: id,
+      userStatus,
+      statusCheckedAt,
+      svgStats: totals,
+    });
+    chrome.runtime.sendMessage({
+      type: "svgCountUpdated",
+      payload: totals,
+    }, () => void chrome.runtime.lastError);
+    if (userStatus === "approved") syncPendingUsageEvents();
+    return { status: userStatus };
   } catch (error) {
     console.error("Error refreshing user status:", error);
     userStatus = "unknown";
-    chrome.storage.local.set({ userStatus });
+    statusCheckedAt = 0;
+    chrome.storage.local.set({ userStatus, statusCheckedAt });
+    return {
+      status: userStatus,
+      error: error instanceof Error ? error.message : "Could not check access.",
+    };
   }
 }
 
@@ -218,14 +173,7 @@ function isUserAllowedAsync() {
 
         // If we have a recent successful check, use it immediately
         const age = Date.now() - checkedAt;
-        if (stored === "approved") {
-          // hydrate runtime vars
-          userStatus = stored;
-          statusCheckedAt = checkedAt;
-          return resolve(true);
-        }
-
-        if (age < STATUS_CACHE_TTL && stored !== "unknown") {
+        if (age >= 0 && age < STATUS_CACHE_TTL && stored !== "unknown") {
           // cached non-approved decision is recent enough to use
           userStatus = stored;
           statusCheckedAt = checkedAt;
@@ -234,14 +182,12 @@ function isUserAllowedAsync() {
 
         // Otherwise, perform a remote refresh but don't block too long.
         // If refresh doesn't finish within TIMEOUT, fall back to stored value (if any)
-        const REFRESH_TIMEOUT = 1500; // ms
+        const REFRESH_TIMEOUT = 5000;
 
         let timedOut = false;
         const timeout = setTimeout(() => {
           timedOut = true;
-          // If we have a cached value, use it; otherwise deny (safe default)
-          if (stored) return resolve(stored === "approved");
-          return resolve(false);
+          resolve(false);
         }, REFRESH_TIMEOUT);
 
         try {
@@ -265,137 +211,116 @@ function isUserAllowedAsync() {
   });
 }
 
-// Rate limiting: Track requests per user
-let requestHistory = [];
+let isSyncingUsageEvents = false;
+let usageSyncRequested = false;
+let usageQueueWrite = Promise.resolve();
 
-// Validate database path to prevent unauthorized access
-function validateDbPath(path) {
-  const allowedPaths = Object.values(ALLOWED_DB_PATHS);
-  return allowedPaths.some((allowed) => path.startsWith(allowed));
-}
-
-// Rate limiting check
-function checkRateLimit() {
-  const now = Date.now();
-  const maxPerMinute = RATE_LIMIT?.MAX_UPDATES_PER_MINUTE || 60;
-  requestHistory = requestHistory.filter(
-    (timestamp) => now - timestamp < 60000
-  );
-  if (requestHistory.length >= maxPerMinute) return false;
-  requestHistory.push(now);
-  return true;
-}
-
-// Firebase sync optimization: Batch updates to reduce API calls
-let pendingUpdates = { copied: 0, downloaded: 0 };
-let syncTimer = null;
-let isSyncing = false;
-const SYNC_DELAY = 5000; // Wait 5 seconds before syncing to batch multiple actions
-const BATCH_SIZE_THRESHOLD = 5; // Sync immediately if batch reaches this size
-
-// Function to sync pending updates to Firebase
-async function syncPendingUpdatesToFirebase() {
-  if (
-    isSyncing ||
-    (pendingUpdates.copied === 0 && pendingUpdates.downloaded === 0)
-  ) {
-    return;
-  }
-
-  // Rate limiting check
-  if (!checkRateLimit()) return;
-
-  // Validate batch size to prevent abuse
-  const totalPending = pendingUpdates.copied + pendingUpdates.downloaded;
-  const maxBatchSize = RATE_LIMIT?.MAX_BATCH_SIZE || 100;
-  if (totalPending > maxBatchSize) {
-    console.error("Batch size exceeds limit. Truncating to prevent abuse.");
-    pendingUpdates.copied = Math.min(pendingUpdates.copied, maxBatchSize);
-    pendingUpdates.downloaded = Math.min(
-      pendingUpdates.downloaded,
-      maxBatchSize
-    );
-  }
-
-  isSyncing = true;
-  const updatesToSync = { ...pendingUpdates };
-  pendingUpdates = { copied: 0, downloaded: 0 }; // Reset pending updates
-
-  try {
-    // Ensure Firebase is ready before attempting to access database
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      throw new Error("Firebase not ready");
-    }
-
-    // Validate paths before accessing
-    const statsPath = `${ALLOWED_DB_PATHS.SVG_STATS}`;
-    if (!validateDbPath(statsPath)) {
-      throw new Error("Invalid database path");
-    }
-
-    // Get current values from Firebase
-    const [copiedSnap, downloadedSnap] = await Promise.all([
-      firebaseRequest(`${statsPath}/copied`),
-      firebaseRequest(`${statsPath}/downloaded`),
-    ]);
-
-    const currentCopied = copiedSnap ?? 0;
-    const currentDownloaded = downloadedSnap ?? 0;
-
-    // Update Firebase with batched increments (only 2 writes instead of multiple)
-    const newCopied = currentCopied + updatesToSync.copied;
-    const newDownloaded = currentDownloaded + updatesToSync.downloaded;
-
-    await Promise.all([
-      firebaseRequest(`${statsPath}/copied`, {
-        method: "PUT",
-        body: newCopied,
-      }),
-      firebaseRequest(`${statsPath}/downloaded`, {
-        method: "PUT",
-        body: newDownloaded,
-      }),
-    ]);
-
-    // Update local storage with synced values
-    const finalCounts = { copied: newCopied, downloaded: newDownloaded };
-    chrome.storage.local.set({ svgStats: finalCounts });
-
-    // Notify popup of updated counts
-    chrome.runtime.sendMessage({
-      type: "svgCountUpdated",
-      payload: finalCounts,
+function getLocalStorage(keys) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(keys, (result) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve(result);
     });
+  });
+}
+
+function setLocalStorage(values) {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set(values, () => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+async function syncPendingUsageEvents() {
+  if (isSyncingUsageEvents) {
+    usageSyncRequested = true;
+    return;
+  }
+  isSyncingUsageEvents = true;
+  try {
+    while (true) {
+      const stored = await getLocalStorage(["pendingUsageEvents"]);
+      const pending = Array.isArray(stored.pendingUsageEvents)
+        ? stored.pendingUsageEvents
+        : [];
+      if (pending.length === 0) break;
+
+      const event = pending[0];
+      try {
+        const result = await i2SnatcherApiRequest({
+          action: "increment",
+          clientId: await getOrCreateClientId(),
+          eventId: event.eventId,
+          actionType: event.actionType,
+        });
+        const latest = await getLocalStorage(["pendingUsageEvents"]);
+        const remaining = Array.isArray(latest.pendingUsageEvents)
+          ? latest.pendingUsageEvents.filter(
+              (item) => item.eventId !== event.eventId
+            )
+          : [];
+        const totals = {
+          copied: Number(result.copied) || 0,
+          downloaded: Number(result.downloaded) || 0,
+        };
+        await setLocalStorage({ pendingUsageEvents: remaining, svgStats: totals });
+        chrome.runtime.sendMessage({
+          type: "svgCountUpdated",
+          payload: totals,
+        }, () => void chrome.runtime.lastError);
+      } catch (error) {
+        if (error instanceof SupabaseRequestError && error.status === 403) {
+          console.error("Pending usage events rejected because extension access is not approved.");
+          await setLocalStorage({ pendingUsageEvents: [] });
+        } else {
+          console.error("Could not sync pending i2Snatcher usage:", error);
+        }
+        break;
+      }
+    }
   } catch (error) {
-    console.error("Firebase sync error:", error);
-    // Re-add failed updates back to pending
-    pendingUpdates.copied += updatesToSync.copied;
-    pendingUpdates.downloaded += updatesToSync.downloaded;
+    console.error("Could not load pending i2Snatcher usage:", error);
   } finally {
-    isSyncing = false;
+    isSyncingUsageEvents = false;
+    if (usageSyncRequested) {
+      usageSyncRequested = false;
+      syncPendingUsageEvents();
+    }
   }
 }
 
-// Schedule sync with debouncing
-function scheduleSync() {
-  // Clear existing timer
-  if (syncTimer) {
-    clearTimeout(syncTimer);
-  }
-
-  // Check if we should sync immediately (batch size threshold)
-  const totalPending = pendingUpdates.copied + pendingUpdates.downloaded;
-  if (totalPending >= BATCH_SIZE_THRESHOLD) {
-    syncPendingUpdatesToFirebase();
-    return;
-  }
-
-  // Otherwise, schedule sync after delay
-  syncTimer = setTimeout(() => {
-    syncPendingUpdatesToFirebase();
-    syncTimer = null;
-  }, SYNC_DELAY);
+function queueUsageEvent(action) {
+  usageQueueWrite = usageQueueWrite
+    .then(async () => {
+      const stored = await getLocalStorage(["svgStats", "pendingUsageEvents"]);
+      const stats = stored.svgStats || { copied: 0, downloaded: 0 };
+      const pending = Array.isArray(stored.pendingUsageEvents)
+        ? stored.pendingUsageEvents
+        : [];
+      const totals = {
+        copied: Number(stats.copied) || 0,
+        downloaded: Number(stats.downloaded) || 0,
+      };
+      totals[action] += 1;
+      pending.push({ eventId: crypto.randomUUID(), actionType: action });
+      await setLocalStorage({ svgStats: totals, pendingUsageEvents: pending });
+      chrome.runtime.sendMessage({
+        type: "svgCountUpdated",
+        payload: totals,
+      }, () => void chrome.runtime.lastError);
+      syncPendingUsageEvents();
+    })
+    .catch((error) => {
+      console.error("Could not queue i2Snatcher usage event:", error);
+    });
 }
 
 // Hydrate runtime status from storage on worker start so checks are fast
@@ -508,8 +433,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // Initialize / refresh user status on install
   refreshUserStatus();
 
-  // Sync any pending updates on install/update
-  syncPendingUpdatesToFirebase();
+  syncPendingUsageEvents();
 });
 
 // Check shortcuts on startup
@@ -521,7 +445,7 @@ chrome.runtime.onStartup.addListener(() => {
   // Refresh user status on startup
   refreshUserStatus();
 
-  syncPendingUpdatesToFirebase();
+  syncPendingUsageEvents();
 });
 
 // Check shortcuts on initial load
@@ -530,12 +454,10 @@ setTimeout(() => {
   refreshUserStatus();
 }, 2000);
 
-// Periodic sync every 30 seconds to ensure nothing is missed
+// Retry persisted usage events while the extension service worker is active.
 setInterval(() => {
-  if (pendingUpdates.copied > 0 || pendingUpdates.downloaded > 0) {
-    syncPendingUpdatesToFirebase();
-  }
-}, 30000); // Sync every 30 seconds
+  syncPendingUsageEvents();
+}, 30000);
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info) => {
@@ -1052,27 +974,27 @@ function extractSvg(action) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "getAccessStatus") {
+    refreshUserStatus().then(sendResponse);
+    return true;
+  }
+  if (message.action === "requestAccess") {
+    const displayName =
+      typeof message.displayName === "string" ? message.displayName.trim() : "";
+    if (!displayName || displayName.length > 80) {
+      sendResponse({ status: "unknown", error: "Enter a name up to 80 characters." });
+      return;
+    }
+    refreshUserStatus(displayName).then(sendResponse);
+    return true;
+  }
+
   if (message.type === "incrementSvgCounter") {
-    const action = message.action; // "copied" or "downloaded"
-
-    // Step 1: Optimistically update local storage immediately
-    chrome.storage.local.get(["svgStats"], (result) => {
-      let localData = result.svgStats || { copied: 0, downloaded: 0 };
-      localData[action] = (localData[action] || 0) + 1;
-
-      // Save updated local count
-      chrome.storage.local.set({ svgStats: localData });
-
-      // Send quick update to popup (instant feedback)
-      chrome.runtime.sendMessage({
-        type: "svgCountUpdated",
-        payload: { ...localData },
-      });
-
-      // Step 2: Add to pending batch (will sync to Firebase later)
-      pendingUpdates[action] = (pendingUpdates[action] || 0) + 1;
-      scheduleSync(); // Schedule sync with debouncing
-    });
+    if (message.action === "copied" || message.action === "downloaded") {
+      queueUsageEvent(message.action);
+    } else {
+      console.error("Ignoring invalid i2Snatcher usage action:", message.action);
+    }
   }
 
   // Handle direct request from popup to fetch counts

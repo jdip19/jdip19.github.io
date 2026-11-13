@@ -188,6 +188,32 @@
   font-size: 13px;
 }
 
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stats > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #303137;
+  border-radius: 12px;
+  background: #202126;
+}
+
+.stats span {
+  color: #a1a1aa;
+  font-size: 12px;
+}
+
+.stats strong {
+  color: #fff;
+  font-size: 22px;
+}
+
 .tableWrap {
   overflow-x: auto;
   border: 1px solid #303137;
@@ -243,6 +269,25 @@
 
 .panel .deleteButton:hover {
   background: #521d20;
+}
+
+.panel .approveButton {
+  width: auto;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid #166534;
+  background: #14291d;
+  color: #bbf7d0;
+  font-size: 12px;
+}
+
+.panel .approveButton:hover {
+  background: #1d3b29;
+}
+
+.panel .statusCell {
+  text-transform: capitalize;
 }
 
 @media (max-width: 480px) {

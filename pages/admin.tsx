@@ -13,12 +13,22 @@ type License = {
   unlimited: boolean;
 };
 
+type I2SnatcherUser = {
+  client_id: string;
+  display_name: string | null;
+  approved: 0 | 1;
+  created_at: string;
+  last_seen: string;
+};
+
 type ApiResponse = {
   error?: string;
   token?: string;
   licenseKey?: string;
   email?: string;
   licenses?: License[];
+  users?: I2SnatcherUser[];
+  stats?: { copied: number; downloaded: number };
 };
 
 class AdminRequestError extends Error {
@@ -69,6 +79,10 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [licenses, setLicenses] = useState<License[]>([]);
+  const [i2SnatcherUsers, setI2SnatcherUsers] = useState<I2SnatcherUser[]>([]);
+  const [i2SnatcherStats, setI2SnatcherStats] = useState({ copied: 0, downloaded: 0 });
+  const [i2SnatcherStatus, setI2SnatcherStatus] = useState("Loading i2Snatcher data...");
+  const [i2SnatcherBusy, setI2SnatcherBusy] = useState<string | null>(null);
   const [licenseCount, setLicenseCount] = useState("Loading licenses...");
   const [tableStatus, setTableStatus] = useState("");
   const [status, setStatus] = useState("");
@@ -87,6 +101,8 @@ export default function AdminPage() {
     setAuthenticated(false);
     setSessionToken("");
     setLicenses([]);
+    setI2SnatcherUsers([]);
+    setI2SnatcherStats({ copied: 0, downloaded: 0 });
     sessionStorage.removeItem(SESSION_KEY);
   }, []);
 
@@ -109,6 +125,26 @@ export default function AdminPage() {
     }
   }, [signOut]);
 
+  const loadI2Snatcher = useCallback(async (token: string) => {
+    setI2SnatcherStatus("Loading i2Snatcher data...");
+    try {
+      const [usersData, statsData] = await Promise.all([
+        request("list-i2snatcher-users", {}, token),
+        request("get-i2snatcher-stats", {}, token),
+      ]);
+      if (!Array.isArray(usersData.users) || !statsData.stats) {
+        throw new Error("The server returned invalid i2Snatcher data.");
+      }
+      setI2SnatcherUsers(usersData.users);
+      setI2SnatcherStats(statsData.stats);
+      const count = usersData.users.length;
+      setI2SnatcherStatus(`${count} extension user${count === 1 ? "" : "s"}`);
+    } catch (error) {
+      setI2SnatcherStatus(getErrorMessage(error, "Could not load i2Snatcher data."));
+      if (error instanceof AdminRequestError && error.status === 401) signOut();
+    }
+  }, [signOut]);
+
   useEffect(() => {
     let cancelled = false;
     const savedToken = sessionStorage.getItem(SESSION_KEY) || "";
@@ -122,10 +158,10 @@ export default function AdminPage() {
 
     setSessionToken(savedToken);
     request("session", {}, savedToken)
-      .then(() => {
+      .then(async () => {
         if (cancelled) return;
         setAuthenticated(true);
-        return loadLicenses(savedToken);
+        await Promise.all([loadLicenses(savedToken), loadI2Snatcher(savedToken)]);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -140,7 +176,7 @@ export default function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadLicenses, showStatus]);
+  }, [loadI2Snatcher, loadLicenses, showStatus]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -154,7 +190,7 @@ export default function AdminPage() {
       setPassword("");
       setAuthenticated(true);
       showStatus("", "success");
-      await loadLicenses(data.token);
+      await Promise.all([loadLicenses(data.token), loadI2Snatcher(data.token)]);
     } catch (error) {
       showStatus(getErrorMessage(error, "Sign-in failed."));
     } finally {
@@ -200,6 +236,27 @@ export default function AdminPage() {
     }
   }
 
+  async function handleI2SnatcherApproval(user: I2SnatcherUser) {
+    const nextApproval = user.approved === 1 ? 0 : 1;
+    setI2SnatcherBusy(user.client_id);
+    try {
+      await request("update-i2snatcher-approval", {
+        clientId: user.client_id,
+        approved: String(nextApproval),
+      }, sessionToken);
+      showStatus(
+        nextApproval === 1 ? "i2Snatcher client approved." : "i2Snatcher approval removed.",
+        "success",
+      );
+      await loadI2Snatcher(sessionToken);
+    } catch (error) {
+      if (error instanceof AdminRequestError && error.status === 401) signOut();
+      showStatus(getErrorMessage(error, "Could not update i2Snatcher access."));
+    } finally {
+      setI2SnatcherBusy(null);
+    }
+  }
+
   async function handleCopyKey() {
     try {
       await navigator.clipboard.writeText(licenseKey);
@@ -212,12 +269,12 @@ export default function AdminPage() {
   return (
     <>
       <Head>
-        <title>QuickText License Admin</title>
+        <title>QuickText and i2Snatcher Admin</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className={styles.page}>
         <main className={styles.panel}>
-          <p className={styles.eyebrow}>QuickText</p>
+          <p className={styles.eyebrow}>Extension Admin</p>
 
           {!initialized ? (
             <p className={styles.intro}>Checking saved session...</p>
@@ -347,6 +404,82 @@ export default function AdminPage() {
                   {tableStatus}
                 </p>
               </section>
+
+              <section className={styles.section} aria-labelledby="i2snatcher-heading">
+                <div className={`${styles.topline} ${styles.sectionHeading}`}>
+                  <div>
+                    <h2 id="i2snatcher-heading">i2Snatcher access</h2>
+                    <p>{i2SnatcherStatus}</p>
+                  </div>
+                  <button
+                    className={styles.secondary}
+                    type="button"
+                    onClick={() => loadI2Snatcher(sessionToken)}
+                  >
+                    Refresh
+                  </button>
+                </div>
+                <div className={styles.stats}>
+                  <div>
+                    <span>Icons copied</span>
+                    <strong>{i2SnatcherStats.copied.toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span>Icons downloaded</span>
+                    <strong>{i2SnatcherStats.downloaded.toLocaleString()}</strong>
+                  </div>
+                </div>
+                <div className={styles.tableWrap}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Extension client ID</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Last seen</th>
+                        <th scope="col">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {i2SnatcherUsers.map((user) => (
+                        <tr key={user.client_id}>
+                          <td>{user.display_name || "—"}</td>
+                          <td><code>{user.client_id}</code></td>
+                          <td className={styles.statusCell}>
+                            {user.approved === 1 ? "Approved (1)" : "Not approved (0)"}
+                          </td>
+                          <td>
+                            <time dateTime={user.last_seen}>
+                              {new Date(user.last_seen).toLocaleString()}
+                            </time>
+                          </td>
+                          <td>
+                            <button
+                              className={user.approved === 1 ? styles.deleteButton : styles.approveButton}
+                              type="button"
+                              disabled={i2SnatcherBusy === user.client_id}
+                              onClick={() => handleI2SnatcherApproval(user)}
+                            >
+                              {i2SnatcherBusy === user.client_id
+                                ? "Saving..."
+                                : user.approved === 1
+                                  ? "Set to 0"
+                                  : "Approve"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {i2SnatcherUsers.length === 0 && (
+                  <p className={styles.tableStatus} role="status">
+                    {i2SnatcherStatus.startsWith("Could not")
+                      ? i2SnatcherStatus
+                      : "No i2Snatcher clients have registered yet."}
+                  </p>
+                )}
+              </section>
             </>
           )}
 
@@ -354,8 +487,8 @@ export default function AdminPage() {
             {status}
           </p>
           <p className={styles.finePrint}>
-            Access is checked by the license service. Keep generated keys private and share them
-            only with their intended recipient.
+            Manage QuickText licenses and i2Snatcher access here. Keep generated license keys
+            private and share them only with their intended recipient.
           </p>
         </main>
       </div>
