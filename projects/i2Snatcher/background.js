@@ -89,7 +89,14 @@ let userStatus = "unknown"; // "approved" | "pending" | "unknown"
 let statusCheckedAt = 0;
 
 // Cache TTL for stored status to avoid frequent remote checks (2 minutes)
-const STATUS_CACHE_TTL = 2 * 60 * 1000;
+const APPROVED_STATUS_CACHE_TTL = 24 * 60 * 60 * 1000;
+const PENDING_STATUS_CACHE_TTL = 2 * 60 * 1000;
+
+function getStatusCacheTtl(status) {
+  return status === "approved"
+    ? APPROVED_STATUS_CACHE_TTL
+    : PENDING_STATUS_CACHE_TTL;
+}
 
 async function getOrCreateClientId() {
   return new Promise((resolve) => {
@@ -132,27 +139,60 @@ async function refreshUserStatus(displayName) {
 
     userStatus = approvalFlag === 1 ? "approved" : "pending";
     statusCheckedAt = Date.now();
-    const totals = {
+    const remoteTotals = {
       copied: Number(data.copied) || 0,
       downloaded: Number(data.downloaded) || 0,
     };
+    const stored = await getLocalStorage(["pendingUsageEvents"]);
+    const pending = Array.isArray(stored.pendingUsageEvents)
+      ? stored.pendingUsageEvents
+      : [];
+    const totals = pending.reduce((current, event) => {
+      if (event.actionType === "copied" || event.actionType === "downloaded") {
+        current[event.actionType] += 1;
+      }
+      return current;
+    }, { ...remoteTotals });
     chrome.storage.local.set({
       clientId: id,
       userStatus,
       statusCheckedAt,
       svgStats: totals,
+      svgCount: totals.copied + totals.downloaded,
     });
     chrome.runtime.sendMessage({
       type: "svgCountUpdated",
       payload: totals,
     }, () => void chrome.runtime.lastError);
+    chrome.runtime.sendMessage({
+      type: "accessStatusUpdated",
+      payload: { status: userStatus },
+    }, () => void chrome.runtime.lastError);
     if (userStatus === "approved") syncPendingUsageEvents();
     return { status: userStatus };
   } catch (error) {
     console.error("Error refreshing user status:", error);
+    const stored = await getLocalStorage(["userStatus", "statusCheckedAt"]).catch(
+      () => ({}),
+    );
+    const cachedStatus =
+      stored.userStatus === "approved" || stored.userStatus === "pending"
+        ? stored.userStatus
+        : userStatus;
+    if (cachedStatus === "approved" || cachedStatus === "pending") {
+      userStatus = cachedStatus;
+      statusCheckedAt = stored.statusCheckedAt || statusCheckedAt;
+      return {
+        status: cachedStatus,
+        error: error instanceof Error ? error.message : "Could not check access.",
+      };
+    }
+
     userStatus = "unknown";
     statusCheckedAt = 0;
-    chrome.storage.local.set({ userStatus, statusCheckedAt });
+    await setLocalStorage({ userStatus, statusCheckedAt }).catch((storageError) => {
+      console.error("Could not save unknown access status:", storageError);
+    });
     return {
       status: userStatus,
       error: error instanceof Error ? error.message : "Could not check access.",
@@ -173,7 +213,7 @@ function isUserAllowedAsync() {
 
         // If we have a recent successful check, use it immediately
         const age = Date.now() - checkedAt;
-        if (age >= 0 && age < STATUS_CACHE_TTL && stored !== "unknown") {
+        if (age >= 0 && age < getStatusCacheTtl(stored) && stored !== "unknown") {
           // cached non-approved decision is recent enough to use
           userStatus = stored;
           statusCheckedAt = checkedAt;
@@ -187,7 +227,7 @@ function isUserAllowedAsync() {
         let timedOut = false;
         const timeout = setTimeout(() => {
           timedOut = true;
-          resolve(false);
+          resolve(stored === "approved");
         }, REFRESH_TIMEOUT);
 
         try {
@@ -214,6 +254,11 @@ function isUserAllowedAsync() {
 let isSyncingUsageEvents = false;
 let usageSyncRequested = false;
 let usageQueueWrite = Promise.resolve();
+const USAGE_SYNC_ALARM = "sync-i2snatcher-usage";
+const USAGE_SYNC_BATCH_SIZE = 100;
+const USAGE_SYNC_QUEUE_THRESHOLD = 10;
+
+chrome.alarms.create(USAGE_SYNC_ALARM, { periodInMinutes: 1 });
 
 function getLocalStorage(keys) {
   return new Promise((resolve, reject) => {
@@ -253,28 +298,42 @@ async function syncPendingUsageEvents() {
         : [];
       if (pending.length === 0) break;
 
-      const event = pending[0];
+      const batch = pending.slice(0, USAGE_SYNC_BATCH_SIZE);
       try {
         const result = await i2SnatcherApiRequest({
-          action: "increment",
+          action: "increment-batch",
           clientId: await getOrCreateClientId(),
-          eventId: event.eventId,
-          actionType: event.actionType,
+          events: batch.map((event) => ({
+            eventId: event.eventId,
+            actionType: event.actionType,
+          })),
         });
         const latest = await getLocalStorage(["pendingUsageEvents"]);
+        const syncedIds = new Set(batch.map((event) => event.eventId));
         const remaining = Array.isArray(latest.pendingUsageEvents)
-          ? latest.pendingUsageEvents.filter(
-              (item) => item.eventId !== event.eventId
-            )
+          ? latest.pendingUsageEvents.filter((item) => !syncedIds.has(item.eventId))
           : [];
         const totals = {
           copied: Number(result.copied) || 0,
           downloaded: Number(result.downloaded) || 0,
         };
-        await setLocalStorage({ pendingUsageEvents: remaining, svgStats: totals });
+        const visibleTotals = remaining.reduce(
+          (current, event) => {
+            if (event.actionType === "copied" || event.actionType === "downloaded") {
+              current[event.actionType] += 1;
+            }
+            return current;
+          },
+          { ...totals },
+        );
+        await setLocalStorage({
+          pendingUsageEvents: remaining,
+          svgStats: visibleTotals,
+          svgCount: visibleTotals.copied + visibleTotals.downloaded,
+        });
         chrome.runtime.sendMessage({
           type: "svgCountUpdated",
-          payload: totals,
+          payload: visibleTotals,
         }, () => void chrome.runtime.lastError);
       } catch (error) {
         if (error instanceof SupabaseRequestError && error.status === 403) {
@@ -311,12 +370,16 @@ function queueUsageEvent(action) {
       };
       totals[action] += 1;
       pending.push({ eventId: crypto.randomUUID(), actionType: action });
-      await setLocalStorage({ svgStats: totals, pendingUsageEvents: pending });
+      await setLocalStorage({
+        svgStats: totals,
+        svgCount: totals.copied + totals.downloaded,
+        pendingUsageEvents: pending,
+      });
       chrome.runtime.sendMessage({
         type: "svgCountUpdated",
         payload: totals,
       }, () => void chrome.runtime.lastError);
-      syncPendingUsageEvents();
+      if (pending.length >= USAGE_SYNC_QUEUE_THRESHOLD) syncPendingUsageEvents();
     })
     .catch((error) => {
       console.error("Could not queue i2Snatcher usage event:", error);
@@ -337,23 +400,25 @@ chrome.storage.local.get(
 async function checkAndNudgeShortcuts() {
   try {
     const commands = await chrome.commands.getAll();
-    const sidePanelCommand = commands.find(
-      (cmd) => cmd.name === "_execute_action"
-    );
     const copyCommand = commands.find((cmd) => cmd.name === "copy_svg");
     const downloadCommand = commands.find((cmd) => cmd.name === "download_svg");
 
     const shortcutsRegistered =
-      sidePanelCommand &&
-      sidePanelCommand.shortcut &&
       copyCommand &&
       copyCommand.shortcut &&
       downloadCommand &&
       downloadCommand.shortcut;
 
-    // Check if we've already shown the nudge
-    chrome.storage.local.get(["shortcutNudgeShown"], (result) => {
-      if (!shortcutsRegistered && !result.shortcutNudgeShown) {
+    chrome.storage.local.get(["shortcutNotificationId"], (result) => {
+      if (shortcutsRegistered) {
+        if (result.shortcutNotificationId) {
+          chrome.notifications.clear(result.shortcutNotificationId);
+          chrome.storage.local.remove("shortcutNotificationId");
+        }
+        return;
+      }
+
+      if (!result.shortcutNotificationId) {
         // Show notification to nudge user
         chrome.notifications.create(
           {
@@ -387,10 +452,9 @@ chrome.notifications.onButtonClicked.addListener(
       ) {
         // Open shortcuts page
         chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-        // Mark nudge as shown
-        chrome.storage.local.set({ shortcutNudgeShown: true });
         // Close notification
         chrome.notifications.clear(notificationId);
+        chrome.storage.local.remove("shortcutNotificationId");
       }
     });
   }
@@ -401,8 +465,8 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   chrome.storage.local.get(["shortcutNotificationId"], (result) => {
     if (result.shortcutNotificationId === notificationId) {
       chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-      chrome.storage.local.set({ shortcutNudgeShown: true });
       chrome.notifications.clear(notificationId);
+      chrome.storage.local.remove("shortcutNotificationId");
     }
   });
 });
@@ -438,6 +502,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 // Check shortcuts on startup
 chrome.runtime.onStartup.addListener(() => {
+  chrome.alarms.create(USAGE_SYNC_ALARM, { periodInMinutes: 1 });
   setTimeout(() => {
     checkAndNudgeShortcuts();
   }, 1000);
@@ -454,10 +519,9 @@ setTimeout(() => {
   refreshUserStatus();
 }, 2000);
 
-// Retry persisted usage events while the extension service worker is active.
-setInterval(() => {
-  syncPendingUsageEvents();
-}, 30000);
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === USAGE_SYNC_ALARM) syncPendingUsageEvents();
+});
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info) => {
@@ -975,7 +1039,35 @@ function extractSvg(action) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "getAccessStatus") {
-    refreshUserStatus().then(sendResponse);
+    chrome.storage.local.get(
+      ["userStatus", "statusCheckedAt"],
+      (stored) => {
+        const cachedStatus = stored.userStatus || "unknown";
+        const checkedAt = stored.statusCheckedAt || 0;
+        const cacheAge = Date.now() - checkedAt;
+        if (cachedStatus !== "unknown" && message.forceRefresh !== true) {
+          sendResponse({ status: cachedStatus });
+          if (cacheAge < 0 || cacheAge >= getStatusCacheTtl(cachedStatus)) {
+            refreshUserStatus();
+          }
+          return;
+        }
+
+        refreshUserStatus().then((result) => {
+          if (result.status === "unknown" && cachedStatus === "approved") {
+            userStatus = cachedStatus;
+            statusCheckedAt = checkedAt;
+            chrome.storage.local.set({
+              userStatus: cachedStatus,
+              statusCheckedAt: checkedAt,
+            });
+            sendResponse({ status: cachedStatus });
+            return;
+          }
+          sendResponse(result);
+        });
+      }
+    );
     return true;
   }
   if (message.action === "requestAccess") {
@@ -1007,7 +1099,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         action: "updateSVGCount",
         count: total,
         payload: localData,
-      });
+      }, () => void chrome.runtime.lastError);
     });
   }
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.alarms.create(USAGE_SYNC_ALARM, { periodInMinutes: 1 });
 });

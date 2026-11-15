@@ -8,5 +8,9 @@
     "skipLibCheck": true,
     "types": ["@figma/plugin-typings"]
   },
-  "exclude": ["oldcode.ts"]
+  "exclude": [
+    "oldcode.ts",
+    "src/supabase.ts",
+    "supabase/functions/**"
+  ]
 }

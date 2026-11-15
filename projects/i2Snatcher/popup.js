@@ -7,8 +7,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const requestAccessButton = document.getElementById("requestAccessButton");
   const checkAccessButton = document.getElementById("checkAccessButton");
   const mainContainer = document.getElementById("container");
+  const accessLoading = document.getElementById("accessLoading");
 
   function showAccessState(result) {
+    accessLoading.hidden = true;
     chrome.storage.sync.get("clientId", (data) => {
       if (data.clientId) {
         document.getElementById("accessClientId").textContent =
@@ -28,19 +30,23 @@ document.addEventListener("DOMContentLoaded", function () {
       accessDescription.textContent =
         "Your request has been sent. i2Snatcher will be available after an admin approves it.";
       accessForm.hidden = true;
+      checkAccessButton.hidden = false;
       accessMessage.textContent = "Access request pending approval.";
     } else {
       accessDescription.textContent =
         "Enter your name to request access to i2Snatcher. You can use the extension after your request is approved.";
       accessForm.hidden = false;
+      checkAccessButton.hidden = false;
       accessMessage.textContent =
         result?.error || "Could not check access. Please try again.";
     }
   }
 
-  function checkAccess() {
+  function checkAccess(forceRefresh = false) {
     accessMessage.textContent = "Checking access...";
-    chrome.runtime.sendMessage({ action: "getAccessStatus" }, (result) => {
+    chrome.runtime.sendMessage(
+      { action: "getAccessStatus", forceRefresh },
+      (result) => {
       if (chrome.runtime.lastError) {
         showAccessState({
           status: "unknown",
@@ -49,7 +55,8 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
       showAccessState(result);
-    });
+      }
+    );
   }
 
   chrome.storage.sync.get(["accessRequestName", "clientId"], (data) => {
@@ -85,8 +92,20 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  checkAccessButton.addEventListener("click", checkAccess);
-  checkAccess();
+  checkAccessButton.addEventListener("click", () => checkAccess(true));
+  chrome.storage.local.get("userStatus", (data) => {
+    if (data.userStatus === "approved") {
+      accessLoading.hidden = true;
+      accessGate.hidden = true;
+      mainContainer.style.display = "block";
+    } else {
+      accessLoading.hidden = true;
+      accessGate.hidden = false;
+      accessForm.hidden = true;
+      checkAccessButton.hidden = true;
+    }
+    checkAccess();
+  });
 
   const iconTab = document.getElementById("iconTab");
   const imageTab = document.getElementById("imageTab");
@@ -751,7 +770,6 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       const commands = await chrome.commands.getAll();
       const shortcutNames = {
-        _execute_action: "Alt+Shift+P",
         copy_svg: "Alt+Shift+C",
         download_svg: "Alt+Shift+D",
       };
@@ -764,15 +782,19 @@ document.addEventListener("DOMContentLoaded", function () {
       const shortcutNudgeText = document.getElementById("shortcutNudgeText");
 
       if (missingShortcuts.length > 0 && shortcutNudge) {
-        shortcutNudgeText.textContent = `Set up missing shortcuts: ${missingShortcuts.join(
-          ", "
-        )}`;
+        shortcutNudgeText.textContent = `Set up missing shortcuts: ${missingShortcuts.join(", ")}`;
         shortcutNudge.style.display = "block";
-        setupShortcutsBtn.addEventListener("click", () => {
+        setupShortcutsBtn?.addEventListener("click", () => {
           chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
         });
       } else if (shortcutNudge) {
         shortcutNudge.style.display = "none";
+        chrome.storage.local.get("shortcutNotificationId", (data) => {
+          if (data.shortcutNotificationId) {
+            chrome.notifications.clear(data.shortcutNotificationId);
+            chrome.storage.local.remove("shortcutNotificationId");
+          }
+        });
       }
     } catch (error) {
       console.error("Error checking shortcuts:", error);
@@ -785,8 +807,29 @@ document.addEventListener("DOMContentLoaded", function () {
 chrome.runtime.sendMessage({ action: "getSVGCount" });
 
 chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "accessStatusUpdated") {
+    const accessGate = document.getElementById("accessGate");
+    const mainContainer = document.getElementById("container");
+    if (accessGate && mainContainer && message.payload?.status === "approved") {
+      accessGate.hidden = true;
+      mainContainer.style.display = "block";
+    } else if (accessGate && mainContainer && message.payload?.status === "pending") {
+      accessGate.hidden = false;
+      mainContainer.style.display = "none";
+      document.getElementById("accessRequestForm").hidden = true;
+      document.getElementById("checkAccessButton").hidden = false;
+      document.getElementById("accessDescription").textContent =
+        "Your request has been sent. i2Snatcher will be available after an admin approves it.";
+      document.getElementById("accessMessage").textContent =
+        "Access request pending approval.";
+    }
+  }
+
   if (message.type === "svgCountUpdated" || message.action === "updateSVGCount") {
     const { copied = 0, downloaded = 0 } = message.payload || {};
-    chrome.storage.local.set({ svgCount: copied + downloaded });
+    const total = copied + downloaded;
+    const counter = document.getElementById("svgCount");
+    if (counter) counter.innerText = total;
+    chrome.storage.local.set({ svgCount: total });
   }
 });

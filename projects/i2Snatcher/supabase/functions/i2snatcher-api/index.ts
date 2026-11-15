@@ -160,36 +160,61 @@ Deno.serve(async (request) => {
       return jsonResponse({ approved: user.approved, ...(await getStats()) });
     }
 
-    if (payload.action === "increment") {
-      if (
-        payload.actionType !== "copied" &&
-        payload.actionType !== "downloaded"
-      ) {
-        throw new ApiError("Invalid counter action.", 400);
+    if (
+      payload.action === "increment" ||
+      payload.action === "increment-batch"
+    ) {
+      const events = payload.action === "increment"
+        ? [{ eventId: payload.eventId, actionType: payload.actionType }]
+        : payload.events;
+      if (!Array.isArray(events) || events.length < 1 || events.length > 100) {
+        throw new ApiError("Invalid usage event batch.", 400);
       }
-      if (
-        typeof payload.eventId !== "string" ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          payload.eventId,
-        )
-      ) {
-        throw new ApiError("Invalid usage event ID.", 400);
-      }
+      const validatedEvents = events.map((event) => {
+        if (typeof event !== "object" || event === null || Array.isArray(event)) {
+          throw new ApiError("Invalid usage event.", 400);
+        }
+        const usageEvent = event as Record<string, unknown>;
+        if (
+          usageEvent.actionType !== "copied" &&
+          usageEvent.actionType !== "downloaded"
+        ) {
+          throw new ApiError("Invalid counter action.", 400);
+        }
+        if (
+          typeof usageEvent.eventId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            usageEvent.eventId,
+          )
+        ) {
+          throw new ApiError("Invalid usage event ID.", 400);
+        }
+        return {
+          event_id: usageEvent.eventId,
+          action: usageEvent.actionType,
+        };
+      });
 
       const user = await getUser(clientId);
       if (user?.approved !== 1) {
         throw new ApiError("Extension access is not approved.", 403);
       }
 
+      const rpcName = payload.action === "increment"
+        ? "record_i2snatcher_usage"
+        : "record_i2snatcher_usage_batch";
+      const rpcBody = payload.action === "increment"
+        ? {
+          p_client_id: clientId,
+          p_event_id: validatedEvents[0].event_id,
+          p_action: validatedEvents[0].action,
+        }
+        : { p_client_id: clientId, p_events: validatedEvents };
       const result = await supabaseRequest<
         Array<{ copied: number; downloaded: number }>
-      >("rpc/record_i2snatcher_usage", {
+      >(`rpc/${rpcName}`, {
         method: "POST",
-        body: {
-          p_client_id: clientId,
-          p_event_id: payload.eventId,
-          p_action: payload.actionType,
-        },
+        body: rpcBody,
       });
       const totals = result[0];
       if (!totals) throw new ApiError("Counter service returned no totals.", 502);

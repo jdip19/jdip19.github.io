@@ -1,37 +1,5 @@
 import { Product, BadgeType } from "./data";
 
-function ProductIcon({ icon, color }: { icon: string; color: string }) {
-  if (icon === "text") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <path d="M4 6H24M4 10H16M4 14H20M4 18H13" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <circle cx="21" cy="18" r="4" fill={color} fillOpacity="0.15" stroke={color} strokeWidth="1.5" />
-        <path d="M21 16.5V19.5M19.5 18H22.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (icon === "image") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <rect x="3" y="5" width="22" height="18" rx="3" stroke={color} strokeWidth="1.5" fill={`${color}18`} />
-        <circle cx="9" cy="11" r="2" fill={color} />
-        <path d="M3 19L9 13L13 17L17 13L25 21" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (icon === "data") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <rect x="3" y="5" width="10" height="7" rx="2" stroke={color} strokeWidth="1.5" fill={`${color}18`} />
-        <rect x="15" y="5" width="10" height="7" rx="2" stroke={color} strokeWidth="1.5" fill={`${color}18`} />
-        <rect x="9" y="16" width="10" height="7" rx="2" stroke={color} strokeWidth="1.5" fill={color} fillOpacity="0.2" />
-        <path d="M8 12L8 16M20 12L20 16M14 16L14 19" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  return null;
-}
-
 function Badge({ type }: { type: BadgeType }) {
   const styles: Record<BadgeType, string> = {
     Free: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -54,7 +22,12 @@ export default function ProductCard({ product }: { product: Product }) {
       <div
         className={`w-14 h-14 rounded-2xl ${product.accentBg} flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300`}
       >
-        <ProductIcon icon={product.icon} color={product.iconColor} />
+        <img
+          src={product.iconSrc}
+          alt=""
+          aria-hidden="true"
+          className="w-12 h-12 object-contain"
+        />
       </div>
 
       {/* Header */}
@@ -72,7 +45,7 @@ export default function ProductCard({ product }: { product: Product }) {
       {/* Footer */}
       <div className="flex items-center justify-between mt-auto">
         {/* Downloads */}
-        <div className="flex items-center gap-1.5 text-sm text-stone-400">
+        {/* <div className="flex items-center gap-1.5 text-sm text-stone-400">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1V9M7 9L4 6M7 9L10 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M2 11H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -80,11 +53,14 @@ export default function ProductCard({ product }: { product: Product }) {
           <span>
             <strong className="text-stone-600 font-semibold">{product.downloads}</strong> downloads
           </span>
-        </div>
+        </div> */}
 
         {/* CTA */}
         <a
           href={product.ctaHref}
+          target={product.ctaExternal ? "_blank" : undefined}
+          rel={product.ctaExternal ? "noopener noreferrer" : undefined}
+          download={product.ctaDownload ? "i2Snatcher.zip" : undefined}
           className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
           style={{ backgroundColor: product.iconColor }}
           aria-label={`${product.ctaLabel} — ${product.name}`}

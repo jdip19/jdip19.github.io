@@ -6,6 +6,9 @@ SHIFT + ALT + D: Download SVG Icon.
 If a shortcut does not work, open chrome://extensions/shortcuts and assign an
 available shortcut. Chrome reserves some shortcut combinations for browser
 features, so the assigned shortcut shown there may differ from the default.
+The setup reminder only checks the Copy and Download shortcuts; it hides the
+next time you open the extension popup after both are assigned. Opening the
+side panel with a shortcut is optional.
 Lightweight and efficient for seamless file handling.
 
 Color Mapping:
@@ -40,10 +43,22 @@ i2Snatcher service-role key private and never put it in this extension.
 
 Users without approval see a request screen instead of the icon tools. They
 submit a display name alongside their extension client ID; requests appear in
-the admin panel for approval. After deploying changes, apply the new
+the admin panel for approval. Previously approved users see the tools
+immediately from the cached approval status while the extension refreshes that
+status silently in the background at most once every 24 hours. A manual
+"Check access status" action performs an immediate refresh. Pending access is
+rechecked every two minutes so approvals take effect promptly. When offline, a
+previously cached approval remains usable; a remote revocation is applied on
+the next successful refresh. After deploying changes, apply the new
 `20261113010000_i2snatcher_display_name.sql` and
 `20261113020000_i2snatcher_numeric_approval.sql` migrations, then redeploy
 `i2snatcher-api` and the QuicText `admin-licenses` function.
+
+Usage counters update locally immediately and sync in batches of up to 100
+events, at most once per minute during normal use. A full batch syncs
+immediately. Apply `20261115000000_batch_i2snatcher_usage.sql` to add the
+idempotent batch RPC, then redeploy `i2snatcher-api`. Unsent events remain in
+local extension storage and are retried when connectivity returns.
 
 Approval is stored as `approved` with `0` meaning not approved (the default)
 and `1` meaning approved. The `20261113020000_i2snatcher_numeric_approval.sql`
@@ -63,7 +78,15 @@ characters); existing clients without a saved name must submit one before
 their request can be registered.
 
 
-How to Load the Extension
+Install from the Quiclab download
+1. Download `i2Snatcher.zip` from the Quiclab tools page and extract it.
+2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
+3. Enable Developer mode, choose Load unpacked, and select the extracted
+   `i2Snatcher` folder containing `manifest.json`.
+4. The extension icon appears in the browser toolbar. Chrome 114 or newer is
+   required.
+
+How to Load the Extension Manually
 For Chrome/Edge:
 Download the Extension Files:
 

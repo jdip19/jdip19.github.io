@@ -4,6 +4,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://jdip19.github.io",
   "https://jdip19.github.com",
   "https://quiclab.tech",
+  "https://www.quiclab.tech",
   "http://localhost:3000",
   "http://localhost:5500",
 ];
@@ -25,6 +26,31 @@ function jsonResponse(
     headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   }
   return new Response(JSON.stringify(body), { status, headers });
+}
+
+function resourceErrorMessage(
+  operation: string,
+  title: string,
+  status: number,
+  responseBody: string,
+): string {
+  let databaseError = "";
+  try {
+    const parsed: unknown = JSON.parse(responseBody);
+    if (typeof parsed === "object" && parsed !== null) {
+      const error = parsed as Record<string, unknown>;
+      const code = typeof error.code === "string" ? error.code : "";
+      const message = typeof error.message === "string"
+        ? error.message.replace(/\s+/g, " ").slice(0, 240)
+        : "";
+      databaseError = [code, message].filter(Boolean).join(": ");
+    }
+  } catch {
+    // Non-JSON gateway responses are represented by their HTTP status only.
+  }
+
+  const reason = databaseError ? `: ${databaseError}` : ".";
+  return `Could not ${operation} ${title} (database HTTP ${status})${reason}`;
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {
@@ -124,14 +150,183 @@ function isValidEmail(value: unknown): value is string {
     && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+type ResourceField = {
+  key: string;
+  label: string;
+  type: "text" | "email" | "number" | "boolean" | "datetime";
+  editable?: boolean;
+  create?: boolean;
+  required?: boolean;
+  defaultValue?: string | number | boolean;
+};
+
+type ManagedResource = {
+  id: string;
+  tool: string;
+  title: string;
+  description: string;
+  project: "quicktext" | "i2snatcher";
+  table: string;
+  primaryKey: string;
+  filters?: Record<string, string>;
+  permissions: { view: boolean; create: boolean; edit: boolean; delete: boolean };
+  fields: ResourceField[];
+};
+
+const RESOURCE_REGISTRY: ManagedResource[] = [
+  {
+    id: "quicktext-licenses",
+    tool: "QuickText",
+    title: "License keys",
+    description: "Customer Pro licenses. Keys are read-only; edit customer details or revoke a key.",
+    project: "quicktext",
+    table: "licenses",
+    primaryKey: "id",
+    filters: { plugin: "eq.quictext" },
+    permissions: { view: true, create: false, edit: true, delete: true },
+    fields: [
+      { key: "id", label: "ID", type: "number" },
+      { key: "serial_key", label: "License key", type: "text" },
+      { key: "email", label: "Customer email", type: "email", editable: true, required: true },
+      { key: "plan", label: "Plan", type: "text", editable: true, required: true },
+      { key: "license_type", label: "License type", type: "text", editable: true, required: true },
+      { key: "unlimited", label: "Unlimited", type: "boolean", editable: true },
+      { key: "source", label: "Source", type: "text" },
+    ],
+  },
+  {
+    id: "i2snatcher-users",
+    tool: "i2Snatcher",
+    title: "Extension users",
+    description: "Manage client access and profile names. Deleting a client may be prevented while usage history references it.",
+    project: "i2snatcher",
+    table: "i2snatcher_users",
+    primaryKey: "client_id",
+    permissions: { view: true, create: true, edit: true, delete: true },
+    fields: [
+      { key: "client_id", label: "Client ID", type: "text", create: true, required: true },
+      { key: "display_name", label: "Name", type: "text", editable: true, create: true, required: true },
+      { key: "approved", label: "Approved", type: "number", editable: true, create: true, required: true, defaultValue: 0 },
+      { key: "created_at", label: "Created", type: "datetime" },
+      { key: "last_seen", label: "Last seen", type: "datetime" },
+    ],
+  },
+  {
+    id: "i2snatcher-stats",
+    tool: "i2Snatcher",
+    title: "Usage counters",
+    description: "Current aggregate totals. Edit only when correcting a verified count; event history is unchanged.",
+    project: "i2snatcher",
+    table: "i2snatcher_stats",
+    primaryKey: "singleton",
+    filters: { singleton: "eq.true" },
+    permissions: { view: true, create: false, edit: true, delete: false },
+    fields: [
+      { key: "singleton", label: "Stats row", type: "boolean" },
+      { key: "copied", label: "Icons copied", type: "number", editable: true, required: true },
+      { key: "downloaded", label: "Icons downloaded", type: "number", editable: true, required: true },
+    ],
+  },
+  {
+    id: "i2snatcher-events",
+    tool: "i2Snatcher",
+    title: "Usage events",
+    description: "Append-only event history. Read-only to preserve counter and audit integrity.",
+    project: "i2snatcher",
+    table: "i2snatcher_usage_events",
+    primaryKey: "event_id",
+    permissions: { view: true, create: false, edit: false, delete: false },
+    fields: [
+      { key: "event_id", label: "Event ID", type: "text" },
+      { key: "client_id", label: "Client ID", type: "text" },
+      { key: "action", label: "Action", type: "text" },
+      { key: "created_at", label: "Created", type: "datetime" },
+    ],
+  },
+];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getResource(resourceId: unknown): ManagedResource | undefined {
+  return typeof resourceId === "string"
+    ? RESOURCE_REGISTRY.find((resource) => resource.id === resourceId)
+    : undefined;
+}
+
+function validateResourceValue(field: ResourceField, value: unknown): boolean {
+  if (value === null) return !field.required;
+  switch (field.type) {
+    case "text":
+      if (typeof value !== "string" || value.length > 512) return false;
+      if (field.key === "client_id") return /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+      return !field.required || value.trim().length > 0;
+    case "email":
+      return isValidEmail(value);
+    case "number":
+      return typeof value === "number"
+        && Number.isSafeInteger(value)
+        && value >= 0
+        && (field.key !== "approved" || value === 0 || value === 1);
+    case "boolean":
+      return typeof value === "boolean";
+    case "datetime":
+      return false;
+  }
+}
+
+function getResourceValues(
+  resource: ManagedResource,
+  values: unknown,
+  operation: "create" | "edit",
+): Record<string, unknown> | null {
+  if (!isRecord(values)) return null;
+  const allowedFields = resource.fields.filter((field) =>
+    operation === "create" ? field.create : field.editable
+  );
+  const entries = Object.entries(values);
+  if (entries.length === 0 || entries.some(([key]) =>
+    !allowedFields.some((field) => field.key === key)
+  )) return null;
+
+  const result: Record<string, unknown> = {};
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(values, field.key)) {
+      const value = values[field.key];
+      if (!validateResourceValue(field, value)) return null;
+      result[field.key] = typeof value === "string" ? value.trim() : value;
+    } else if (operation === "create" && field.defaultValue !== undefined) {
+      result[field.key] = field.defaultValue;
+    } else if (operation === "create" && field.required) {
+      return null;
+    }
+  }
+  return result;
+}
+
+function isValidResourceKey(resource: ManagedResource, value: unknown): value is string | number | boolean {
+  if (resource.primaryKey === "id") {
+    return (typeof value === "number" && Number.isSafeInteger(value) && value > 0)
+      || (typeof value === "string" && (/^\d{1,18}$/.test(value)
+        || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)));
+  }
+  if (resource.primaryKey === "client_id") {
+    return typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+  }
+  if (resource.primaryKey === "event_id") {
+    return typeof value === "string"
+      && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+  return resource.primaryKey === "singleton" && value === true;
+}
+
 Deno.serve(async (request) => {
   const configuredOrigins = (Deno.env.get("ADMIN_ALLOWED_ORIGINS") ?? "")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
-  const allowedOrigins = configuredOrigins.length > 0
-    ? configuredOrigins
-    : DEFAULT_ALLOWED_ORIGINS;
+  const allowedOrigins = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...configuredOrigins])];
   const origin = request.headers.get("Origin");
 
   if (origin && !allowedOrigins.includes(origin)) {
@@ -188,6 +383,26 @@ Deno.serve(async (request) => {
     return jsonResponse({ authenticated: true }, 200, origin, allowedOrigins);
   }
 
+  if (body.action === "get-admin-registry") {
+    return jsonResponse({
+      resources: RESOURCE_REGISTRY.map((resource) => ({
+        id: resource.id,
+        tool: resource.tool,
+        title: resource.title,
+        description: resource.description,
+        projectUrl: resource.project === "quicktext"
+          ? "https://kmkjuuytbgpozrigspgw.supabase.co"
+          : "https://jfxwmldeikfmiwhjnsgg.supabase.co",
+        projectConfigured: resource.project === "quicktext"
+          ? Boolean(Deno.env.get("SUPABASE_URL") && Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))
+          : Boolean(Deno.env.get("I2SNATCHER_SUPABASE_URL") && Deno.env.get("I2SNATCHER_SERVICE_ROLE_KEY")),
+        primaryKey: resource.primaryKey,
+        permissions: resource.permissions,
+        fields: resource.fields,
+      })),
+    }, 200, origin, allowedOrigins);
+  }
+
   const allowedActions = [
     "create-license",
     "list-licenses",
@@ -195,6 +410,10 @@ Deno.serve(async (request) => {
     "list-i2snatcher-users",
     "update-i2snatcher-approval",
     "get-i2snatcher-stats",
+    "list-resource",
+    "create-resource",
+    "update-resource",
+    "delete-resource",
   ];
   if (!allowedActions.includes(String(body.action))) {
     return jsonResponse({ error: "Unknown action." }, 400, origin, allowedOrigins);
@@ -212,6 +431,157 @@ Deno.serve(async (request) => {
     apikey: serviceRoleKey,
     Authorization: `Bearer ${serviceRoleKey}`,
   };
+
+  if (String(body.action).endsWith("-resource")) {
+    const resource = getResource(body.resourceId);
+    if (!resource) {
+      return jsonResponse({ error: "Unknown managed resource." }, 404, origin, allowedOrigins);
+    }
+
+    const operation = String(body.action).slice(0, -"-resource".length);
+    const allowed = operation === "list"
+      ? resource.permissions.view
+      : operation === "create"
+        ? resource.permissions.create
+        : operation === "update"
+          ? resource.permissions.edit
+          : operation === "delete"
+            ? resource.permissions.delete
+            : false;
+    if (!allowed) {
+      return jsonResponse({ error: `This resource does not allow ${operation}.` }, 403, origin, allowedOrigins);
+    }
+
+    let resourceUrl = supabaseUrl.replace(/\/+$/, "");
+    let resourceKey = serviceRoleKey;
+    if (resource.project === "i2snatcher") {
+      const configuredUrl = Deno.env.get("I2SNATCHER_SUPABASE_URL");
+      const configuredKey = Deno.env.get("I2SNATCHER_SERVICE_ROLE_KEY");
+      if (!configuredUrl || !configuredKey) {
+        console.error("Admin function requires I2SNATCHER_SUPABASE_URL and I2SNATCHER_SERVICE_ROLE_KEY.");
+        return jsonResponse({ error: "i2Snatcher storage is not configured." }, 500, origin, allowedOrigins);
+      }
+      resourceUrl = configuredUrl.replace(/\/+$/, "");
+      resourceKey = configuredKey;
+    }
+
+    const resourceHeaders = {
+      apikey: resourceKey,
+      Authorization: `Bearer ${resourceKey}`,
+    };
+    const tableUrl = `${resourceUrl}/rest/v1/${encodeURIComponent(resource.table)}`;
+    const query = new URLSearchParams({
+      select: resource.fields.map((field) => field.key).join(","),
+    });
+    for (const [key, value] of Object.entries(resource.filters ?? {})) query.set(key, value);
+
+    try {
+      if (operation === "list") {
+        query.set("order", `${resource.primaryKey}.desc`);
+        const offset = body.offset === undefined ? 0 : body.offset;
+        if (typeof offset !== "number" || !Number.isSafeInteger(offset) || offset < 0 || offset > 10_000_000) {
+          return jsonResponse({ error: "Invalid resource page offset." }, 400, origin, allowedOrigins);
+        }
+        const pageSize = 100;
+        const response = await fetch(`${tableUrl}?${query}`, {
+          headers: {
+            ...resourceHeaders,
+            Prefer: "count=exact",
+            Range: `${offset}-${offset + pageSize}`,
+          },
+        });
+        if (!response.ok) {
+          const details = await response.text();
+          const error = resourceErrorMessage("load", resource.title, response.status, details);
+          console.error(`Managed resource list failed (${resource.id}):`, error, details);
+          return jsonResponse({ error }, 502, origin, allowedOrigins);
+        }
+        const page: unknown = await response.json();
+        if (!Array.isArray(page)) {
+          return jsonResponse({ error: "The database returned an invalid resource list." }, 502, origin, allowedOrigins);
+        }
+        return jsonResponse({
+          rows: page.slice(0, pageSize),
+          hasMore: page.length > pageSize,
+          total: Number(response.headers.get("Content-Range")?.split("/")[1]) || page.length,
+        }, 200, origin, allowedOrigins);
+      }
+
+      if (operation === "create") {
+        const values = getResourceValues(resource, body.values, "create");
+        if (!values) {
+          return jsonResponse({ error: "One or more create fields are invalid or not permitted." }, 400, origin, allowedOrigins);
+        }
+        const response = await fetch(tableUrl, {
+          method: "POST",
+          headers: {
+            ...resourceHeaders,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify(values),
+        });
+        if (!response.ok) {
+          const details = await response.text();
+          console.error(`Managed resource create failed (${resource.id}):`, response.status, details);
+          return jsonResponse({ error: `Could not create ${resource.title}.` }, 502, origin, allowedOrigins);
+        }
+        return jsonResponse({ row: (await response.json())[0] }, 201, origin, allowedOrigins);
+      }
+
+      if (!isValidResourceKey(resource, body.key)) {
+        return jsonResponse({ error: "Invalid resource record key." }, 400, origin, allowedOrigins);
+      }
+      query.set(resource.primaryKey, `eq.${String(body.key)}`);
+
+      if (operation === "update") {
+        const values = getResourceValues(resource, body.values, "edit");
+        if (!values) {
+          return jsonResponse({ error: "One or more edit fields are invalid or not permitted." }, 400, origin, allowedOrigins);
+        }
+        const response = await fetch(`${tableUrl}?${query}`, {
+          method: "PATCH",
+          headers: {
+            ...resourceHeaders,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify(values),
+        });
+        if (!response.ok) {
+          const details = await response.text();
+          console.error(`Managed resource update failed (${resource.id}):`, response.status, details);
+          return jsonResponse({ error: `Could not update ${resource.title}.` }, 502, origin, allowedOrigins);
+        }
+        const rows: unknown = await response.json();
+        if (!Array.isArray(rows) || rows.length === 0) {
+          return jsonResponse({ error: "The resource record was not found." }, 404, origin, allowedOrigins);
+        }
+        return jsonResponse({ row: rows[0] }, 200, origin, allowedOrigins);
+      }
+
+      const response = await fetch(`${tableUrl}?${query}`, {
+        method: "DELETE",
+        headers: { ...resourceHeaders, Prefer: "return=representation" },
+      });
+      if (!response.ok) {
+        const details = await response.text();
+        console.error(`Managed resource delete failed (${resource.id}):`, response.status, details);
+        return jsonResponse({ error: `Could not delete ${resource.title}. The record may be referenced by other data.` }, 502, origin, allowedOrigins);
+      }
+      const rows: unknown = await response.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return jsonResponse({ error: "The resource record was not found." }, 404, origin, allowedOrigins);
+      }
+      return jsonResponse({ deleted: true }, 200, origin, allowedOrigins);
+    } catch (error) {
+      console.error(`Managed resource request failed (${resource.id}):`, error);
+      const detail = error instanceof Error ? `: ${error.message.slice(0, 240)}` : "";
+      return jsonResponse({
+        error: `Could not complete the ${operation} request for ${resource.title}${detail}`,
+      }, 502, origin, allowedOrigins);
+    }
+  }
 
   const i2SnatcherActions = [
     "list-i2snatcher-users",
