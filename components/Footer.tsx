@@ -25,10 +25,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2.5 mb-4 w-fit">
-              <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
-                <img src="/quiclab.svg" alt="Quiclab Logo" className="" />
-              </div>
-              <span className="font-display text-xl text-stone-900">Quiclab</span>
+              <img src="/quiclab.svg" alt="Quiclab Logo" className="h-8" />
             </Link>
             <p className="text-stone-500 text-sm leading-relaxed max-w-[220px]">
               Lightweight productivity tools for creators and developers.

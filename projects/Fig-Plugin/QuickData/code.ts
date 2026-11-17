@@ -93,15 +93,24 @@ figma.clientStorage.getAsync("lastSheetUrl").then((savedUrl) => {
   }
 });
 
-const getLayerSequenceOrder = (layer: SceneNode): number => {
-  if (layer.parent && "children" in layer.parent) {
-    const parentIndex = layer.parent.children.indexOf(layer);
-    if (parentIndex >= 0) {
-      return parentIndex;
-    }
-  }
+const getLayerPanelOrder = (): Map<SceneNode, number> => {
+  const layerOrder = new Map<SceneNode, number>();
+  let order = 0;
 
-  return layer.y;
+  const visit = (nodes: readonly SceneNode[], followsAutoLayout: boolean) => {
+    const orderedNodes = followsAutoLayout ? nodes : nodes.slice().reverse();
+    for (const node of orderedNodes) {
+      layerOrder.set(node, order++);
+      if ("children" in node) {
+        const usesAutoLayout =
+          "layoutMode" in node && node.layoutMode !== "NONE";
+        visit(node.children, usesAutoLayout);
+      }
+    }
+  };
+
+  visit(figma.currentPage.children, false);
+  return layerOrder;
 };
 
 const syncSelectedLayersToHeader = (headerName: string) => {
@@ -146,16 +155,14 @@ figma.ui.onmessage = async (msg: any) => {
       return;
     }
 
+    const layerPanelOrder = getLayerPanelOrder();
     const selection = figma.currentPage.selection
       .slice()
-      .sort((a, b) => {
-        const layerOrderDiff = getLayerSequenceOrder(a) - getLayerSequenceOrder(b);
-        if (layerOrderDiff !== 0) {
-          return layerOrderDiff;
-        }
-
-        return a.y - b.y;
-      });
+      .sort(
+        (a, b) =>
+          (layerPanelOrder.get(a) ?? Number.MAX_SAFE_INTEGER) -
+          (layerPanelOrder.get(b) ?? Number.MAX_SAFE_INTEGER),
+      );
 
     if (selection.length === 0) {
       figma.notify("Please select at least one layer. 😊");
@@ -235,15 +242,7 @@ figma.ui.onmessage = async (msg: any) => {
 
       for (const prefix of orderedPrefixes) {
         const layers = layerGroups[prefix]
-          ? layerGroups[prefix].slice().sort((a, b) => {
-              const orderDiff = getLayerSequenceOrder(a) - getLayerSequenceOrder(b);
-
-              if (orderDiff !== 0) {
-                return orderDiff;
-              }
-
-              return a.y - b.y;
-            })
+          ? layerGroups[prefix]
           : [];
         const columnIndex = columnMap[prefix];
 

@@ -1,12 +1,117 @@
+import { useEffect, useState } from "react";
+import { products } from "./data";
+
+const headlines = [
+  "Make more.",
+  "Repeat less.",
+  "Create faster.",
+  "Work smarter.",
+];
+
 export default function Hero() {
+  const [headline, setHeadline] = useState(headlines[0]);
+  const [clickPulse, setClickPulse] = useState<{
+    x: number;
+    y: number;
+    id: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    let phraseIndex = 0;
+    let characterIndex = headlines[0].length;
+    let deleting = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const typeNextCharacter = () => {
+      const phrase = headlines[phraseIndex];
+
+      if (deleting) {
+        characterIndex -= 1;
+        setHeadline(phrase.slice(0, characterIndex));
+        if (characterIndex === 0) {
+          deleting = false;
+          phraseIndex = (phraseIndex + 1) % headlines.length;
+          timeoutId = setTimeout(typeNextCharacter, 300);
+          return;
+        }
+      } else {
+        characterIndex += 1;
+        setHeadline(phrase.slice(0, characterIndex));
+        if (characterIndex === phrase.length) {
+          deleting = true;
+          timeoutId = setTimeout(typeNextCharacter, 1400);
+          return;
+        }
+      }
+
+      timeoutId = setTimeout(typeNextCharacter, deleting ? 45 : 90);
+    };
+
+    timeoutId = setTimeout(typeNextCharacter, 1400);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const pointerX = (event.clientX - bounds.left - bounds.width / 2) * 0.06;
+    const pointerY = (event.clientY - bounds.top - bounds.height / 2) * 0.06;
+    event.currentTarget.style.setProperty(
+      "--pointer-x",
+      `${pointerX}px`,
+    );
+    event.currentTarget.style.setProperty(
+      "--pointer-y",
+      `${pointerY}px`,
+    );
+    event.currentTarget.style.setProperty(
+      "--pointer-reverse-x",
+      `${pointerX * -1.5}px`,
+    );
+    event.currentTarget.style.setProperty(
+      "--pointer-reverse-y",
+      `${pointerY * -1.5}px`,
+    );
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    setClickPulse((pulse) => ({
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+      id: (pulse?.id ?? 0) + 1,
+    }));
+  };
+
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
+    <section
+      className="relative min-h-screen flex items-center overflow-hidden pt-16"
+      onPointerMove={handlePointerMove}
+      onPointerDown={handlePointerDown}
+    >
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Large primary orb */}
-        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-primary-100 to-primary-50 opacity-60 blur-3xl" />
+        <div
+          className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-primary-100 to-primary-50 opacity-60 blur-3xl transition-transform duration-300 ease-out"
+          style={{ transform: "translate(var(--pointer-x, 0px), var(--pointer-y, 0px))" }}
+        />
         {/* Small accent */}
-        <div className="absolute bottom-20 -left-20 w-72 h-72 rounded-full bg-gradient-to-tr from-amber-100 to-transparent opacity-40 blur-2xl" />
+        <div
+          className="absolute bottom-20 -left-20 w-72 h-72 rounded-full bg-gradient-to-tr from-amber-100 to-transparent opacity-40 blur-2xl transition-transform duration-500 ease-out"
+          style={{ transform: "translate(var(--pointer-reverse-x, 0px), var(--pointer-reverse-y, 0px))" }}
+        />
+        {clickPulse && (
+          <div
+            key={clickPulse.id}
+            className="absolute w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-200/50 animate-ping"
+            style={{ left: clickPulse.x, top: clickPulse.y }}
+            onAnimationEnd={() => setClickPulse(null)}
+          />
+        )}
         {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.025]"
@@ -17,9 +122,9 @@ export default function Hero() {
         />
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-24 grid lg:grid-cols-2 gap-16 items-center">
+      <div className="relative w-full max-w-6xl mx-auto px-5 sm:px-8 py-24">
         {/* Text content */}
-        <div>
+        <div className="mx-auto max-w-3xl text-center">
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full bg-primary-100 border border-primary-200">
             <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
@@ -29,20 +134,25 @@ export default function Hero() {
           </div>
 
           {/* Headline */}
-          <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl text-stone-900 leading-[1.05] mb-6">
-            Build faster.{" "}
-            <span className="italic text-primary-500">Create</span>{" "}
-            better.
+          <h1
+            aria-label="Make more. Repeat less."
+            className="font-display text-[clamp(2rem,8vw,4.5rem)] text-stone-900 leading-[1.05] mb-6 whitespace-nowrap"
+          >
+            <span aria-hidden="true">{headline}</span>
+            <span
+              aria-hidden="true"
+              className="ml-1 inline-block h-[0.8em] w-[2px] translate-y-[0.08em] animate-pulse bg-primary-500"
+            />
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-stone-500 leading-relaxed mb-10 max-w-lg">
+          <p className="text-lg sm:text-xl text-stone-500 leading-relaxed mb-10 max-w-lg mx-auto">
             Quiclab builds lightweight productivity tools designed for creators
             and developers who refuse to waste time on repetitive work.
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
             <a
               href="#products"
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-stone-900 text-white font-medium hover:bg-primary-500 transition-all duration-200 shadow-md hover:shadow-primary-200 hover:-translate-y-0.5"
@@ -61,74 +171,24 @@ export default function Hero() {
           </div>
 
           {/* Social proof */}
-          <div className="mt-10 flex items-center gap-4 text-sm text-stone-400">
+          <div className="mt-10 flex items-center justify-center gap-4 text-sm text-stone-400">
             <div className="flex -space-x-2">
-              {["#f97316", "#16a34a", "#7c3aed", "#0284c7"].map((color, i) => (
+              {products.map((product) => (
                 <div
-                  key={i}
-                  className="w-7 h-7 rounded-full border-2 border-[#fefdf9] flex items-center justify-center text-white text-[10px] font-bold"
-                  style={{ backgroundColor: color }}
+                  key={product.id}
+                  className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center"
                 >
-                  {["A", "B", "C", "D"][i]}
+                  <img
+                    src={product.iconSrc}
+                    alt={product.name}
+                    className="w-full h-full object-contain p-0.5"
+                  />
                 </div>
               ))}
             </div>
             <span>
-              <strong className="text-stone-700">4,000+</strong> downloads across all tools
+              <strong className="text-stone-700">2500+</strong> downloads across all tools
             </span>
-          </div>
-        </div>
-
-        {/* Illustration / Visual */}
-        <div className="relative flex items-center justify-center">
-          <div className="relative w-full max-w-md mx-auto animate-[float_6s_ease-in-out_infinite]">
-            {/* Main card illustration */}
-            <div className="relative bg-white rounded-3xl shadow-2xl shadow-stone-200 p-8 border border-stone-100">
-              {/* Mock UI header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-                <div className="w-24 h-2 rounded-full bg-stone-100" />
-              </div>
-
-              {/* Mock content rows */}
-              {[
-                { w: "w-full", color: "bg-primary-100", accent: true },
-                { w: "w-4/5", color: "bg-stone-100", accent: false },
-                { w: "w-3/4", color: "bg-stone-100", accent: false },
-                { w: "w-5/6", color: "bg-stone-100", accent: false },
-              ].map((row, i) => (
-                <div key={i} className="flex items-center gap-3 mb-3">
-                  <div
-                    className={`h-2.5 rounded-full ${row.w} ${row.color} ${row.accent ? "opacity-100" : "opacity-60"}`}
-                  />
-                  {row.accent && (
-                    <div className="shrink-0 px-2 py-0.5 rounded-full bg-primary-500 text-white text-[9px] font-bold">
-                      AUTO
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Mock button */}
-              <div className="mt-6 h-9 rounded-xl bg-primary-500 flex items-center justify-center">
-                <div className="w-20 h-2 rounded-full bg-white opacity-90" />
-              </div>
-            </div>
-
-            {/* Floating badges */}
-            <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-lg shadow-stone-200 px-4 py-2.5 border border-stone-100">
-              <div className="text-[11px] text-stone-400 mb-0.5">Downloads</div>
-              <div className="text-lg font-display text-stone-900">4,000<span className="text-primary-500">+</span></div>
-            </div>
-
-            <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg shadow-stone-200 px-4 py-2.5 border border-stone-100">
-              <div className="text-[11px] text-stone-400 mb-0.5">Products</div>
-              <div className="text-lg font-display text-stone-900">3 Tools</div>
-            </div>
           </div>
         </div>
       </div>
